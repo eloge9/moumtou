@@ -1,0 +1,9 @@
+{# En-tête allégé pour les parcours hors navigation principale (auth, publication…),
+   même structure que code/publier.html : marque + libellé de contexte + un lien de sortie. #}
+<header class="m-header">
+  <a class="m-brand" href="{{ path('app_home') }}"><span class="m-brand__mark">M</span>MOUMTOU</a>
+  <span class="fw-semibold d-none d-md-inline">{{ context_label|default('') }}</span>
+  <div class="ms-auto d-flex align-items-center gap-3">
+    <a class="m-btn m-btn--secondaire" href="{{ path('app_home') }}">Retour à l'accueil</a>
+  </div>
+</header>

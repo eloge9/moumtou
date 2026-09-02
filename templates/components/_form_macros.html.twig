@@ -1,0 +1,5 @@
+{# Étiquette de champ suivant la convention déjà présente dans la maquette
+   (moderation.html : "Motif enregistré <span style=\"color:var(--m-bleu)\">obligatoire</span>"). #}
+{% macro label(field, text, obligatoire) %}
+<label class="m-label" for="{{ field.vars.id }}">{{ text }}{% if obligatoire %} <span style="color:var(--m-bleu)">obligatoire</span>{% endif %}</label>
+{% endmacro %}

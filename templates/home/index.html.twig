@@ -1,0 +1,133 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}MOUMTOU — Montrez ce que vous savez faire{% endblock %}
+
+{% block body %}
+
+<section class="m-hero">
+  <div class="row g-5 align-items-center">
+    <div class="col-lg-6">
+      <span class="m-hero__pilule">Projets réalisés et vérifiés uniquement</span>
+      <h1 class="m-hero__titre mt-3">Montrez ce que vous savez faire, pas ce que vous promettez.</h1>
+      <p class="m-hero__intro mt-3">MOUMTOU transforme vos projets de soutenance, personnels ou professionnels en preuves de compétence visibles par les recruteurs.</p>
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <a class="m-btn m-btn--primaire m-btn--lg" href="{{ path('app_publish_start') }}">Publier mon projet</a>
+        <a class="m-btn m-btn--secondaire m-btn--lg" href="#">Je recrute des talents</a>
+      </div>
+      <div class="d-flex flex-wrap gap-5 mt-5 pt-4" style="border-top:1px solid var(--m-bordure)">
+        <div><div class="m-stat__valeur" style="font-size:26px">{{ stats.projectsCount|default(0)|number_format(0, ',', ' ') }}</div><div class="m-stat__libelle">projets publiés</div></div>
+        <div><div class="m-stat__valeur" style="font-size:26px;color:var(--m-bleu)">{{ stats.verifiedProjectsCount|default(0)|number_format(0, ',', ' ') }}</div><div class="m-stat__libelle">projets vérifiés</div></div>
+        <div><div class="m-stat__valeur" style="font-size:26px">{{ stats.institutionsCount|default(0)|number_format(0, ',', ' ') }}</div><div class="m-stat__libelle">établissements</div></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="m-parcours">
+        <p class="m-surtitre mb-3">Parcours d'un projet</p>
+        <div class="m-parcours__etape"><span class="m-parcours__num">1</span>Le projet est réalisé</div>
+        <div class="m-parcours__trait"></div>
+        <div class="m-parcours__etape"><span class="m-parcours__num">2</span>Les preuves sont déposées</div>
+        <div class="m-parcours__trait"></div>
+        <div class="m-parcours__etape"><span class="m-parcours__num">3</span>Le jury ou l'administrateur vérifie</div>
+        <div class="m-parcours__trait"></div>
+        <div class="m-parcours__etape m-parcours__etape--fin"><span class="m-parcours__num">4</span>Le recruteur trouve le talent</div>
+        <p class="m-avis mt-3 mb-0"><strong>Interdit :</strong> idées de projet non réalisées, appels à financement, recherche d'investisseurs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="m-section">
+  <div class="d-flex align-items-end justify-content-between flex-wrap gap-2">
+    <div>
+      <h2 class="m-section__titre">Projets récemment vérifiés</h2>
+      <p class="m-meta mt-1 mb-0">Chaque projet ci-dessous dispose d'au moins une preuve de réalisation.</p>
+    </div>
+    <a href="#">Explorer les {{ stats.projectsCount|default(0)|number_format(0, ',', ' ') }} projets →</a>
+  </div>
+
+  <div class="row g-3 mt-3">
+    {% for project in recentVerifiedProjects %}
+      <div class="col-lg-4">
+        <article class="m-carte h-100">
+          <div class="m-media m-media--h150">
+            <span class="m-media__etiquette">visuel du projet</span>
+            <span class="m-badge m-badge--type">{{ project.typeLabel }}</span>
+          </div>
+          <div class="m-carte__corps">
+            <span class="m-statut{{ project.verified ? '' : ' m-statut--publie' }}">{{ project.verified ? 'Vérifié par le jury' : 'Publié · preuves fournies' }}</span>
+            <h3 class="m-carte__titre mt-2"><a href="#">{{ project.name }}</a></h3>
+            <p class="m-meta mt-1 mb-0">{{ project.authorName }} · {{ project.contextLabel }}</p>
+            <div class="m-tags mt-3">
+              {% for tech in project.technologies %}<span class="m-tag">{{ tech }}</span>{% endfor %}
+            </div>
+            <div class="m-carte__pied">
+              <span>★ {{ project.ratingAverage|number_format(1, ',') }} <span class="m-meta">({{ project.ratingsCount }})</span></span>
+              <span>{{ project.proofLabels|join(' · ') }}</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    {% else %}
+      <div class="col-12">
+        <p class="m-meta">Aucun projet vérifié pour l'instant.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="m-section m-section--fond">
+  <div class="d-flex align-items-end justify-content-between flex-wrap gap-2">
+    <h2 class="m-section__titre">Soutenances à venir</h2>
+    <a href="#">Voir le calendrier →</a>
+  </div>
+  <div class="row g-3 mt-3">
+    {% for defense in upcomingDefenses %}
+      <div class="col-lg-4">
+        <div class="m-carte m-carte--plate h-100 p-3 d-flex gap-3">
+          <div class="m-date"><div class="m-date__jour">{{ defense.date|date('d') }}</div><div class="m-date__mois">{{ defense.date|date('M')|capitalize }}.</div></div>
+          <div>
+            <p class="fw-bold mb-1" style="font-size:15.5px">{{ defense.projectName }}</p>
+            <p class="m-meta mb-1">{{ defense.specialtyName }} · {{ defense.institutionName }}</p>
+            <p class="m-meta mb-0">{{ defense.time }} · {{ defense.place }} · Jury de {{ defense.juryCount }} membres</p>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="col-12">
+        <p class="m-meta">Aucune soutenance annoncée pour l'instant.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="m-section">
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="m-carte m-carte--plate h-100 p-4">
+        <p class="m-surtitre m-surtitre--bleu mb-2">Talents</p>
+        <h3 style="font-size:19px">Un portfolio qui prouve</h3>
+        <p class="m-texte mt-2 mb-3">Publiez vos projets avec code, vidéo et mémoire. Obtenez la vérification du jury et un QR code à mettre sur votre CV.</p>
+        <a href="{{ path('app_publish_start') }}">Créer mon profil →</a>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="m-carte m-carte--plate h-100 p-4">
+        <p class="m-surtitre m-surtitre--bleu mb-2">Recruteurs</p>
+        <h3 style="font-size:19px">Recruter sur des réalisations</h3>
+        <p class="m-texte mt-2 mb-3">Filtrez par technologie, spécialité et établissement. Consultez les projets avant le premier échange, puis contactez sur WhatsApp.</p>
+        <a href="#">Rechercher un talent →</a>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="m-carte m-carte--plate h-100 p-4">
+        <p class="m-surtitre m-surtitre--bleu mb-2">Établissements</p>
+        <h3 style="font-size:19px">Valoriser vos soutenances</h3>
+        <p class="m-texte mt-2 mb-3">Annoncez les soutenances, laissez le jury confirmer les travaux et rendez visibles les projets de vos étudiants.</p>
+        <a href="#">Référencer mon établissement →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% include 'components/_footer.html.twig' %}
+{% endblock %}

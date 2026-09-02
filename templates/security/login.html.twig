@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion — MOUMTOU{% endblock %}
+
+{% block header %}
+  {% include 'components/_header_minimal.html.twig' with {context_label: 'Se connecter'} %}
+{% endblock %}
+
+{% block body %}
+<section class="m-section d-flex justify-content-center">
+  <div class="col-12 col-md-8 col-lg-5">
+    <div class="text-center mb-4">
+      <h1 style="font-size:26px">Connexion</h1>
+      <p class="m-texte mt-2">Accédez à votre profil, publiez un projet ou gérez votre soutenance.</p>
+    </div>
+
+    <div class="m-carte m-carte--plate p-4">
+      {% if error %}
+        <p class="m-avis mb-3" style="color:#B3261E;background:#FDECEA;border-color:#F5C6C2">
+          {{ error.messageKey|trans(error.messageData, 'security') }}
+        </p>
+      {% endif %}
+
+      <form method="post" novalidate>
+        <div class="mb-3">
+          <label class="m-label" for="username">Adresse e-mail <span style="color:var(--m-bleu)">obligatoire</span></label>
+          <input class="m-input" type="email" id="username" name="_username" value="{{ last_username }}" autocomplete="email" required autofocus>
+        </div>
+
+        <div class="mb-2">
+          <label class="m-label" for="password">Mot de passe <span style="color:var(--m-bleu)">obligatoire</span></label>
+          <input class="m-input" type="password" id="password" name="_password" autocomplete="current-password" required>
+        </div>
+
+        <p class="m-meta mb-4"><a href="#">Mot de passe oublié ?</a></p>
+
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        <button class="m-btn m-btn--primaire m-btn--bloc m-btn--lg" type="submit">Se connecter</button>
+      </form>
+    </div>
+
+    <p class="m-meta text-center mt-3 mb-0">
+      Pas encore de compte ? <a href="{{ path('app_register') }}">Créer un compte</a>
+    </p>
+  </div>
+</section>
+{% endblock %}

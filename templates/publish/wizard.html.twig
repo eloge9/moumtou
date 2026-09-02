@@ -1,0 +1,201 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_form_macros.html.twig' as forms %}
+
+{% block title %}Publier un projet — MOUMTOU{% endblock %}
+
+{% block header %}
+  {% include 'components/_header_minimal.html.twig' with {context_label: 'Publier un projet'} %}
+{% endblock %}
+
+{% block body %}
+{{ form_start(form, {attr: {'data-etapes': true, novalidate: 'novalidate'}}) }}
+
+  <div class="px-4 py-4" style="background:var(--m-fond);border-bottom:1px solid var(--m-bordure)">
+    <div class="m-etapes">
+      <div class="m-etape is-active" data-etape>
+        <span class="m-etape__num">1</span>
+        <span><span class="m-etape__titre d-block">Type de projet</span><span class="m-etape__note">Obligatoire</span></span>
+      </div>
+      <span class="m-etapes__trait" data-etape-trait></span>
+      <div class="m-etape" data-etape>
+        <span class="m-etape__num">2</span>
+        <span><span class="m-etape__titre d-block">Informations</span><span class="m-etape__note">Classification et technologies</span></span>
+      </div>
+      <span class="m-etapes__trait" data-etape-trait></span>
+      <div class="m-etape" data-etape>
+        <span class="m-etape__num">3</span>
+        <span><span class="m-etape__titre d-block">Preuves</span><span class="m-etape__note">Au moins une preuve</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-0">
+    <div class="col-lg-8 p-4" style="border-right:1px solid var(--m-bordure)">
+
+      {% if businessErrors|length %}
+        <div class="m-avis mb-3" style="color:#B3261E;background:#FDECEA;border-color:#F5C6C2">
+          {% for message in businessErrors %}<p class="mb-1">{{ message }}</p>{% endfor %}
+        </div>
+      {% endif %}
+      {{ form_errors(form) }}
+
+      <!-- Étape 1 -->
+      <section class="m-panneau-etape is-active" data-etape-panneau>
+        <h1 style="font-size:24px">Quel type de projet souhaitez-vous publier ?</h1>
+        <p class="m-meta mt-1">Seuls les projets déjà réalisés sont acceptés.</p>
+        <div class="row g-3 mt-2">
+          {% for choix in form.type %}
+            <div class="col-md-6">
+              <label class="m-choix" data-choix>
+                {{ form_widget(choix, {attr: {class: 'visually-hidden'}}) }}
+                <p class="m-choix__titre mb-1">
+                  {%- if choix.vars.value == 'soutenance' -%}Projet de soutenance
+                  {%- elseif choix.vars.value == 'personnel' -%}Projet personnel
+                  {%- elseif choix.vars.value == 'professionnel' -%}Projet professionnel
+                  {%- elseif choix.vars.value == 'entrepreneurial' -%}Projet entrepreneurial
+                  {%- else -%}Projet de recherche{%- endif -%}
+                </p>
+                <p class="m-choix__note mb-0">
+                  {%- if choix.vars.value == 'soutenance' -%}Réalisé dans un cadre académique
+                  {%- elseif choix.vars.value == 'personnel' -%}Réalisé hors formation
+                  {%- elseif choix.vars.value == 'professionnel' -%}Réalisé en entreprise
+                  {%- elseif choix.vars.value == 'entrepreneurial' -%}Produit déjà développé
+                  {%- else -%}Travail déjà réalisé{%- endif -%}
+                </p>
+              </label>
+            </div>
+          {% endfor %}
+          <div class="col-md-6">
+            <div class="m-choix m-choix--interdit" data-choix data-choix-interdit>
+              <p class="m-choix__titre mb-1">Idée de projet · recherche de financement</p>
+              <p class="m-choix__note mb-0">Non autorisé sur la plateforme</p>
+            </div>
+          </div>
+        </div>
+        {{ form_errors(form.type) }}
+      </section>
+
+      <!-- Étape 2 -->
+      <section class="m-panneau-etape" data-etape-panneau>
+        <h1 style="font-size:24px">Informations du projet</h1>
+        <p class="m-meta mt-1">Ces informations déterminent la façon dont les recruteurs trouveront votre projet.</p>
+
+        <div class="row g-3 mt-2">
+          <div class="col-md-7">
+            {{ forms.label(form.name, 'Nom du projet', true) }}
+            {{ form_widget(form.name, {attr: {class: 'm-input', 'data-nom-projet': true, placeholder: 'Ex. : Plateforme de gestion des étudiants'}}) }}
+            {{ form_errors(form.name) }}
+          </div>
+          <div class="col-md-5">
+            {{ form_label(form.theme, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.theme, {attr: {class: 'm-input', placeholder: 'Ex. : Digitalisation de la scolarité'}}) }}
+          </div>
+          <div class="col-12">
+            {{ form_label(form.shortDescription, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.shortDescription, {attr: {class: 'm-input', maxlength: 160}}) }}
+            {{ form_errors(form.shortDescription) }}
+          </div>
+          <div class="col-12">
+            {{ form_label(form.detailedDescription, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.detailedDescription, {attr: {class: 'm-textarea', maxlength: 3000}}) }}
+          </div>
+          <div class="col-md-4" data-autre>
+            {{ form_label(form.domain, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.domain, {attr: {class: 'm-select'}}) }}
+            {{ form_widget(form.domainOther, {attr: {class: 'm-input mt-2', 'data-autre-champ': true, hidden: true}}) }}
+          </div>
+          <div class="col-md-4" data-autre>
+            {{ form_label(form.mention, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.mention, {attr: {class: 'm-select'}}) }}
+            {{ form_widget(form.mentionOther, {attr: {class: 'm-input mt-2', 'data-autre-champ': true, hidden: true}}) }}
+          </div>
+          <div class="col-md-4" data-autre>
+            {{ form_label(form.specialty, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.specialty, {attr: {class: 'm-select'}}) }}
+            {{ form_widget(form.specialtyOther, {attr: {class: 'm-input mt-2', 'data-autre-champ': true, hidden: true}}) }}
+          </div>
+          <div class="col-md-7" data-autre>
+            {{ form_label(form.institution, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.institution, {attr: {class: 'm-select'}}) }}
+            {{ form_widget(form.institutionOther, {attr: {class: 'm-input mt-2', 'data-autre-champ': true, hidden: true}}) }}
+          </div>
+          <div class="col-12">
+            <p class="m-aide mb-0">Domaine, mention et spécialité sont obligatoires pour un projet de soutenance. Si votre établissement ou votre classification n'apparaît pas dans la liste, choisissez « Autre » et précisez-le : un administrateur le vérifiera.</p>
+          </div>
+          <div class="col-md-5">
+            {{ form_label(form.realizationDate, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.realizationDate, {attr: {class: 'm-input'}}) }}
+          </div>
+          <div class="col-12" data-tags>
+            {{ form_label(form.technologiesInput, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.technologiesInput, {attr: {class: 'd-none', 'data-tags-hidden': true}}) }}
+            <input class="m-input" type="text" data-tags-input placeholder="Saisissez une technologie puis Entrée">
+            <div class="m-tags mt-2" data-tags-liste></div>
+            <p class="m-aide">Ce sont ces mots-clés que les recruteurs utilisent pour filtrer.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Étape 3 -->
+      <section class="m-panneau-etape" data-etape-panneau>
+        <h1 style="font-size:24px">Preuves de réalisation</h1>
+        <p class="m-meta mt-1">Au moins une preuve est obligatoire. Les liens sont externes : aucun fichier lourd n'est hébergé.</p>
+
+        <div class="row g-3 mt-2">
+          <div class="col-md-6">
+            {{ form_label(form.githubUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.githubUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://github.com/…'}}) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(form.youtubeUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.youtubeUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://youtube.com/watch?v=…'}}) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(form.siteUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.siteUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://…'}}) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(form.memoireUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.memoireUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://github.com/…/memoire.pdf'}}) }}
+          </div>
+          <div class="col-12">
+            {{ form_label(form.photos, null, {label_attr: {class: 'm-label'}}) }}
+            <label class="m-depot" for="{{ form.photos.vars.id }}"><span style="font-size:18px;color:var(--m-bleu)">⇪</span>Glisser des images ici ou cliquer pour choisir</label>
+            {{ form_widget(form.photos, {attr: {class: 'd-none'}}) }}
+            {{ form_errors(form.photos) }}
+          </div>
+        </div>
+
+        <p class="m-avis mt-4 mb-0" style="color:#B3261E;background:#FDECEA;border-color:#F5C6C2" data-etape-erreur hidden></p>
+      </section>
+
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-4 pt-3" style="border-top:1px solid var(--m-bordure)">
+        <button class="m-btn m-btn--lien" type="button" data-etape-precedent>← Étape précédente</button>
+        <div class="d-flex gap-2">
+          <button class="m-btn m-btn--primaire" type="button" data-etape-suivant>Continuer</button>
+          <button class="m-btn m-btn--primaire" type="button" data-etape-envoyer>Envoyer pour publication</button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="col-lg-4 p-4" style="background:var(--m-fond)">
+      <div class="d-grid gap-3">
+        <div class="m-carte m-carte--plate p-3" style="border-color:var(--m-bleu-bordure)">
+          <p class="m-surtitre m-surtitre--bleu mb-2">Rappel des règles</p>
+          <ul class="m-texte mb-0 ps-3" style="font-size:13.5px;line-height:1.55">
+            <li>Le projet doit être déjà réalisé.</li>
+            <li>Au moins une preuve est requise.</li>
+            <li>Aucune demande de financement.</li>
+            <li>Aucune idée de projet non réalisée.</li>
+          </ul>
+        </div>
+        <div class="m-carte m-carte--plate p-3">
+          <p class="m-surtitre mb-2">Après envoi</p>
+          <p class="m-texte mb-0">Le projet passe en <strong>attente de modération</strong>. Une fois publié, les membres du jury peuvent confirmer la soutenance pour obtenir le statut <strong style="color:var(--m-bleu)">vérifié</strong>.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+{{ form_end(form) }}
+{% endblock %}

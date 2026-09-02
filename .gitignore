@@ -18,3 +18,7 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+# Fichiers déposés par les utilisateurs (photos de projets) : jamais versionnés.
+/public/uploads/*
+!/public/uploads/.gitkeep

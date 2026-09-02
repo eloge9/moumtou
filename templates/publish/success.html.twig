@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Projet envoyé — MOUMTOU{% endblock %}
+
+{% block header %}
+  {% include 'components/_header_minimal.html.twig' with {context_label: 'Publier un projet'} %}
+{% endblock %}
+
+{% block body %}
+<section class="m-section d-flex justify-content-center">
+  <div class="col-12 col-md-8 col-lg-5 text-center">
+    <div class="m-carte m-carte--plate p-4">
+      <p class="m-surtitre m-surtitre--bleu mb-2">Projet envoyé pour publication</p>
+      <h1 style="font-size:24px">{{ project.name }}</h1>
+      <p class="m-texte mt-3 mb-0">Un administrateur vérifie le contenu et les preuves. Vous recevrez une notification dès la publication.</p>
+    </div>
+    <a class="m-btn m-btn--primaire m-btn--lg mt-3" href="{{ path('app_home') }}">Retour à l'accueil</a>
+  </div>
+</section>
+{% endblock %}

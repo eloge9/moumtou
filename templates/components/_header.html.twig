@@ -1,0 +1,36 @@
+{#
+  Variables attendues : active_nav ("explorer", "soutenances", "talents", "profil"…)
+  Note : les liens vers des fonctionnalités pas encore développées pointent vers "#",
+  exactement comme dans la maquette de référence (code/README.md, section "À remplacer
+  avant mise en production"). Ils sont remplacés par path() au fur et à mesure que
+  chaque écran est implémenté.
+#}
+<header class="m-header">
+  <a class="m-brand" href="{{ path('app_home') }}"><span class="m-brand__mark">M</span>MOUMTOU</a>
+  <button class="m-header__toggle" type="button" data-nav-toggle aria-expanded="false" aria-label="Ouvrir le menu">☰</button>
+  <nav class="m-nav" data-nav>
+    <a class="m-nav__link{{ active_nav|default('') == 'explorer' ? ' is-active' : '' }}" href="#">Explorer</a>
+    <a class="m-nav__link{{ active_nav|default('') == 'soutenances' ? ' is-active' : '' }}" href="#">Soutenances</a>
+    <a class="m-nav__link{{ active_nav|default('') == 'talents' ? ' is-active' : '' }}" href="#">Talents</a>
+  </nav>
+  <div class="ms-auto d-flex align-items-center gap-3">
+    <label class="m-recherche">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8C97AB" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
+      <input type="search" placeholder="Rechercher un talent, une techno…" aria-label="Rechercher">
+    </label>
+    {% if app.user %}
+      <div class="m-menu" data-menu>
+        <button class="m-btn m-btn--lien" type="button" data-menu-bouton>{{ app.user.firstName }} ▾</button>
+        <div class="m-menu__liste">
+          <a class="m-menu__item" href="#">Mon profil</a>
+          <a class="m-menu__item" href="{{ path('app_publish_start') }}">Publier un projet</a>
+          {% if is_granted('ROLE_ADMIN') %}<a class="m-menu__item" href="#">Administration</a>{% endif %}
+          <a class="m-menu__item" href="{{ path('app_logout') }}">Déconnexion</a>
+        </div>
+      </div>
+    {% else %}
+      <a class="m-btn m-btn--lien" href="{{ path('app_login') }}">Se connecter</a>
+    {% endif %}
+    <a class="m-btn m-btn--primaire" href="{{ path('app_publish_start') }}">Publier mon projet</a>
+  </div>
+</header>

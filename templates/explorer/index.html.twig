@@ -1,0 +1,144 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Explorer les projets — MOUMTOU{% endblock %}
+
+{% block body %}
+<div class="m-mise-en-page">
+
+  <aside class="m-filtres">
+    <form method="get" id="filtres-explorer" data-filtres-auto>
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="m-surtitre" style="color:var(--m-encre)">Filtres</span>
+        <a href="{{ path('app_explorer') }}" style="color:var(--m-bleu);font-size:13px">Réinitialiser</a>
+      </div>
+      <p class="m-meta mt-2 mb-0" data-filtres-resume>Aucun filtre actif</p>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Type de projet</p>
+        <div class="d-grid gap-2">
+          {% for type in projectTypes %}
+            <label class="m-case">
+              <input type="checkbox" data-filtre-case name="types[]" value="{{ type.value }}" {{ type.value in criteria.types ? 'checked' : '' }}>
+              <span>{{ type.shortLabel }}</span>
+              <span class="m-case__compte">{{ countByType[type.value]|default(0) }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Classification</p>
+        <div class="d-grid gap-2">
+          <select class="m-select" name="domain" aria-label="Domaine">
+            <option value="">Tous les domaines</option>
+            {% for domain in domains %}<option value="{{ domain.id }}" {{ criteria.domainId == domain.id ? 'selected' : '' }}>{{ domain.name }}</option>{% endfor %}
+          </select>
+          <select class="m-select" name="mention" aria-label="Mention">
+            <option value="">Toutes les mentions</option>
+            {% for mention in mentions %}<option value="{{ mention.id }}" {{ criteria.mentionId == mention.id ? 'selected' : '' }}>{{ mention.name }}</option>{% endfor %}
+          </select>
+          <select class="m-select" name="specialty" aria-label="Spécialité">
+            <option value="">Toutes les spécialités</option>
+            {% for specialty in specialties %}<option value="{{ specialty.id }}" {{ criteria.specialtyId == specialty.id ? 'selected' : '' }}>{{ specialty.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="m-filtres__groupe" data-chip-groupe>
+        <p class="m-filtres__titre">Technologies</p>
+        <div class="m-tags">
+          {% for technology in technologies %}
+            <label class="m-chip{{ technology.id in criteria.technologyIds ? ' is-active' : '' }}" data-chip>
+              <input type="checkbox" class="visually-hidden" name="technologies[]" value="{{ technology.id }}" {{ technology.id in criteria.technologyIds ? 'checked' : '' }}>
+              {{ technology.name }}
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Statut</p>
+        <div class="d-grid gap-2">
+          <label class="m-case"><input type="checkbox" data-filtre-case name="statuses[]" value="verifie" {{ 'verifie' in criteria.statuses ? 'checked' : '' }}><span>Vérifié par le jury</span></label>
+          <label class="m-case"><input type="checkbox" data-filtre-case name="statuses[]" value="publie" {{ 'publie' in criteria.statuses ? 'checked' : '' }}><span>Publié</span></label>
+        </div>
+      </div>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Établissement</p>
+        <select class="m-select" name="institution" aria-label="Établissement">
+          <option value="">Tous les établissements</option>
+          {% for institution in institutions %}<option value="{{ institution.id }}" {{ criteria.institutionId == institution.id ? 'selected' : '' }}>{{ institution.name }}</option>{% endfor %}
+        </select>
+        <p class="m-filtres__titre mt-3">Pays / Ville</p>
+        <div class="d-flex gap-2">
+          <select class="m-select" name="country" aria-label="Pays">
+            <option value="">Tous pays</option>
+            {% for country in countries %}<option value="{{ country }}" {{ criteria.country == country ? 'selected' : '' }}>{{ country }}</option>{% endfor %}
+          </select>
+          <input class="m-select" type="text" name="city" value="{{ criteria.city }}" placeholder="Ville" aria-label="Ville">
+        </div>
+        <p class="m-filtres__titre mt-3">Année de réalisation</p>
+        <input class="form-range" type="range" min="2018" max="2026" name="year_min" value="{{ criteria.yearMin|default(2018) }}" aria-label="Année minimale">
+        <div class="d-flex justify-content-between m-meta"><span>{{ criteria.yearMin|default(2018) }}</span><span>2026</span></div>
+      </div>
+    </form>
+  </aside>
+
+  <main class="m-resultats">
+    <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 style="font-size:24px">{{ total }} projet{{ total > 1 ? 's' : '' }}</h1>
+      </div>
+      <div class="d-flex align-items-center gap-2" data-chip-groupe>
+        <span class="m-meta">Trier :</span>
+        <label class="m-chip{{ criteria.sort == 'recent' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-explorer">
+          <input type="radio" class="visually-hidden" name="sort" value="recent" form="filtres-explorer" {{ criteria.sort == 'recent' ? 'checked' : '' }}>Plus récents
+        </label>
+        <label class="m-chip{{ criteria.sort == 'rating' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-explorer">
+          <input type="radio" class="visually-hidden" name="sort" value="rating" form="filtres-explorer" {{ criteria.sort == 'rating' ? 'checked' : '' }}>Mieux notés
+        </label>
+        <label class="m-chip{{ criteria.sort == 'views' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-explorer">
+          <input type="radio" class="visually-hidden" name="sort" value="views" form="filtres-explorer" {{ criteria.sort == 'views' ? 'checked' : '' }}>Plus consultés
+        </label>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-3">
+      {% for project in projects %}
+        <div class="col-xl-4 col-md-6">
+          <article class="m-carte h-100">
+            <div class="m-media" style="height:132px">
+              {% if project.photos|length %}<img src="{{ asset(project.photos.first.path) }}" alt="" style="width:100%;height:100%;object-fit:cover">{% endif %}
+            </div>
+            <div class="m-carte__corps">
+              <span class="m-statut{{ project.status.value == 'publie' ? ' m-statut--publie' : '' }}">{{ project.status.value == 'verifie' ? 'Vérifié' : 'Publié' }}</span>
+              <h3 class="m-carte__titre mt-2" style="font-size:16px"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a></h3>
+              <p class="m-meta mt-1 mb-0">{{ project.owner.fullName }} · {{ project.institution ? project.institution.name : project.type.shortLabel }}</p>
+              <div class="m-tags mt-2">
+                {% for tech in project.technologies %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}
+              </div>
+              <div class="m-carte__pied">
+                <span>★ {{ project.ratingAverage|number_format(1, ',') }} ({{ project.ratingsCount }})</span>
+                <span>{{ project.realizationDate ? project.realizationDate|date('Y') : project.createdAt|date('Y') }}</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      {% else %}
+        <div class="col-12">
+          <p class="m-meta">Aucun projet ne correspond à ces filtres pour le moment.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if pageCount > 1 %}
+      <nav class="m-pagination mt-4" aria-label="Pagination">
+        {% for p in 1..pageCount %}
+          <a class="{{ p == criteria.page ? 'is-active' : '' }}" href="{{ path('app_explorer', app.request.query.all|merge({page: p})) }}">{{ p }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}
