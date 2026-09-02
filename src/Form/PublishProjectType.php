@@ -23,6 +23,8 @@ use Symfony\Component\Validator\Constraints\Count;
 use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Regex;
+use Symfony\Component\Validator\Constraints\Url;
 
 class PublishProjectType extends AbstractType
 {
@@ -59,10 +61,29 @@ class PublishProjectType extends AbstractType
             ->add('detailedDescription', TextareaType::class, ['label' => 'Description détaillée', 'required' => false])
             ->add('realizationDate', DateType::class, ['label' => 'Date de réalisation', 'required' => false, 'widget' => 'single_text'])
             ->add('technologiesInput', TextType::class, ['label' => 'Technologies utilisées', 'mapped' => false, 'required' => false])
-            ->add('githubUrl', UrlType::class, ['label' => 'Lien GitHub', 'mapped' => false, 'required' => false])
-            ->add('youtubeUrl', UrlType::class, ['label' => 'Vidéo YouTube', 'mapped' => false, 'required' => false])
-            ->add('siteUrl', UrlType::class, ['label' => 'Site web ou démo', 'mapped' => false, 'required' => false])
-            ->add('memoireUrl', UrlType::class, ['label' => 'Lien du mémoire', 'mapped' => false, 'required' => false])
+            ->add('githubUrl', UrlType::class, [
+                'label' => 'Lien GitHub',
+                'mapped' => false,
+                'required' => false,
+                'default_protocol' => 'https',
+                'constraints' => [new Regex(
+                    pattern: '#^https?://(www\.)?github\.com/#i',
+                    message: 'Ce lien doit pointer vers un dépôt GitHub (github.com).',
+                )],
+            ])
+            ->add('youtubeUrl', UrlType::class, [
+                'label' => 'Vidéo YouTube',
+                'mapped' => false,
+                'required' => false,
+                'default_protocol' => 'https',
+                'constraints' => [new Regex(
+                    // Cahier des charges §19 : "Ne jamais accepter n'importe quelle URL comme vidéo YouTube."
+                    pattern: '#^https?://((www\.)?youtube\.com/(watch\?v=|embed/|shorts/)|youtu\.be/)#i',
+                    message: 'Ce lien doit être une URL YouTube valide (youtube.com ou youtu.be).',
+                )],
+            ])
+            ->add('siteUrl', UrlType::class, ['label' => 'Site web ou démo', 'mapped' => false, 'required' => false, 'default_protocol' => 'https', 'constraints' => [new Url(requireTld: true)]])
+            ->add('memoireUrl', UrlType::class, ['label' => 'Lien du mémoire', 'mapped' => false, 'required' => false, 'default_protocol' => 'https', 'constraints' => [new Url(requireTld: true)]])
             ->add('photos', FileType::class, [
                 'label' => 'Photos (JPG, PNG, WebP — 8 maximum)',
                 'mapped' => false,

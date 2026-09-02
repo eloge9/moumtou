@@ -31,7 +31,7 @@ class RegistrationLoginTest extends FunctionalTestCase
         $user = $em->getRepository(User::class)->findOneBy(['email' => 'ama.koffi@example.com']);
         self::assertNotNull($user, 'L\'utilisateur doit être persisté après inscription.');
         self::assertFalse($user->isEmailVerified(), 'L\'e-mail ne doit pas être vérifié avant de cliquer sur le lien.');
-        self::assertSame(['ROLE_USER'], $user->getRoles());
+        self::assertSame(['ROLE_TALENT', 'ROLE_USER'], $user->getRoles());
 
         // 2. Vérification de l'e-mail via l'URL signée
         $emailVerifier = static::getContainer()->get(\App\Security\EmailVerifier::class);
@@ -52,7 +52,7 @@ class RegistrationLoginTest extends FunctionalTestCase
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects('/profils/ama-koffi');
         $client->followRedirect();
         self::assertSelectorTextContains('.m-header', 'Ama');
     }

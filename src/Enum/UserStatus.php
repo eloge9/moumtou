@@ -7,6 +7,7 @@ enum UserStatus: string
     case ACTIF = 'actif';
     case SUSPENDU = 'suspendu';
     case BANNI = 'banni';
+    case SUPPRIME = 'supprime';
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum UserStatus: string
             self::ACTIF => 'Actif',
             self::SUSPENDU => 'Suspendu',
             self::BANNI => 'Banni',
+            self::SUPPRIME => 'Supprimé',
         };
     }
 }

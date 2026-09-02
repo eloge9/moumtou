@@ -1,0 +1,126 @@
+{% extends 'admin/_layout.html.twig' %}
+{% set adminNav = 'institutions' %}
+
+{% block title %}Administration — Établissements — MOUMTOU{% endblock %}
+{% block admin_title %}Établissements{% endblock %}
+
+{% block admin_body %}
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="m-label">Recherche</label>
+      <input class="m-input" type="text" name="q" value="{{ query }}" placeholder="Nom, ville, pays">
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Type</label>
+      <select class="m-select" name="type">
+        <option value="">Tous</option>
+        {% for t in institutionTypes %}<option value="{{ t.value }}" {{ type is not null and type.value == t.value ? 'selected' }}>{{ t.label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Statut</label>
+      <select class="m-select" name="verified">
+        <option value="">Tous</option>
+        <option value="verifie" {{ verifiedFilter == 'verifie' ? 'selected' }}>Vérifié</option>
+        <option value="non_verifie" {{ verifiedFilter == 'non_verifie' ? 'selected' }}>Non vérifié</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="m-btn m-btn--primaire m-btn--bloc" type="submit">Filtrer</button>
+    </div>
+  </form>
+</div>
+
+{% if pendingRequestsCount > 0 %}
+  <a href="{{ path('admin_institution_requests') }}" class="m-carte m-carte--plate p-3 mb-3 d-flex align-items-center justify-content-between" style="border-color:var(--m-bleu-bordure);text-decoration:none">
+    <span class="fw-semibold" style="color:var(--m-bleu)">{{ pendingRequestsCount }} demande{{ pendingRequestsCount > 1 ? 's' : '' }} d'établissement en attente</span>
+    <span class="m-meta">Traiter →</span>
+  </a>
+{% endif %}
+
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <p class="m-surtitre mb-2">Ajouter un établissement</p>
+  <form method="post" action="{{ path('admin_institutions_add') }}" class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="m-label">Nom</label><input class="m-input" type="text" name="name" required></div>
+    <div class="col-md-2">
+      <label class="m-label">Type</label>
+      <select class="m-select" name="type">
+        {% for t in institutionTypes %}<option value="{{ t.value }}">{{ t.label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2"><label class="m-label">Pays</label><input class="m-input" type="text" name="country"></div>
+    <div class="col-md-2"><label class="m-label">Ville</label><input class="m-input" type="text" name="city"></div>
+    <div class="col-md-2"><label class="m-label">Site web</label><input class="m-input" type="text" name="website"></div>
+    <div class="col-md-1">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-institution-ajouter') }}">
+      <button class="m-btn m-btn--primaire m-btn--bloc" type="submit">Ajouter</button>
+    </div>
+  </form>
+</div>
+
+<div class="m-carte m-carte--plate">
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Nom</th><th>Type</th><th>Pays</th><th>Ville</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for institution in institutions %}
+          <tr style="{{ not institution.active ? 'opacity:.55' }}">
+            <td class="fw-semibold">{{ institution.name }}{% if not institution.active %} <span class="m-tag">Désactivé</span>{% endif %}</td>
+            <td class="m-texte">{{ institution.type.label }}</td>
+            <td class="m-texte">{{ institution.country }}</td>
+            <td class="m-texte">{{ institution.city }}</td>
+            <td>{% if institution.verified %}<span class="m-tag m-tag--bleu">Vérifié</span>{% else %}<span class="m-tag">Non vérifié</span>{% endif %}</td>
+            <td>
+              <div class="m-table__actions">
+                <button class="m-btn m-btn--secondaire m-btn--sm" type="button" data-modale-ouvrir="modale-modifier-{{ institution.id }}">Modifier</button>
+                <form method="post" action="{{ path('admin_institutions_toggle_verified', {id: institution.id}) }}">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-institution-verifier-' ~ institution.id) }}">
+                  <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">{{ institution.verified ? 'Retirer la vérification' : 'Vérifier' }}</button>
+                </form>
+                <form method="post" action="{{ path('admin_institutions_toggle_active', {id: institution.id}) }}">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-institution-desactiver-' ~ institution.id) }}">
+                  <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">{{ institution.active ? 'Désactiver' : 'Réactiver' }}</button>
+                </form>
+                <form method="post" action="{{ path('admin_institutions_delete', {id: institution.id}) }}" onsubmit="return confirm('Supprimer définitivement cet établissement ?');">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-institution-supprimer-' ~ institution.id) }}">
+                  <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Supprimer</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+
+          <div class="m-modale" id="modale-modifier-{{ institution.id }}" data-modale role="dialog" aria-modal="true">
+            <div class="m-modale__boite">
+              <form method="post" action="{{ path('admin_institutions_edit', {id: institution.id}) }}">
+                <h2 class="m-modale__titre">Modifier {{ institution.name }}</h2>
+                <div class="row g-2 mt-2">
+                  <div class="col-md-6"><label class="m-label">Nom</label><input class="m-input" type="text" name="name" value="{{ institution.name }}" required></div>
+                  <div class="col-md-6">
+                    <label class="m-label">Type</label>
+                    <select class="m-select" name="type">
+                      {% for t in institutionTypes %}<option value="{{ t.value }}" {{ institution.type.value == t.value ? 'selected' }}>{{ t.label }}</option>{% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-md-6"><label class="m-label">Pays</label><input class="m-input" type="text" name="country" value="{{ institution.country }}"></div>
+                  <div class="col-md-6"><label class="m-label">Ville</label><input class="m-input" type="text" name="city" value="{{ institution.city }}"></div>
+                  <div class="col-12"><label class="m-label">Adresse</label><input class="m-input" type="text" name="address" value="{{ institution.address }}"></div>
+                  <div class="col-12"><label class="m-label">Site web</label><input class="m-input" type="text" name="website" value="{{ institution.website }}"></div>
+                  <div class="col-12"><label class="m-label">Description</label><textarea class="m-textarea" name="description">{{ institution.description }}</textarea></div>
+                </div>
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-institution-modifier-' ~ institution.id) }}">
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                  <button class="m-btn m-btn--secondaire" type="button" data-modale-fermer>Annuler</button>
+                  <button class="m-btn m-btn--primaire" type="submit">Enregistrer</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <tr><td colspan="6" class="m-meta">Aucun établissement ne correspond à ces filtres.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

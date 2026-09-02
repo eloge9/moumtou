@@ -8,25 +8,49 @@ use App\Entity\Mention;
 use App\Entity\Skill;
 use App\Entity\Specialty;
 use App\Entity\Technology;
+use App\Entity\User;
+use App\Enum\UserStatus;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
  * Données de référence de démonstration, reprises telles quelles des exemples
  * déjà présents dans la maquette (code/README.md : « les données affichées
  * sont des exemples »). Ce sont des référentiels, pas des comptes ni des
- * projets fictifs.
+ * projets fictifs — à l'exception du compte administrateur de démonstration,
+ * clairement identifié comme tel, nécessaire pour accéder à /admin.
  */
 class AppFixtures extends Fixture
 {
+    public function __construct(private readonly UserPasswordHasherInterface $passwordHasher)
+    {
+    }
+
     public function load(ObjectManager $manager): void
     {
         $this->loadClassification($manager);
         $this->loadInstitutions($manager);
         $this->loadTechnologies($manager);
         $this->loadSkills($manager);
+        $this->loadAdmin($manager);
 
         $manager->flush();
+    }
+
+    private function loadAdmin(ObjectManager $manager): void
+    {
+        $admin = new User();
+        $admin->setEmail('admin@moumtou.com');
+        $admin->setFirstName('Admin');
+        $admin->setLastName('MOUMTOU');
+        $admin->setPhone('+22890000000');
+        $admin->setSlug('admin-moumtou');
+        $admin->setRoles(['ROLE_ADMIN']);
+        $admin->setStatus(UserStatus::ACTIF);
+        $admin->setEmailVerified(true);
+        $admin->setPassword($this->passwordHasher->hashPassword($admin, 'AdminMoumtou123'));
+        $manager->persist($admin);
     }
 
     private function loadClassification(ObjectManager $manager): void

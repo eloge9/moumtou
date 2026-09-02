@@ -1,10 +1,10 @@
 {% extends 'base.html.twig' %}
 {% import 'components/_form_macros.html.twig' as forms %}
 
-{% block title %}Publier un projet — MOUMTOU{% endblock %}
+{% block title %}{{ editingProject is defined and editingProject ? 'Modifier mon projet' : 'Publier un projet' }} — MOUMTOU{% endblock %}
 
 {% block header %}
-  {% include 'components/_header_minimal.html.twig' with {context_label: 'Publier un projet'} %}
+  {% include 'components/_header_minimal.html.twig' with {context_label: editingProject is defined and editingProject ? 'Modifier mon projet' : 'Publier un projet'} %}
 {% endblock %}
 
 {% block body %}
@@ -145,18 +145,22 @@
           <div class="col-md-6">
             {{ form_label(form.githubUrl, null, {label_attr: {class: 'm-label'}}) }}
             {{ form_widget(form.githubUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://github.com/…'}}) }}
+            {{ form_errors(form.githubUrl) }}
           </div>
           <div class="col-md-6">
             {{ form_label(form.youtubeUrl, null, {label_attr: {class: 'm-label'}}) }}
             {{ form_widget(form.youtubeUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://youtube.com/watch?v=…'}}) }}
+            {{ form_errors(form.youtubeUrl) }}
           </div>
           <div class="col-md-6">
             {{ form_label(form.siteUrl, null, {label_attr: {class: 'm-label'}}) }}
             {{ form_widget(form.siteUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://…'}}) }}
+            {{ form_errors(form.siteUrl) }}
           </div>
           <div class="col-md-6">
             {{ form_label(form.memoireUrl, null, {label_attr: {class: 'm-label'}}) }}
             {{ form_widget(form.memoireUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://github.com/…/memoire.pdf'}}) }}
+            {{ form_errors(form.memoireUrl) }}
           </div>
           <div class="col-12">
             {{ form_label(form.photos, null, {label_attr: {class: 'm-label'}}) }}
@@ -173,7 +177,7 @@
         <button class="m-btn m-btn--lien" type="button" data-etape-precedent>← Étape précédente</button>
         <div class="d-flex gap-2">
           <button class="m-btn m-btn--primaire" type="button" data-etape-suivant>Continuer</button>
-          <button class="m-btn m-btn--primaire" type="button" data-etape-envoyer>Envoyer pour publication</button>
+          <button class="m-btn m-btn--primaire" type="button" data-etape-envoyer>{{ editingProject is defined and editingProject ? 'Enregistrer les modifications' : 'Envoyer pour publication' }}</button>
         </div>
       </div>
     </div>

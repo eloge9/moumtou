@@ -79,6 +79,18 @@ class ProjectRepository extends ServiceEntityRepository
             ->where('p.status IN (:statuses)')
             ->setParameter('statuses', self::PUBLIC_STATUSES);
 
+        if ($criteria->query) {
+            $qb->andWhere($qb->expr()->orX(
+                'p.name LIKE :recherche',
+                'owner.firstName LIKE :recherche',
+                'owner.lastName LIKE :recherche',
+                $qb->expr()->in('p.id', $this->createQueryBuilder('p3')
+                    ->select('p3.id')
+                    ->join('p3.technologies', 't3')
+                    ->where('t3.name LIKE :recherche')
+                    ->getDQL()),
+            ))->setParameter('recherche', '%'.$criteria->query.'%');
+        }
         if ($criteria->types) {
             $qb->andWhere('p.type IN (:types)')->setParameter('types', $criteria->types);
         }

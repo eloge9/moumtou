@@ -1,0 +1,83 @@
+{% extends 'admin/_layout.html.twig' %}
+{% set adminNav = 'dashboard' %}
+
+{% block title %}Administration — Tableau de bord — MOUMTOU{% endblock %}
+{% block admin_title %}Tableau de bord{% endblock %}
+
+{% block admin_body %}
+<div class="row g-3">
+  <div class="col-xl-3 col-md-6">
+    <div class="m-stat h-100"><p class="m-surtitre mb-1">Utilisateurs</p><div class="m-stat__valeur">{{ stats.usersCount }}</div></div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="m-stat h-100"><p class="m-surtitre mb-1">Projets publiés</p><div class="m-stat__valeur">{{ stats.projectsCount }}</div></div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="m-stat m-stat--sombre h-100"><p class="m-surtitre mb-1" style="color:#9AA8C0">Projets vérifiés</p><div class="m-stat__valeur">{{ stats.verifiedProjectsCount }}</div></div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="m-stat h-100"><p class="m-surtitre mb-1">Soutenances</p><div class="m-stat__valeur">{{ stats.defensesCount }}</div><div class="m-stat__libelle">{{ stats.defensesRealizedCount }} réalisées</div></div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-lg-7">
+    <div class="m-carte m-carte--plate p-4 h-100">
+      <span class="fw-bold" style="font-size:15.5px">Technologies les plus recherchées</span>
+      <div class="d-grid gap-3 mt-4">
+        {% set max = stats.technologiesCount > 0 and technologyDemand|length ? technologyDemand[0].total : 1 %}
+        {% for tech in technologyDemand %}
+          <div><div class="d-flex justify-content-between fw-semibold" style="font-size:13.5px"><span>{{ tech.name }}</span><span class="m-meta">{{ tech.total }}</span></div><div class="m-barre mt-1"><div class="m-barre__valeur" style="width:{{ max > 0 ? (tech.total / max * 100)|round : 0 }}%"></div></div></div>
+        {% else %}
+          <p class="m-meta">Pas encore assez de données.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="m-carte m-carte--plate p-4 h-100">
+      <span class="fw-bold" style="font-size:15.5px">Autres référentiels</span>
+      <div class="d-grid gap-2 mt-3" style="font-size:13.5px">
+        <div class="d-flex justify-content-between"><span class="m-meta">Établissements</span><span class="fw-semibold">{{ stats.institutionsCount }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Technologies au catalogue</span><span class="fw-semibold">{{ stats.technologiesCount }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Commentaires</span><span class="fw-semibold">{{ stats.commentsCount }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Signalements ouverts</span><span class="fw-semibold">{{ stats.openReportsCount }}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="m-carte m-carte--plate mt-3">
+  <div class="d-flex align-items-center justify-content-between p-3" style="border-bottom:1px solid #EEF1F6">
+    <div><span class="fw-bold" style="font-size:15.5px">File de modération</span> <span class="m-meta ms-2">{{ pendingProjects|length }} projet{{ pendingProjects|length > 1 ? 's' : '' }} en attente</span></div>
+    <a href="{{ path('admin_moderation') }}">Ouvrir la file complète →</a>
+  </div>
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Projet</th><th>Type</th><th>Auteur</th><th>Preuves</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for project in pendingProjects %}
+          <tr>
+            <td class="fw-semibold">{{ project.name }}</td>
+            <td class="m-texte">{{ project.type.shortLabel }}</td>
+            <td class="m-texte">{{ project.owner.fullName }}</td>
+            <td><span class="m-nb-preuves{{ project.proofs|length == 0 ? ' m-nb-preuves--zero' : '' }}">{{ project.proofs|length }}</span></td>
+            <td>
+              <div class="m-table__actions">
+                <form method="post" action="{{ path('admin_moderation_project_decide', {id: project.id}) }}">
+                  <input type="hidden" name="action" value="publier">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-projet-' ~ project.id) }}">
+                  <button class="m-btn m-btn--primaire m-btn--sm" type="submit">Publier</button>
+                </form>
+                <a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('app_project_show', {slug: project.slug}) }}">Examiner</a>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="m-meta">Aucun projet en attente.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -71,7 +71,7 @@ class Defense
         return $this->date;
     }
 
-    public function setDate(\DateTimeImmutable $date): static
+    public function setDate(?\DateTimeImmutable $date): static
     {
         $this->date = $date;
 
@@ -83,7 +83,7 @@ class Defense
         return $this->time;
     }
 
-    public function setTime(string $time): static
+    public function setTime(?string $time): static
     {
         $this->time = $time;
 
@@ -95,7 +95,7 @@ class Defense
         return $this->place;
     }
 
-    public function setPlace(string $place): static
+    public function setPlace(?string $place): static
     {
         $this->place = $place;
 

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\InstitutionType;
 use App\Repository\InstitutionRepository;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -16,6 +17,9 @@ class Institution
 
     #[ORM\Column(length: 180, unique: true)]
     private ?string $name = null;
+
+    #[ORM\Column(enumType: InstitutionType::class)]
+    private InstitutionType $type = InstitutionType::AUTRE;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $logo = null;
@@ -38,8 +42,19 @@ class Institution
     #[ORM\Column]
     private bool $verified = false;
 
+    /**
+     * Distinct de $verified : un établissement désactivé disparaît des
+     * listes de sélection (nouveaux rattachements) sans être supprimé —
+     * les rattachements et projets déjà liés restent intacts.
+     */
+    #[ORM\Column]
+    private bool $active = true;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
 
     public function __construct()
     {
@@ -59,6 +74,18 @@ class Institution
     public function setName(string $name): static
     {
         $this->name = $name;
+
+        return $this;
+    }
+
+    public function getType(): InstitutionType
+    {
+        return $this->type;
+    }
+
+    public function setType(InstitutionType $type): static
+    {
+        $this->type = $type;
 
         return $this;
     }
@@ -147,9 +174,33 @@ class Institution
         return $this;
     }
 
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+
+    public function setActive(bool $active): static
+    {
+        $this->active = $active;
+
+        return $this;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
     }
 
     public function __toString(): string

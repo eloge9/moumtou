@@ -3,7 +3,9 @@
 namespace App\Form;
 
 use App\Entity\User;
+use App\Enum\AccountType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
@@ -19,6 +21,18 @@ class RegistrationFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            ->add('accountType', ChoiceType::class, [
+                'label' => 'Je m\'inscris en tant que',
+                'mapped' => false,
+                'expanded' => true,
+                'data' => AccountType::TALENT,
+                'choices' => array_combine(
+                    array_map(fn (AccountType $t) => $t->label(), AccountType::cases()),
+                    AccountType::cases(),
+                ),
+                'choice_value' => fn (?AccountType $t) => $t?->value,
+                'constraints' => [new NotBlank(message: 'Sélectionnez un profil.')],
+            ])
             ->add('firstName', TextType::class, [
                 'label' => 'Prénom',
                 'constraints' => [new NotBlank(message: 'Le prénom est obligatoire.')],

@@ -1,0 +1,102 @@
+{% extends 'admin/_layout.html.twig' %}
+{% set adminNav = 'moderation' %}
+
+{% block title %}Administration — Signalements — MOUMTOU{% endblock %}
+{% block admin_title %}Signalements{% endblock %}
+
+{% block admin_body %}
+<div class="row g-0">
+  <div class="col-xl-4 p-3" style="background:var(--m-fond);border-right:1px solid var(--m-bordure);margin:-1.5rem 0 -1.5rem -1.5rem">
+    <div class="d-grid gap-2">
+      {% for r in reports %}
+        <a class="m-carte m-carte--plate p-3 text-start d-block{{ report is defined and report and report.id == r.id ? ' m-carte--active' : '' }}" href="{{ path('admin_moderation_report_show', {id: r.id}) }}">
+          <div class="d-flex justify-content-between align-items-center"><span class="fw-bold" style="font-size:14.5px">{{ r.reason.label }}</span><span class="m-meta">{{ r.createdAt|date('d/m H:i') }}</span></div>
+          <p class="m-meta mb-1">{{ r.targetType.label }} « {{ reportTargets[r.id].title }} »</p>
+        </a>
+      {% else %}
+        <p class="m-meta">Aucun signalement ouvert.</p>
+      {% endfor %}
+    </div>
+
+    {% if pendingProjects|length %}
+      <p class="m-surtitre mt-4 mb-2">Projets en attente</p>
+      <div class="d-grid gap-2">
+        {% for project in pendingProjects %}
+          <a class="m-carte m-carte--plate p-3 text-start d-block" href="{{ path('app_project_show', {slug: project.slug}) }}">
+            <span class="fw-bold" style="font-size:14px">{{ project.name }}</span>
+            <p class="m-meta mb-0">{{ project.owner.fullName }} · {{ project.type.shortLabel }}</p>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <main class="col-xl-8 p-4">
+    {% if report is defined and report %}
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h1 style="font-size:23px">{{ target.title }}</h1>
+        <span class="m-tag">{{ report.targetType.label }}</span>
+      </div>
+      <p class="m-meta mt-1">Signalé {{ siblingReports|length }} fois · Motif principal : {{ report.reason.label }}{% if target.author %} · Auteur : {{ target.author.fullName }}{% endif %}</p>
+
+      {% if target.entity is not null and report.targetType.value == 'project' %}
+        <section class="m-carte m-carte--plate p-3 mt-3">
+          <p class="m-surtitre mb-2">Contenu signalé</p>
+          <p class="m-texte mb-3">{{ target.entity.shortDescription|default(target.entity.detailedDescription)|default('Pas de description.') }}</p>
+          <div class="m-tags">
+            <span class="m-tag">Preuves : {{ target.entity.proofs|length }}</span>
+            <span class="m-tag">Statut : {{ target.entity.status.label }}</span>
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Signalements reçus</p>
+        <div class="m-journal">
+          {% for s in siblingReports %}
+            <div class="m-journal__ligne"><span class="m-journal__date">{{ s.reporter.fullName }}</span><span class="flex-fill m-texte">{{ s.reason.label }}{% if s.details %} — {{ s.details }}{% endif %}</span><span class="m-meta">{{ s.createdAt|date('d/m H:i') }}</span></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="m-carte m-carte--plate m-carte--bleue p-3 mt-3">
+        <p class="m-surtitre m-surtitre--bleu mb-2">Décision de l'administrateur</p>
+        <form method="post" action="{{ path('admin_moderation_report_decide', {id: report.id}) }}">
+          {% if report.targetType.value == 'project' %}
+            <p class="m-label">Action sur le contenu</p>
+            <div class="d-flex flex-wrap gap-2" data-chip-groupe>
+              {% for value, label in {'demander_correction': 'Demander des corrections', 'masquer': 'Masquer le projet', 'depublier': 'Dépublier', 'supprimer': 'Supprimer le projet'} %}
+                <label class="m-chip" data-chip data-chip-exclusif>
+                  <input type="radio" class="visually-hidden" name="content_action" value="{{ value }}">{{ label }}
+                </label>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <p class="m-label mt-3">Action sur l'auteur</p>
+          <div class="d-flex flex-wrap gap-2" data-chip-groupe>
+            {% for value, label in {'avertir': 'Avertir', 'suspendre_7': 'Suspendre 7 jours', 'suspendre_30': 'Suspendre 30 jours', 'bannir': 'Bannir définitivement'} %}
+              <label class="m-chip" data-chip data-chip-exclusif>
+                <input type="radio" class="visually-hidden" name="author_action" value="{{ value }}">{{ label }}
+              </label>
+            {% endfor %}
+          </div>
+
+          <label class="m-label mt-3" for="motif-decision">Motif enregistré <span style="color:var(--m-bleu)">obligatoire</span></label>
+          <textarea class="m-textarea" id="motif-decision" name="reason" style="min-height:64px" required></textarea>
+
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">
+            <span class="m-meta">Historique conservé : utilisateur, motif, date, administrateur, durée.</span>
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-signalement-' ~ report.id) }}">
+            <button class="m-btn m-btn--primaire" type="submit">Valider la décision</button>
+          </div>
+        </form>
+      </section>
+    {% else %}
+      <div class="text-center py-5">
+        <p class="m-texte">Sélectionnez un signalement dans la liste pour l'instruire.</p>
+      </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}

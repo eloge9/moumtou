@@ -1,0 +1,83 @@
+{% extends 'admin/_layout.html.twig' %}
+{% set adminNav = 'domains' %}
+
+{% block title %}Administration — Classification — MOUMTOU{% endblock %}
+{% block admin_title %}Domaines · Mentions · Spécialités{% endblock %}
+
+{% block admin_body %}
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="m-carte m-carte--plate p-3">
+      <p class="m-surtitre mb-2">Ajouter un domaine</p>
+      <form method="post" action="{{ path('admin_domains_add') }}" class="d-grid gap-2">
+        <input class="m-input" type="text" name="name" placeholder="Nom du domaine" required>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-domaine-ajouter') }}">
+        <button class="m-btn m-btn--primaire" type="submit">Ajouter</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="m-carte m-carte--plate p-3">
+      <p class="m-surtitre mb-2">Ajouter une mention</p>
+      <form method="post" action="{{ path('admin_mentions_add') }}" class="d-grid gap-2">
+        <select class="m-select" name="domain" required>
+          {% for domain in domains %}<option value="{{ domain.id }}">{{ domain.name }}</option>{% endfor %}
+        </select>
+        <input class="m-input" type="text" name="name" placeholder="Nom de la mention" required>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-mention-ajouter') }}">
+        <button class="m-btn m-btn--primaire" type="submit">Ajouter</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="m-carte m-carte--plate p-3">
+      <p class="m-surtitre mb-2">Ajouter une spécialité</p>
+      <form method="post" action="{{ path('admin_specialties_add') }}" class="d-grid gap-2">
+        <select class="m-select" name="mention" required>
+          {% for domain in domains %}{% for mention in domain.mentions %}<option value="{{ mention.id }}">{{ domain.name }} → {{ mention.name }}</option>{% endfor %}{% endfor %}
+        </select>
+        <input class="m-input" type="text" name="name" placeholder="Nom de la spécialité" required>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-specialite-ajouter') }}">
+        <button class="m-btn m-btn--primaire" type="submit">Ajouter</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="mt-4">
+  {% for domain in domains %}
+    <div class="m-carte m-carte--plate p-3 mb-2">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="fw-bold">{{ domain.name }}</span>
+        <form method="post" action="{{ path('admin_classification_delete', {type: 'domaine', id: domain.id}) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-supprimer-domaine-' ~ domain.id) }}">
+          <button class="m-btn m-btn--lien p-0" style="color:#B3261E;font-size:13px" type="submit">Supprimer</button>
+        </form>
+      </div>
+      {% for mention in domain.mentions %}
+        <div class="ms-3 mt-2 pt-2" style="border-top:1px solid #EEF1F6">
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="fw-semibold" style="font-size:14px">→ {{ mention.name }}</span>
+            <form method="post" action="{{ path('admin_classification_delete', {type: 'mention', id: mention.id}) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-supprimer-mention-' ~ mention.id) }}">
+              <button class="m-btn m-btn--lien p-0" style="color:#B3261E;font-size:12px" type="submit">Supprimer</button>
+            </form>
+          </div>
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            {% for specialty in mention.specialties %}
+              <span class="m-tag">{{ specialty.name }}
+                <form method="post" action="{{ path('admin_classification_delete', {type: 'specialite', id: specialty.id}) }}" style="display:inline">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-supprimer-specialite-' ~ specialty.id) }}">
+                  <button type="submit" style="border:0;background:none;color:inherit">&times;</button>
+                </form>
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="m-meta">Aucun domaine.</p>
+  {% endfor %}
+</div>
+{% endblock %}

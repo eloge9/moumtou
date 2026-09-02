@@ -1,6 +1,31 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ project.name }} — MOUMTOU{% endblock %}
+{% block meta_description %}{{ (project.shortDescription ?: project.detailedDescription ?: 'Découvrez ' ~ project.name ~ ' par ' ~ project.owner.fullName ~ ' sur MOUMTOU.')|striptags|slice(0, 160) }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ publicUrl }}">{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ project.name }} — MOUMTOU{% endblock %}
+{% block og_description %}{{ block('meta_description') }}{% endblock %}
+{% block og_image %}{% if project.photos|length %}<meta property="og:image" content="{{ absolute_url(asset(project.photos.first.path)) }}">{% endif %}{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">
+{{ {
+  '@context': 'https://schema.org',
+  '@type': 'CreativeWork',
+  'name': project.name,
+  'description': (project.shortDescription ?: project.detailedDescription),
+  'url': publicUrl,
+  'dateCreated': project.realizationDate ? project.realizationDate|date('Y-m-d') : null,
+  'creator': {'@type': 'Person', 'name': project.owner.fullName},
+  'keywords': project.technologies|map(t => t.name)|join(', '),
+  'aggregateRating': project.ratingsCount > 0 ? {
+    '@type': 'AggregateRating',
+    'ratingValue': project.ratingAverage,
+    'ratingCount': project.ratingsCount,
+  } : null,
+}|filter(v => v is not null)|json_encode|raw }}
+</script>
+{% endblock %}
 
 {% block header %}
 <header class="m-header">
@@ -9,6 +34,13 @@
     <a class="m-nav__link is-active" href="{{ path('app_explorer') }}">Explorer</a>
   </nav>
   <div class="ms-auto d-flex align-items-center gap-2">
+    {% if is_granted('PROJECT_EDIT', project) %}
+      <a class="m-btn m-btn--secondaire" href="{{ path('app_project_edit', {slug: project.slug}) }}">Modifier</a>
+      <form method="post" action="{{ path('app_project_delete', {slug: project.slug}) }}" onsubmit="return confirm('Supprimer définitivement ce projet ?');">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('supprimer-projet-' ~ project.id) }}">
+        <button class="m-btn m-btn--secondaire" type="submit" style="color:#B3261E">Supprimer</button>
+      </form>
+    {% endif %}
     <button class="m-btn m-btn--secondaire" type="button" data-modale-ouvrir="modale-partage">Partager</button>
     {% if app.user %}
       <button class="m-btn m-btn--secondaire" type="button" data-modale-ouvrir="modale-signalement">Signaler</button>
@@ -115,6 +147,32 @@
             <div><p class="fw-bold mb-0" style="font-size:14.5px">{{ comment.author.fullName }}</p><p class="m-meta mb-0">{{ comment.createdAt|date('d/m/Y à H:i') }}</p></div>
           </div>
           <p class="m-texte mt-3 mb-0">{{ comment.content }}</p>
+          <div class="m-commentaire__actions">
+            {% if app.user %}
+              <button type="button" data-modale-ouvrir="modale-reponse-{{ comment.id }}">Répondre</button>
+            {% endif %}
+            {% if is_granted('COMMENT_DELETE', comment) %}
+              <form method="post" action="{{ path('app_comment_delete', {id: comment.id}) }}" onsubmit="return confirm('Supprimer ce commentaire ?');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('supprimer-commentaire-' ~ comment.id) }}">
+                <button type="submit">Supprimer</button>
+              </form>
+            {% endif %}
+          </div>
+          {% if app.user %}
+          <div class="m-modale" id="modale-reponse-{{ comment.id }}" data-modale role="dialog" aria-modal="true">
+            <div class="m-modale__boite">
+              <form method="post" action="{{ path('app_comment_reply', {id: comment.id}) }}">
+                <h2 class="m-modale__titre">Répondre à {{ comment.author.fullName }}</h2>
+                <textarea class="m-textarea mt-3" name="content" placeholder="Votre réponse" required></textarea>
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('repondre-commentaire-' ~ comment.id) }}">
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                  <button class="m-btn m-btn--secondaire" type="button" data-modale-fermer>Annuler</button>
+                  <button class="m-btn m-btn--primaire" type="submit">Répondre</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          {% endif %}
           {% for reply in comment.replies %}
             {% if reply.status.value == 'visible' %}
               <div class="m-commentaire__reponse">

@@ -14,6 +14,7 @@ final class ProjectSearchCriteria
 
     /** @param string[] $types @param string[] $statuses @param int[] $technologyIds */
     public function __construct(
+        public readonly ?string $query = null,
         public readonly array $types = [],
         public readonly ?int $domainId = null,
         public readonly ?int $mentionId = null,

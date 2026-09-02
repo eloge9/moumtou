@@ -42,7 +42,7 @@
       <h2 class="m-section__titre">Projets récemment vérifiés</h2>
       <p class="m-meta mt-1 mb-0">Chaque projet ci-dessous dispose d'au moins une preuve de réalisation.</p>
     </div>
-    <a href="#">Explorer les {{ stats.projectsCount|default(0)|number_format(0, ',', ' ') }} projets →</a>
+    <a href="{{ path('app_explorer') }}">Explorer les {{ stats.projectsCount|default(0)|number_format(0, ',', ' ') }} projets →</a>
   </div>
 
   <div class="row g-3 mt-3">
@@ -55,7 +55,7 @@
           </div>
           <div class="m-carte__corps">
             <span class="m-statut{{ project.verified ? '' : ' m-statut--publie' }}">{{ project.verified ? 'Vérifié par le jury' : 'Publié · preuves fournies' }}</span>
-            <h3 class="m-carte__titre mt-2"><a href="#">{{ project.name }}</a></h3>
+            <h3 class="m-carte__titre mt-2"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a></h3>
             <p class="m-meta mt-1 mb-0">{{ project.authorName }} · {{ project.contextLabel }}</p>
             <div class="m-tags mt-3">
               {% for tech in project.technologies %}<span class="m-tag">{{ tech }}</span>{% endfor %}
@@ -78,7 +78,7 @@
 <section class="m-section m-section--fond">
   <div class="d-flex align-items-end justify-content-between flex-wrap gap-2">
     <h2 class="m-section__titre">Soutenances à venir</h2>
-    <a href="#">Voir le calendrier →</a>
+    <a href="{{ path('app_explorer', {'types[]': 'soutenance'}) }}">Voir le calendrier →</a>
   </div>
   <div class="row g-3 mt-3">
     {% for defense in upcomingDefenses %}

@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /admin
+Disallow: /mon-compte
+Disallow: /mon-profil
+Disallow: /mon-espace-enseignant
+Disallow: /publier
+Disallow: /ma-soutenance
+Disallow: /recruteur
+Allow: /
+
+Sitemap: /sitemap.xml

@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Enum\Availability;
+use App\Enum\InstitutionContext;
 use App\Enum\UserStatus;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -82,6 +83,45 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(enumType: Availability::class, nullable: true)]
     private ?Availability $availability = null;
 
+    /**
+     * Établissement de rattachement (cahier des charges §4.4, "renseigner
+     * son institution" — principalement utilisé par les enseignants, mais
+     * ouvert à tout profil).
+     */
+    #[ORM\ManyToOne(targetEntity: Institution::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Institution $institution = null;
+
+    /**
+     * Informations académiques du profil (cahier des charges — gestion des
+     * établissements §7), distinctes de la classification par projet déjà
+     * existante sur {@see Project} : un profil peut afficher un cursus même
+     * sans avoir encore publié de projet de soutenance.
+     */
+    #[ORM\ManyToOne(targetEntity: Domain::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Domain $domain = null;
+
+    #[ORM\ManyToOne(targetEntity: Mention::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Mention $mention = null;
+
+    #[ORM\ManyToOne(targetEntity: Specialty::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Specialty $specialty = null;
+
+    /**
+     * Rattachements multiples à des établissements (étudiant ici,
+     * enseignant ailleurs...) — {@see $institution} ci-dessus reste
+     * l'établissement "principal" affiché par défaut, pour compatibilité
+     * avec l'existant ; cette collection est la source de vérité pour le
+     * multi-rattachement (gestion des établissements §5).
+     *
+     * @var Collection<int, UserInstitution>
+     */
+    #[ORM\OneToMany(targetEntity: UserInstitution::class, mappedBy: 'user', orphanRemoval: true, cascade: ['persist'])]
+    private Collection $institutionAttachments;
+
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $googleId = null;
 
@@ -114,12 +154,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Project::class, mappedBy: 'owner')]
     private Collection $projects;
 
+    /** @var Collection<int, Experience> */
+    #[ORM\OneToMany(targetEntity: Experience::class, mappedBy: 'user', orphanRemoval: true, cascade: ['persist'])]
+    #[ORM\OrderBy(['startDate' => 'DESC'])]
+    private Collection $experiences;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->skills = new ArrayCollection();
         $this->technologies = new ArrayCollection();
         $this->projects = new ArrayCollection();
+        $this->experiences = new ArrayCollection();
+        $this->institutionAttachments = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -374,6 +421,92 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getInstitution(): ?Institution
+    {
+        return $this->institution;
+    }
+
+    public function setInstitution(?Institution $institution): static
+    {
+        $this->institution = $institution;
+
+        return $this;
+    }
+
+    public function getDomain(): ?Domain
+    {
+        return $this->domain;
+    }
+
+    public function setDomain(?Domain $domain): static
+    {
+        $this->domain = $domain;
+
+        return $this;
+    }
+
+    public function getMention(): ?Mention
+    {
+        return $this->mention;
+    }
+
+    public function setMention(?Mention $mention): static
+    {
+        $this->mention = $mention;
+
+        return $this;
+    }
+
+    public function getSpecialty(): ?Specialty
+    {
+        return $this->specialty;
+    }
+
+    public function setSpecialty(?Specialty $specialty): static
+    {
+        $this->specialty = $specialty;
+
+        return $this;
+    }
+
+    /** @return Collection<int, UserInstitution> */
+    public function getInstitutionAttachments(): Collection
+    {
+        return $this->institutionAttachments;
+    }
+
+    public function addInstitutionAttachment(UserInstitution $attachment): static
+    {
+        if (!$this->institutionAttachments->contains($attachment)) {
+            $this->institutionAttachments->add($attachment);
+            $attachment->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeInstitutionAttachment(UserInstitution $attachment): static
+    {
+        $this->institutionAttachments->removeElement($attachment);
+
+        return $this;
+    }
+
+    /**
+     * Rattachement actif existant pour ce contexte, s'il y en a déjà un
+     * (utilisé pour éviter les doublons lors d'une nouvelle sélection).
+     */
+    public function getInstitutionAttachment(InstitutionContext $context): ?UserInstitution
+    {
+        foreach ($this->institutionAttachments as $attachment) {
+            if ($attachment->getContext() === $context && $attachment->isActive()) {
+                return $attachment;
+            }
+        }
+
+        return null;
+    }
+
     public function getGoogleId(): ?string
     {
         return $this->googleId;
@@ -487,6 +620,29 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getProjects(): Collection
     {
         return $this->projects;
+    }
+
+    /** @return Collection<int, Experience> */
+    public function getExperiences(): Collection
+    {
+        return $this->experiences;
+    }
+
+    public function addExperience(Experience $experience): static
+    {
+        if (!$this->experiences->contains($experience)) {
+            $this->experiences->add($experience);
+            $experience->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeExperience(Experience $experience): static
+    {
+        $this->experiences->removeElement($experience);
+
+        return $this;
     }
 
     public function __toString(): string

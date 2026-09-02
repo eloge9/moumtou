@@ -32,11 +32,22 @@
           <input class="m-input" type="password" id="password" name="_password" autocomplete="current-password" required>
         </div>
 
-        <p class="m-meta mb-4"><a href="#">Mot de passe oublié ?</a></p>
+        <p class="m-meta mb-4"><a href="{{ path('app_forgot_password') }}">Mot de passe oublié ?</a></p>
 
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
         <button class="m-btn m-btn--primaire m-btn--bloc m-btn--lg" type="submit">Se connecter</button>
       </form>
+
+      <div class="d-flex align-items-center gap-2 my-3">
+        <span class="flex-fill" style="height:1px;background:var(--m-bordure)"></span>
+        <span class="m-meta">ou</span>
+        <span class="flex-fill" style="height:1px;background:var(--m-bordure)"></span>
+      </div>
+      <div class="d-grid gap-2">
+        <a class="m-btn m-btn--secondaire m-btn--bloc" href="{{ path('app_oauth_start', {provider: 'google'}) }}">Continuer avec Google</a>
+        <a class="m-btn m-btn--secondaire m-btn--bloc" href="{{ path('app_oauth_start', {provider: 'facebook'}) }}">Continuer avec Facebook</a>
+        <a class="m-btn m-btn--secondaire m-btn--bloc" href="{{ path('app_oauth_start', {provider: 'linkedin'}) }}">Continuer avec LinkedIn</a>
+      </div>
     </div>
 
     <p class="m-meta text-center mt-3 mb-0">

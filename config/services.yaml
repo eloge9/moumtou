@@ -8,6 +8,7 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     app.project_uploads_directory: '%kernel.project_dir%/public/uploads/projects'
+    app.avatar_uploads_directory: '%kernel.project_dir%/public/uploads/avatars'
 
 services:
     # default configuration for services in *this* file
@@ -23,6 +24,19 @@ services:
     App\Service\ProjectPhotoUploader:
         arguments:
             $projectUploadsDirectory: '%app.project_uploads_directory%'
+
+    App\Service\AvatarUploader:
+        arguments:
+            $avatarUploadsDirectory: '%app.avatar_uploads_directory%'
+
+    App\Security\OAuth\OAuthProviderRegistry:
+        arguments:
+            $googleClientId: '%env(GOOGLE_OAUTH_CLIENT_ID)%'
+            $googleClientSecret: '%env(GOOGLE_OAUTH_CLIENT_SECRET)%'
+            $facebookClientId: '%env(FACEBOOK_OAUTH_CLIENT_ID)%'
+            $facebookClientSecret: '%env(FACEBOOK_OAUTH_CLIENT_SECRET)%'
+            $linkedinClientId: '%env(LINKEDIN_OAUTH_CLIENT_ID)%'
+            $linkedinClientSecret: '%env(LINKEDIN_OAUTH_CLIENT_SECRET)%'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

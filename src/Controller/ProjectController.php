@@ -16,6 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -82,7 +83,7 @@ class ProjectController extends AbstractController
         $this->assertViewable($project);
         $this->assertCsrf($request, 'note');
 
-        $value = $request->request->getInt('value');
+        $value = (int) $request->request->get('value');
         if ($value < 1 || $value > 5) {
             $this->addFlash('erreur', 'La note doit être comprise entre 1 et 5.');
 
@@ -110,11 +111,19 @@ class ProjectController extends AbstractController
 
     #[Route('/projets/{slug}/commenter', name: 'app_project_comment', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function comment(string $slug, Request $request, EntityManagerInterface $em): Response
+    public function comment(string $slug, Request $request, EntityManagerInterface $em, RateLimiterFactory $commentLimiter): Response
     {
         $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         $this->assertViewable($project);
         $this->assertCsrf($request, 'commentaire');
+
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        if (!$commentLimiter->create('user-'.$user->getId())->consume(1)->isAccepted()) {
+            $this->addFlash('erreur', 'Vous avez publié trop de commentaires récemment. Merci de patienter.');
+
+            return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+        }
 
         $content = trim((string) $request->request->get('content'));
         if ($content === '') {
@@ -131,6 +140,59 @@ class ProjectController extends AbstractController
         $em->flush();
 
         $this->addFlash('succes', 'Votre commentaire a été publié.');
+
+        return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+    }
+
+    #[Route('/commentaires/{id}/repondre', name: 'app_comment_reply', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function replyToComment(int $id, Request $request, EntityManagerInterface $em): Response
+    {
+        $parent = $em->getRepository(Comment::class)->find($id);
+        if (!$parent) {
+            throw $this->createNotFoundException();
+        }
+
+        $this->assertViewable($parent->getProject());
+        $this->assertCsrf($request, 'repondre-commentaire-'.$id);
+
+        $content = trim((string) $request->request->get('content'));
+        if ($content === '') {
+            $this->addFlash('erreur', 'La réponse ne peut pas être vide.');
+
+            return $this->redirectToRoute('app_project_show', ['slug' => $parent->getProject()->getSlug()]);
+        }
+
+        $reply = new Comment();
+        $reply->setProject($parent->getProject());
+        $reply->setAuthor($this->getUser());
+        $reply->setContent($content);
+        $reply->setParent($parent);
+        $em->persist($reply);
+        $em->flush();
+
+        $this->addFlash('succes', 'Votre réponse a été publiée.');
+
+        return $this->redirectToRoute('app_project_show', ['slug' => $parent->getProject()->getSlug()]);
+    }
+
+    #[Route('/commentaires/{id}/supprimer', name: 'app_comment_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function deleteComment(int $id, Request $request, EntityManagerInterface $em): Response
+    {
+        $comment = $em->getRepository(Comment::class)->find($id);
+        if (!$comment) {
+            throw $this->createNotFoundException();
+        }
+
+        $this->denyAccessUnlessGranted(\App\Security\Voter\CommentVoter::DELETE, $comment);
+        $this->assertCsrf($request, 'supprimer-commentaire-'.$id);
+
+        $slug = $comment->getProject()->getSlug();
+        $em->remove($comment);
+        $em->flush();
+
+        $this->addFlash('succes', 'Le commentaire a été supprimé.');
 
         return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
     }
@@ -167,7 +229,7 @@ class ProjectController extends AbstractController
     private function assertCsrf(Request $request, string $tokenId): void
     {
         if (!$this->isCsrfTokenValid($tokenId, $request->request->get('_csrf_token'))) {
-            throw new \Symfony\Component\Security\Csrf\Exception\InvalidCsrfTokenException();
+            throw new \Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException();
         }
     }
 

@@ -182,7 +182,7 @@ class Project
         return $this->type;
     }
 
-    public function setType(ProjectType $type): static
+    public function setType(?ProjectType $type): static
     {
         $this->type = $type;
 

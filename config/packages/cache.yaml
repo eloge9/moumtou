@@ -17,3 +17,14 @@ framework:
         # Namespaced pools use the above "app" backend by default
         #pools:
             #my.dedicated.cache: null
+
+when@test:
+    framework:
+        cache:
+            # Le compteur de rate limiting (inscription/login/commentaires) doit
+            # repartir de zéro à chaque exécution de la suite de tests, sinon des
+            # exécutions répétées dans la même heure peuvent déclencher le
+            # plafond entre deux lancements distincts de PHPUnit.
+            pools:
+                cache.rate_limiter:
+                    adapter: cache.adapter.array

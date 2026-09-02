@@ -1,0 +1,168 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ profileUser.fullName }} — Profil talent — MOUMTOU{% endblock %}
+{% block meta_description %}{{ (profileUser.bio ?: profileUser.fullName ~ ' présente ses projets et compétences sur MOUMTOU.')|striptags|slice(0, 160) }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ url('app_profile_show', {slug: profileUser.slug}) }}">{% endblock %}
+{% block og_type %}profile{% endblock %}
+{% block og_title %}{{ profileUser.fullName }} — MOUMTOU{% endblock %}
+{% block og_description %}{{ block('meta_description') }}{% endblock %}
+{% block og_image %}{% if profileUser.photo %}<meta property="og:image" content="{{ absolute_url(asset(profileUser.photo)) }}">{% endif %}{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">
+{{ {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  'name': profileUser.fullName,
+  'description': profileUser.bio,
+  'url': url('app_profile_show', {slug: profileUser.slug}),
+  'address': (profileUser.city or profileUser.country) ? {'@type': 'PostalAddress', 'addressLocality': profileUser.city, 'addressCountry': profileUser.country} : null,
+  'affiliation': profileUser.institution ? {'@type': 'CollegeOrUniversity', 'name': profileUser.institution.name} : null,
+  'sameAs': [profileUser.linkedinUrl, profileUser.githubUrl, profileUser.websiteUrl, profileUser.portfolioUrl]|filter(v => v is not empty),
+}|filter(v => v is not null)|json_encode|raw }}
+</script>
+{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'talents'} %}{% endblock %}
+
+{% block body %}
+
+<section class="px-4 py-4" style="border-bottom:1px solid var(--m-bordure)">
+  <div class="d-flex flex-wrap gap-4">
+    <div class="m-avatar m-avatar--xl" style="{% if profileUser.photo %}background-image:url('{{ asset(profileUser.photo) }}');background-size:cover;background-position:center{% endif %}"></div>
+    <div class="flex-fill" style="min-width:280px">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h1 style="font-size:32px">{{ profileUser.fullName }}</h1>
+        {% if stats.verifiedCount > 0 %}<span class="m-badge m-badge--verifie">Talent vérifié</span>{% endif %}
+      </div>
+      {% if profileUser.bio %}<p class="m-texte mb-3" style="max-width:560px">{{ profileUser.bio }}</p>{% endif %}
+      <p class="m-meta mb-2">{% if profileUser.city or profileUser.country %}{{ profileUser.city }}{{ profileUser.city and profileUser.country ? ', ' : '' }}{{ profileUser.country }}{% endif %}</p>
+      {% if profileUser.institution or profileUser.specialty %}
+        <p class="m-meta mb-2">
+          {% if profileUser.institution %}🎓 {{ profileUser.institution.name }}{% endif %}
+          {% if profileUser.specialty %}{{ profileUser.institution ? ' — ' : '' }}{{ profileUser.specialty.name }}{% endif %}
+        </p>
+      {% endif %}
+      <div class="d-flex flex-wrap gap-2">
+        {% if profileUser.whatsappEnabled and profileUser.whatsapp %}
+          <a class="m-btn m-btn--primaire" href="https://wa.me/{{ profileUser.whatsapp }}" target="_blank" rel="noopener">Écrire sur WhatsApp</a>
+        {% endif %}
+        {% if profileUser.linkedinUrl %}<a class="m-btn m-btn--secondaire" href="{{ profileUser.linkedinUrl }}" target="_blank" rel="noopener">LinkedIn</a>{% endif %}
+        {% if profileUser.githubUrl %}<a class="m-btn m-btn--secondaire" href="{{ profileUser.githubUrl }}" target="_blank" rel="noopener">GitHub</a>{% endif %}
+        {% if profileUser.websiteUrl %}<a class="m-btn m-btn--secondaire" href="{{ profileUser.websiteUrl }}" target="_blank" rel="noopener">Site personnel</a>{% endif %}
+        {% if isOwner %}<a class="m-btn m-btn--secondaire" href="{{ path('app_profile_edit') }}">Modifier mon profil</a>{% endif %}
+      </div>
+    </div>
+    <div class="d-grid gap-2" style="width:190px">
+      <div class="m-stat"><div class="m-stat__valeur" style="font-size:24px">{{ stats.publishedCount }}</div><div class="m-stat__libelle">projets publiés</div></div>
+      <div class="m-stat m-stat--bleu"><div class="m-stat__valeur" style="font-size:24px;color:var(--m-bleu)">{{ stats.verifiedCount }}</div><div class="m-stat__libelle">projets vérifiés</div></div>
+      <div class="m-stat"><div class="m-stat__valeur" style="font-size:24px">{{ stats.averageRating|number_format(1, ',') }}</div><div class="m-stat__libelle">note moyenne</div></div>
+      <div class="m-stat"><div class="m-stat__valeur" style="font-size:24px">{{ stats.totalViews }}</div><div class="m-stat__libelle">vues du profil</div></div>
+    </div>
+  </div>
+</section>
+
+<nav class="m-onglets" data-onglets aria-label="Sections du profil">
+  <button class="m-onglet is-active" type="button" data-onglet="projets">Projets</button>
+  <button class="m-onglet" type="button" data-onglet="competences">Compétences</button>
+  <button class="m-onglet" type="button" data-onglet="soutenances">Soutenances</button>
+  <button class="m-onglet" type="button" data-onglet="experiences">Expériences</button>
+</nav>
+
+<section class="px-4 py-4">
+  <div class="row g-4">
+    <div class="col-lg-8">
+
+      <div class="m-onglet-panneau is-active" data-onglet-panneau="projets">
+        <div class="d-flex align-items-center justify-content-between">
+          <h2 style="font-size:19px">Projets publiés</h2>
+          {% if isOwner %}<a class="m-btn m-btn--secondaire" href="{{ path('app_publish_start') }}">+ Nouveau projet</a>{% endif %}
+        </div>
+        <div class="d-grid gap-3 mt-3">
+          {% for project in projects %}
+            <article class="m-carte m-carte--plate p-3 d-flex gap-3 align-items-center flex-wrap">
+              <div class="m-media" style="width:96px;height:66px;border-radius:var(--m-r-sm);padding:0;flex:none">
+                {% if project.photos|length %}<img src="{{ asset(project.photos.first.path) }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:var(--m-r-sm)">{% endif %}
+              </div>
+              <div class="flex-fill" style="min-width:220px">
+                <p class="mb-1 d-flex align-items-center gap-2">
+                  <a class="fw-bold" style="font-size:15.5px" href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a>
+                  <span class="m-tag{{ project.status.value == 'verifie' ? ' m-tag--bleu' : '' }}">{{ project.status.value == 'verifie' ? 'Vérifié' : project.status.label }}</span>
+                </p>
+                <p class="m-meta mb-1">{{ project.type.shortLabel }} · {{ project.realizationDate ? project.realizationDate|date('Y') : project.createdAt|date('Y') }} · {{ project.technologies|map(t => t.name)|join(', ') }}</p>
+                <p class="m-meta mb-0">★ {{ project.ratingAverage|number_format(1, ',') }} ({{ project.ratingsCount }}) · {{ project.viewsCount }} vues</p>
+              </div>
+            </article>
+          {% else %}
+            <p class="m-meta">Aucun projet pour l'instant.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="m-onglet-panneau" data-onglet-panneau="competences">
+        <h2 style="font-size:19px">Compétences et technologies</h2>
+        <div class="m-tags mt-3">
+          {% for skill in profileUser.skills %}<span class="m-tag">{{ skill.name }}</span>{% else %}<span class="m-meta">Aucune compétence renseignée.</span>{% endfor %}
+        </div>
+        <div class="m-tags mt-3">
+          {% for tech in profileUser.technologies %}<span class="m-tag m-tag--bleu">{{ tech.name }}</span>{% endfor %}
+        </div>
+      </div>
+
+      <div class="m-onglet-panneau" data-onglet-panneau="soutenances">
+        <h2 style="font-size:19px">Soutenances</h2>
+        <div class="m-journal mt-3">
+          {% for project in defenseProjects %}
+            <div class="m-journal__ligne">
+              <span class="m-journal__date">{{ project.defense.date|date('d M Y') }}</span>
+              <span class="flex-fill"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a>{% if project.specialty %} — {{ project.specialty.name }}{% endif %}</span>
+              <span class="m-journal__acteur{{ project.defense.status.value == 'verifiee' or project.status.value == 'verifie' ? ' m-journal__acteur--jury' : '' }}">{{ project.defense.status.label }}</span>
+            </div>
+          {% else %}
+            <p class="m-meta">Aucune soutenance pour l'instant.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="m-onglet-panneau" data-onglet-panneau="experiences">
+        <div class="d-flex align-items-center justify-content-between">
+          <h2 style="font-size:19px">Expériences</h2>
+          {% if isOwner %}<a class="m-btn m-btn--secondaire" href="{{ path('app_profile_add_experience') }}">+ Ajouter</a>{% endif %}
+        </div>
+        <div class="d-grid gap-3 mt-3">
+          {% for experience in profileUser.experiences %}
+            <div class="m-carte m-carte--plate p-3">
+              <p class="fw-bold mb-1">{{ experience.title }} — {{ experience.company }}</p>
+              <p class="m-meta mb-2">{{ experience.startDate|date('M Y') }} — {{ experience.endDate ? experience.endDate|date('M Y') : 'aujourd\'hui' }}{% if experience.city %} · {{ experience.city }}{% endif %}</p>
+              {% if experience.description %}<p class="m-texte mb-0">{{ experience.description }}</p>{% endif %}
+              {% if isOwner %}
+                <form method="post" action="{{ path('app_profile_remove_experience', {id: experience.id}) }}" class="mt-2">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('supprimer-experience-' ~ experience.id) }}">
+                  <button class="m-btn m-btn--lien p-0" style="color:#B3261E;font-size:13px" type="submit">Supprimer</button>
+                </form>
+              {% endif %}
+            </div>
+          {% else %}
+            <p class="m-meta">Aucune expérience renseignée.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col-lg-4">
+      <div class="d-grid gap-3">
+        {% if profileUser.availability %}
+          <div class="m-carte m-carte--plate p-3">
+            <p class="m-surtitre mb-2">Disponibilité</p>
+            <p class="fw-bold mb-0" style="font-size:15px;color:var(--m-bleu)">{{ profileUser.availability.label }}</p>
+          </div>
+        {% endif %}
+        <div class="m-carte m-carte--plate p-3 text-center">
+          <p class="m-surtitre mb-0">QR code du profil</p>
+          <img src="{{ qrCodeDataUri }}" alt="QR code vers ce profil" width="100" height="100" class="mt-2">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

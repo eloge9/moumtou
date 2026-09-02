@@ -1,0 +1,11 @@
+framework:
+    rate_limiter:
+        # Cahier des charges §35 : limiter les abus (inscriptions/commentaires en masse).
+        registration:
+            policy: sliding_window
+            limit: 5
+            interval: '1 hour'
+        comment:
+            policy: sliding_window
+            limit: 15
+            interval: '1 hour'

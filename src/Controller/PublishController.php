@@ -34,7 +34,7 @@ class PublishController extends AbstractController
     ];
 
     #[Route('/publier', name: 'app_publish_start')]
-    #[IsGranted('ROLE_USER')]
+    #[IsGranted('ROLE_TALENT')]
     public function publish(
         Request $request,
         EntityManagerInterface $entityManager,
@@ -97,6 +97,140 @@ class PublishController extends AbstractController
             'form' => $form,
             'businessErrors' => $form->isSubmitted() ? $errors : [],
         ]);
+    }
+
+    #[Route('/projets/{slug}/modifier', name: 'app_project_edit')]
+    #[IsGranted('ROLE_TALENT')]
+    public function edit(
+        string $slug,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        ProjectPhotoUploader $photoUploader,
+    ): Response {
+        $project = $entityManager->getRepository(Project::class)->findOneBy(['slug' => $slug]);
+        if (!$project) {
+            throw $this->createNotFoundException();
+        }
+        $this->denyAccessUnlessGranted(\App\Security\Voter\ProjectVoter::EDIT, $project);
+
+        $form = $this->createForm(PublishProjectType::class, $project);
+
+        if (!$request->isMethod('POST')) {
+            $this->prefillUnmappedFields($form, $project);
+        }
+
+        $form->handleRequest($request);
+
+        $errors = [];
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $domain = $this->resolveDomain($form, $entityManager, $errors);
+            $mention = $this->resolveMention($form, $entityManager, $domain, $errors);
+            $specialty = $this->resolveSpecialty($form, $entityManager, $mention, $errors);
+            $institution = $this->resolveInstitution($form, $entityManager, $errors);
+
+            $errors = array_merge($errors, $this->validateBusinessRules($form, $project, $domain, $mention, $specialty, $institution));
+
+            if (empty($errors)) {
+                $project->setDomain($domain);
+                $project->setMention($mention);
+                $project->setSpecialty($specialty);
+                $project->setInstitution($institution);
+
+                foreach ($project->getTechnologies()->toArray() as $technology) {
+                    $project->removeTechnology($technology);
+                }
+                foreach ($this->parseTechnologies($form->get('technologiesInput')->getData(), $entityManager) as $technology) {
+                    $project->addTechnology($technology);
+                }
+
+                foreach ($project->getProofs()->toArray() as $proof) {
+                    $project->removeProof($proof);
+                    $entityManager->remove($proof);
+                }
+                foreach (self::PROOF_FIELDS as $field => $proofType) {
+                    $url = $form->get($field)->getData();
+                    if ($url) {
+                        $proof = new ProjectProof();
+                        $proof->setType($proofType);
+                        $proof->setUrl($url);
+                        $project->addProof($proof);
+                        $entityManager->persist($proof);
+                    }
+                }
+
+                $photoUploader->upload($project, $form->get('photos')->getData() ?? []);
+
+                $entityManager->flush();
+
+                $this->addFlash('succes', 'Votre projet a été mis à jour.');
+
+                return $this->redirectToRoute('app_project_show', ['slug' => $project->getSlug()]);
+            }
+        }
+
+        return $this->render('publish/wizard.html.twig', [
+            'form' => $form,
+            'businessErrors' => $form->isSubmitted() ? $errors : [],
+            'editingProject' => $project,
+        ]);
+    }
+
+    #[Route('/projets/{slug}/supprimer', name: 'app_project_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_TALENT')]
+    public function delete(string $slug, Request $request, EntityManagerInterface $entityManager): Response
+    {
+        $project = $entityManager->getRepository(Project::class)->findOneBy(['slug' => $slug]);
+        if (!$project) {
+            throw $this->createNotFoundException();
+        }
+        $this->denyAccessUnlessGranted(\App\Security\Voter\ProjectVoter::DELETE, $project);
+
+        if (!$this->isCsrfTokenValid('supprimer-projet-'.$project->getId(), $request->request->get('_csrf_token'))) {
+            throw new \Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException();
+        }
+
+        /** @var \App\Entity\User $owner */
+        $owner = $project->getOwner();
+        $entityManager->remove($project);
+        $entityManager->flush();
+
+        $this->addFlash('succes', 'Le projet a été supprimé.');
+
+        return $this->redirectToRoute('app_profile_show', ['slug' => $owner->getSlug()]);
+    }
+
+    /**
+     * Pré-remplit, à l'affichage du formulaire d'édition, les champs non
+     * mappés directement (classification exprimée en "id ou autre",
+     * technologies en texte, preuves individuelles par type).
+     */
+    private function prefillUnmappedFields(FormInterface $form, Project $project): void
+    {
+        if ($project->getDomain()) {
+            $form->get('domain')->setData((string) $project->getDomain()->getId());
+        }
+        if ($project->getMention()) {
+            $form->get('mention')->setData((string) $project->getMention()->getId());
+        }
+        if ($project->getSpecialty()) {
+            $form->get('specialty')->setData((string) $project->getSpecialty()->getId());
+        }
+        if ($project->getInstitution()) {
+            $form->get('institution')->setData((string) $project->getInstitution()->getId());
+        }
+
+        $form->get('technologiesInput')->setData(implode(',', array_map(
+            fn (Technology $t) => $t->getName(),
+            $project->getTechnologies()->toArray(),
+        )));
+
+        foreach ($project->getProofs() as $proof) {
+            $field = array_search($proof->getType(), self::PROOF_FIELDS, true);
+            if ($field) {
+                $form->get($field)->setData($proof->getUrl());
+            }
+        }
     }
 
     /**

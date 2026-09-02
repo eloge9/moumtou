@@ -27,7 +27,7 @@ class PublishProjectTest extends FunctionalTestCase
             ->setFirstName('Jean')
             ->setLastName('Dupont')
             ->setPhone('+22890000000')
-            ->setRoles(['ROLE_USER'])
+            ->setRoles(['ROLE_TALENT'])
             ->setStatus(UserStatus::ACTIF)
             ->setSlug('jean-dupont')
             ->setEmailVerified(true);
@@ -134,6 +134,42 @@ class PublishProjectTest extends FunctionalTestCase
         // La technologie déjà existante ne doit pas être dupliquée
         $angularCount = $em->getRepository(Technology::class)->count(['name' => 'Angular']);
         self::assertSame(1, $angularCount);
+    }
+
+    public function testNonYoutubeUrlIsRejectedAsVideoProof(): void
+    {
+        $client = $this->createLoggedInClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $crawler = $client->request('GET', '/publier');
+        $form = $crawler->selectButton('Envoyer pour publication')->form([
+            'publish_project[type]' => 'personnel',
+            'publish_project[name]' => 'Projet avec fausse vidéo',
+            'publish_project[youtubeUrl]' => 'https://vimeo.com/123456',
+        ]);
+        $client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'URL YouTube valide');
+        self::assertCount(0, $em->getRepository(Project::class)->findAll());
+    }
+
+    public function testNonGithubUrlIsRejectedAsGithubProof(): void
+    {
+        $client = $this->createLoggedInClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $crawler = $client->request('GET', '/publier');
+        $form = $crawler->selectButton('Envoyer pour publication')->form([
+            'publish_project[type]' => 'personnel',
+            'publish_project[name]' => 'Projet avec faux GitHub',
+            'publish_project[githubUrl]' => 'https://gitlab.com/jdupont/scolarite',
+        ]);
+        $client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'dépôt GitHub');
+        self::assertCount(0, $em->getRepository(Project::class)->findAll());
     }
 
     public function testMentionAutreWithoutDomainIsRejected(): void

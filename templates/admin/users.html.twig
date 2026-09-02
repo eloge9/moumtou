@@ -1,0 +1,97 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block title %}Administration — Utilisateurs — MOUMTOU{% endblock %}
+{% block admin_title %}Utilisateurs{% endblock %}
+
+{% block admin_body %}
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="m-label">Recherche</label>
+      <input class="m-input" type="text" name="q" value="{{ query }}" placeholder="Nom ou e-mail">
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Profil</label>
+      <select class="m-select" name="role">
+        <option value="">Tous</option>
+        <option value="ROLE_TALENT" {{ role == 'ROLE_TALENT' ? 'selected' }}>Talent</option>
+        <option value="ROLE_TEACHER" {{ role == 'ROLE_TEACHER' ? 'selected' }}>Enseignant</option>
+        <option value="ROLE_RECRUITER" {{ role == 'ROLE_RECRUITER' ? 'selected' }}>Recruteur</option>
+        <option value="ROLE_ADMIN" {{ role == 'ROLE_ADMIN' ? 'selected' }}>Administrateur</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Statut</label>
+      <select class="m-select" name="status">
+        <option value="">Tous</option>
+        <option value="actif" {{ status is not null and status.value == 'actif' ? 'selected' }}>Actif</option>
+        <option value="suspendu" {{ status is not null and status.value == 'suspendu' ? 'selected' }}>Suspendu</option>
+        <option value="banni" {{ status is not null and status.value == 'banni' ? 'selected' }}>Banni</option>
+        <option value="supprime" {{ status is not null and status.value == 'supprime' ? 'selected' }}>Supprimé</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="m-btn m-btn--primaire m-btn--bloc" type="submit">Filtrer</button>
+    </div>
+  </form>
+</div>
+
+<div class="m-carte m-carte--plate">
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Utilisateur</th><th>E-mail</th><th>Profil</th><th>Statut</th><th>Inscrit le</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td class="fw-semibold">{{ user.fullName }}</td>
+            <td class="m-texte">{{ user.email }}</td>
+            <td>
+              {% for r in user.roles %}
+                {% if r != 'ROLE_USER' %}<span class="m-tag">{{ r|replace({'ROLE_': ''})|lower }}</span>{% endif %}
+              {% endfor %}
+            </td>
+            <td>
+              {% if user.status.value == 'actif' %}<span class="m-tag m-tag--bleu">Actif</span>
+              {% elseif user.status.value == 'suspendu' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">Suspendu</span>
+              {% elseif user.status.value == 'banni' %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Banni</span>
+              {% else %}<span class="m-tag">Supprimé</span>{% endif %}
+            </td>
+            <td class="m-meta">{{ user.createdAt|date('d/m/Y') }}</td>
+            <td>
+              {% if user.status.value != 'supprime' %}
+                <div class="m-table__actions">
+                  <form method="post" action="{{ path('admin_users_sanction', {id: user.id}) }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('sanctionner-utilisateur-' ~ user.id) }}">
+                    <input type="hidden" name="action" value="">
+                    <input type="text" name="reason" placeholder="Motif" class="m-input m-input--sm" style="width:140px;display:inline-block">
+                    {% if user.status.value == 'actif' %}
+                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='avertir'">Avertir</button>
+                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='suspendre_7'">Suspendre 7j</button>
+                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='suspendre_30'">Suspendre 30j</button>
+                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" style="color:#B3261E" onclick="this.form['action'].value='bannir'">Bannir</button>
+                    {% else %}
+                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='reactiver'">Réactiver</button>
+                    {% endif %}
+                  </form>
+                </div>
+              {% else %}
+                <span class="m-meta">Compte supprimé par son titulaire</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="m-meta">Aucun utilisateur ne correspond à ces filtres.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pageCount > 1 %}
+  <nav class="d-flex justify-content-center gap-2 mt-3">
+    {% for p in 1..pageCount %}
+      <a class="m-btn m-btn--sm {{ p == page ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_users', {q: query, role: role, status: status ? status.value : '', page: p}) }}">{{ p }}</a>
+    {% endfor %}
+  </nav>
+{% endif %}
+{% endblock %}

@@ -35,6 +35,16 @@ class JuryMember
     #[ORM\Column(length: 180, nullable: true)]
     private ?string $institutionName = null;
 
+    /**
+     * Établissement du catalogue officiel, quand il y figure — préféré à
+     * `institutionName` (texte libre, conservé en repli quand l'établissement
+     * n'est pas encore catalogué, même logique que la classification des
+     * projets : "sélectionner ou préciser").
+     */
+    #[ORM\ManyToOne(targetEntity: Institution::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Institution $institution = null;
+
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: true)]
     private ?User $invitedUser = null;
@@ -99,7 +109,7 @@ class JuryMember
         return $this->role;
     }
 
-    public function setRole(JuryRole $role): static
+    public function setRole(?JuryRole $role): static
     {
         $this->role = $role;
 
@@ -128,6 +138,27 @@ class JuryMember
         $this->institutionName = $institutionName;
 
         return $this;
+    }
+
+    public function getInstitution(): ?Institution
+    {
+        return $this->institution;
+    }
+
+    public function setInstitution(?Institution $institution): static
+    {
+        $this->institution = $institution;
+
+        return $this;
+    }
+
+    /**
+     * Nom d'affichage de l'établissement, quelle que soit sa source
+     * (catalogue ou texte libre).
+     */
+    public function getInstitutionLabel(): ?string
+    {
+        return $this->institution?->getName() ?? $this->institutionName;
     }
 
     public function getInvitedUser(): ?User

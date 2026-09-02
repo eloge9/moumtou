@@ -1,0 +1,50 @@
+{% extends 'admin/_layout.html.twig' %}
+{% set adminNav = 'technologies' %}
+
+{% block title %}Administration — Technologies — MOUMTOU{% endblock %}
+{% block admin_title %}Technologies · Compétences{% endblock %}
+
+{% block admin_body %}
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="m-carte m-carte--plate p-3">
+      <p class="m-surtitre mb-2">Technologies</p>
+      <form method="post" action="{{ path('admin_technologies_add') }}" class="d-flex gap-2 mb-3">
+        <input class="m-input" type="text" name="name" placeholder="Ex. : Kotlin" required>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-technologie-ajouter') }}">
+        <button class="m-btn m-btn--primaire" type="submit">Ajouter</button>
+      </form>
+      <div class="m-tags">
+        {% for technology in technologies %}
+          <span class="m-tag">{{ technology.name }}
+            <form method="post" action="{{ path('admin_technologies_delete', {id: technology.id}) }}" style="display:inline">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-technologie-supprimer-' ~ technology.id) }}">
+              <button type="submit" style="border:0;background:none;color:inherit">&times;</button>
+            </form>
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="m-carte m-carte--plate p-3">
+      <p class="m-surtitre mb-2">Compétences</p>
+      <form method="post" action="{{ path('admin_skills_add') }}" class="d-flex gap-2 mb-3">
+        <input class="m-input" type="text" name="name" placeholder="Ex. : Data engineering" required>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-competence-ajouter') }}">
+        <button class="m-btn m-btn--primaire" type="submit">Ajouter</button>
+      </form>
+      <div class="m-tags">
+        {% for skill in skills %}
+          <span class="m-tag">{{ skill.name }}
+            <form method="post" action="{{ path('admin_skills_delete', {id: skill.id}) }}" style="display:inline">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-competence-supprimer-' ~ skill.id) }}">
+              <button type="submit" style="border:0;background:none;color:inherit">&times;</button>
+            </form>
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

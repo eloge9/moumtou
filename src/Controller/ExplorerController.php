@@ -52,21 +52,34 @@ class ExplorerController extends AbstractController
         ));
 
         return new ProjectSearchCriteria(
+            query: $request->query->get('q') ?: null,
             types: $types,
-            domainId: $request->query->getInt('domain') ?: null,
-            mentionId: $request->query->getInt('mention') ?: null,
-            specialtyId: $request->query->getInt('specialty') ?: null,
+            domainId: $this->optionalInt($request, 'domain'),
+            mentionId: $this->optionalInt($request, 'mention'),
+            specialtyId: $this->optionalInt($request, 'specialty'),
             technologyIds: array_map('intval', $request->query->all('technologies')),
             statuses: $statuses,
-            institutionId: $request->query->getInt('institution') ?: null,
+            institutionId: $this->optionalInt($request, 'institution'),
             country: $request->query->get('country') ?: null,
             city: $request->query->get('city') ?: null,
-            yearMin: $request->query->getInt('year_min') ?: null,
+            yearMin: $this->optionalInt($request, 'year_min'),
             sort: \in_array($request->query->get('sort'), [ProjectSearchCriteria::SORT_RATING, ProjectSearchCriteria::SORT_VIEWS], true)
                 ? $request->query->get('sort')
                 : ProjectSearchCriteria::SORT_RECENT,
-            page: max(1, $request->query->getInt('page', 1)),
+            page: max(1, $this->optionalInt($request, 'page') ?? 1),
         );
+    }
+
+    /**
+     * Lit un paramètre GET entier optionnel sans planter si la valeur est
+     * vide ou absente (ex. un <select> non renseigné soumet une chaîne vide,
+     * et Request::getInt() lève désormais une BadRequestException dans ce cas).
+     */
+    private function optionalInt(Request $request, string $key): ?int
+    {
+        $raw = $request->query->get($key);
+
+        return ($raw === null || $raw === '') ? null : (int) $raw;
     }
 
     /**

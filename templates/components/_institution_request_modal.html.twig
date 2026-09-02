@@ -1,0 +1,33 @@
+{# Inclure avec : {% include 'components/_institution_request_modal.html.twig' with {redirect_path: app.request.pathinfo} %} #}
+<div class="m-modale" id="modale-demande-etablissement" data-modale role="dialog" aria-modal="true">
+  <div class="m-modale__boite">
+    <form method="post" action="{{ path('app_institution_request_create') }}">
+      <h2 class="m-modale__titre">Mon établissement n'est pas dans la liste</h2>
+      <p class="m-meta mt-2">Votre demande sera transmise à l'administration ; elle ne crée pas automatiquement un établissement vérifié.</p>
+      <div class="row g-2 mt-2">
+        <div class="col-12"><label class="m-label">Nom de l'établissement</label><input class="m-input" type="text" name="name" required></div>
+        <div class="col-md-6">
+          <label class="m-label">Type</label>
+          <select class="m-select" name="type">
+            <option value="universite">Université</option>
+            <option value="ecole">École</option>
+            <option value="institut">Institut</option>
+            <option value="centre_de_formation">Centre de formation</option>
+            <option value="autre" selected>Autre</option>
+          </select>
+        </div>
+        <div class="col-md-6"><label class="m-label">Site web</label><input class="m-input" type="text" name="website"></div>
+        <div class="col-md-6"><label class="m-label">Pays</label><input class="m-input" type="text" name="country"></div>
+        <div class="col-md-6"><label class="m-label">Ville</label><input class="m-input" type="text" name="city"></div>
+        <div class="col-12"><label class="m-label">Adresse</label><input class="m-input" type="text" name="address"></div>
+        <div class="col-12"><label class="m-label">Informations complémentaires</label><textarea class="m-textarea" name="additional_info" rows="2"></textarea></div>
+      </div>
+      <input type="hidden" name="redirect" value="{{ redirect_path|default('') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token('demande-etablissement') }}">
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button class="m-btn m-btn--secondaire" type="button" data-modale-fermer>Annuler</button>
+        <button class="m-btn m-btn--primaire" type="submit">Envoyer la demande</button>
+      </div>
+    </form>
+  </div>
+</div>

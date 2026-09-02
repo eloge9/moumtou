@@ -18,21 +18,36 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            user_checker: App\Security\UserChecker
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
             form_login:
                 login_path: app_login
                 check_path: app_login
                 enable_csrf: true
-                default_target_path: app_home
+                success_handler: App\Security\LoginSuccessHandler
             logout:
                 path: app_logout
                 target: app_home
 
-    # Note: Only the *first* matching rule is applied
+    # Note: Only the *first* matching rule est appliquée. Défense en profondeur :
+    # chaque contrôleur porte déjà son propre #[IsGranted], ces règles servent
+    # de filet de sécurité au niveau du pare-feu.
     access_control:
         - { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/mon-espace-enseignant, roles: ROLE_TEACHER }
+        - { path: ^/recruteur, roles: ROLE_RECRUITER }
+        - { path: ^/publier, roles: ROLE_TALENT }
+        - { path: ^/ma-soutenance, roles: ROLE_TALENT }
+        - { path: ^/projets/[^/]+/(modifier|supprimer)$, roles: ROLE_TALENT }
         - { path: ^/inscription, roles: PUBLIC_ACCESS }
+        - { path: ^/connexion/(google|facebook|linkedin), roles: PUBLIC_ACCESS }
         - { path: ^/connexion, roles: PUBLIC_ACCESS }
         - { path: ^/verifier-email, roles: PUBLIC_ACCESS }
+        - { path: ^/mot-de-passe-oublie, roles: PUBLIC_ACCESS }
+        - { path: ^/reinitialiser-mot-de-passe, roles: PUBLIC_ACCESS }
+        - { path: ^/jury/confirmer, roles: PUBLIC_ACCESS }
 
 when@test:
     security:

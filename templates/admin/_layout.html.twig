@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+
+{% block meta_robots %}noindex, nofollow{% endblock %}
+{% block body_class %}{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block body %}
+<div class="m-admin">
+  <aside class="m-admin__aside">
+    <a class="m-brand text-white px-1" href="{{ path('app_home') }}"><span class="m-brand__mark">M</span>MOUMTOU</a>
+
+    <p class="m-admin__groupe">Pilotage</p>
+    <a class="m-admin__lien{{ adminNav|default('') == 'dashboard' ? ' is-active' : '' }}" href="{{ path('admin_dashboard') }}">Tableau de bord</a>
+
+    <p class="m-admin__groupe">Contenus</p>
+    <a class="m-admin__lien{{ adminNav|default('') == 'moderation' ? ' is-active' : '' }}" href="{{ path('admin_moderation') }}">Modération {% if stats is defined and stats.openReportsCount is defined and stats.openReportsCount > 0 %}<span class="m-admin__compteur m-admin__compteur--alerte">{{ stats.openReportsCount }}</span>{% endif %}</a>
+    <a class="m-admin__lien{{ adminNav|default('') == 'users' ? ' is-active' : '' }}" href="{{ path('admin_users') }}">Utilisateurs</a>
+
+    <p class="m-admin__groupe">Référentiels</p>
+    <a class="m-admin__lien{{ adminNav|default('') == 'institutions' ? ' is-active' : '' }}" href="{{ path('admin_institutions') }}">Établissements</a>
+    <a class="m-admin__lien{{ adminNav|default('') == 'institution_requests' ? ' is-active' : '' }}" href="{{ path('admin_institution_requests') }}">Demandes d'établissements</a>
+    <a class="m-admin__lien{{ adminNav|default('') == 'domains' ? ' is-active' : '' }}" href="{{ path('admin_domains') }}">Domaines · Mentions · Spécialités</a>
+    <a class="m-admin__lien{{ adminNav|default('') == 'technologies' ? ' is-active' : '' }}" href="{{ path('admin_technologies') }}">Technologies</a>
+  </aside>
+
+  <div class="m-admin__contenu">
+    <header class="m-admin__header">
+      <span class="fw-bold" style="font-size:16px">{% block admin_title %}Administration{% endblock %}</span>
+      <span class="m-avatar ms-auto"></span>
+    </header>
+
+    <div class="p-4">
+      {% block admin_body %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

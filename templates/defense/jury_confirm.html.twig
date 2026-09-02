@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Confirmation de soutenance — MOUMTOU{% endblock %}
+
+{% block header %}{% include 'components/_header_minimal.html.twig' with {context_label: 'Invitation jury'} %}{% endblock %}
+
+{% block body %}
+<section class="m-section d-flex justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="m-carte m-carte--tiret p-4">
+      <p class="m-surtitre mb-2">Vous êtes invité(e) comme {{ juryMember.role.label }}</p>
+      <h1 style="font-size:24px">{{ project.name }}</h1>
+      <p class="m-texte mt-2">
+        Soutenance de <strong>{{ project.owner.fullName }}</strong>, le {{ defense.date|date('d F Y') }} à {{ defense.time }} — {{ defense.place }}.
+      </p>
+
+      {% if decided %}
+        {% if juryMember.status.value == 'confirme' %}
+          <p class="m-avis mt-3 mb-0">Merci, votre participation est confirmée. La soutenance affiche désormais le statut « vérifiée ».</p>
+        {% else %}
+          <p class="m-avis mt-3 mb-0" style="color:#B3261E;background:#FDECEA;border-color:#F5C6C2">Vous avez décliné cette invitation.</p>
+        {% endif %}
+      {% else %}
+        <p class="m-aide mb-0">Après la soutenance : « Confirmez-vous que l'étudiant a soutenu ce projet ? »</p>
+        <div class="d-flex gap-2 mt-3">
+          <a class="m-btn m-btn--primaire" href="{{ confirmUrl }}">Confirmer</a>
+          <a class="m-btn m-btn--secondaire" href="{{ declineUrl }}">Refuser</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

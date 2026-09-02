@@ -1,0 +1,43 @@
+{% extends 'admin/_layout.html.twig' %}
+{% set adminNav = 'institution_requests' %}
+
+{% block title %}Administration — Demandes d'établissements — MOUMTOU{% endblock %}
+{% block admin_title %}Demandes d'établissements{% endblock %}
+
+{% block admin_body %}
+<div class="d-flex gap-2 mb-3">
+  <a class="m-btn m-btn--sm {{ status.value == 'en_attente' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_institution_requests', {status: 'en_attente'}) }}">En attente</a>
+  <a class="m-btn m-btn--sm {{ status.value == 'acceptee' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_institution_requests', {status: 'acceptee'}) }}">Acceptées</a>
+  <a class="m-btn m-btn--sm {{ status.value == 'refusee' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_institution_requests', {status: 'refusee'}) }}">Refusées</a>
+  <a class="m-btn m-btn--sm {{ status.value == 'corrections_demandees' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_institution_requests', {status: 'corrections_demandees'}) }}">Corrections demandées</a>
+</div>
+
+<div class="d-grid gap-3">
+  {% for r in requests %}
+    <div class="m-carte m-carte--plate p-3">
+      <div class="d-flex justify-content-between flex-wrap gap-2">
+        <div>
+          <p class="fw-bold mb-1" style="font-size:16px">{{ r.name }} <span class="m-tag">{{ r.type.label }}</span></p>
+          <p class="m-meta mb-1">{{ r.city }}{{ r.city and r.country ? ', ' : '' }}{{ r.country }}{% if r.website %} — {{ r.website }}{% endif %}</p>
+          <p class="m-meta mb-1">Demandé par {{ r.requestedBy.fullName }} le {{ r.createdAt|date('d/m/Y') }}</p>
+          {% if r.additionalInfo %}<p class="m-texte mt-2">{{ r.additionalInfo }}</p>{% endif %}
+          {% if r.adminNote %}<p class="m-texte mt-2" style="font-style:italic">Note admin : {{ r.adminNote }}</p>{% endif %}
+        </div>
+        {% if status.value == 'en_attente' %}
+          <form method="post" action="{{ path('admin_institution_request_decide', {id: r.id}) }}" class="d-flex flex-column gap-2" style="min-width:220px">
+            <textarea class="m-textarea" name="note" placeholder="Note (optionnelle)" rows="2"></textarea>
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('institution-request-decider-' ~ r.id) }}">
+            <div class="d-flex gap-2">
+              <button class="m-btn m-btn--primaire m-btn--sm" type="submit" name="decision" value="accepter">Accepter</button>
+              <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" name="decision" value="corrections">Corrections</button>
+              <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" name="decision" value="refuser" style="color:#B3261E">Refuser</button>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <p class="m-meta">Aucune demande dans cette catégorie.</p>
+  {% endfor %}
+</div>
+{% endblock %}

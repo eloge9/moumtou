@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rechercher un talent — MOUMTOU{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'talents'} %}{% endblock %}
+
+{% block body %}
+
+<section class="p-4" style="background:var(--m-fond);border-bottom:1px solid var(--m-bordure)">
+  <form method="get" class="d-flex flex-wrap gap-2">
+    <label class="m-recherche m-recherche--large flex-fill">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0A46E4" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
+      <input type="search" name="q" value="{{ query }}" placeholder="Nom ou mot-clé du profil" aria-label="Rechercher un talent">
+    </label>
+    <input class="m-input" style="max-width:220px" type="text" name="city" value="{{ city }}" placeholder="Ville">
+    <button class="m-btn m-btn--primaire m-btn--lg" type="submit">Rechercher</button>
+  </form>
+
+  <div class="m-tags mt-3">
+    {% for technology in technologies %}
+      <label class="m-chip{{ technology.id in technologyIds ? ' is-active' : '' }}" data-chip>
+        <input type="checkbox" class="visually-hidden" form="filtres-talents" name="technologies[]" value="{{ technology.id }}" {{ technology.id in technologyIds ? 'checked' : '' }}>
+        {{ technology.name }}
+      </label>
+    {% endfor %}
+  </div>
+  <form method="get" id="filtres-talents">
+    <input type="hidden" name="q" value="{{ query }}">
+    <input type="hidden" name="city" value="{{ city }}">
+  </form>
+</section>
+
+<main class="p-4">
+  <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
+    <div>
+      <h1 style="font-size:24px">{{ results|length }} talent{{ results|length > 1 ? 's' : '' }} correspondant{{ results|length > 1 ? 's' : '' }}</h1>
+      <p class="m-meta mt-1 mb-0">Chaque résultat a publié au moins un projet réalisé et vérifiable.</p>
+    </div>
+  </div>
+
+  <div class="d-grid gap-3 mt-4">
+    {% for result in results %}
+      {% set talent = result.user %}
+      <article class="m-carte m-carte--plate p-4">
+        <div class="d-flex gap-4 flex-wrap">
+          <span class="m-avatar m-avatar--lg" style="{% if talent.photo %}background-image:url('{{ asset(talent.photo) }}');background-size:cover{% endif %}"></span>
+          <div class="flex-fill" style="min-width:300px">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <a class="fw-bold" style="font-size:19px;letter-spacing:-.02em" href="{{ path('app_profile_show', {slug: talent.slug}) }}">{{ talent.fullName }}</a>
+              {% if talent.availability %}<span class="m-tag">{{ talent.availability.label }}</span>{% endif %}
+            </div>
+            <p class="m-meta mt-1 mb-2">{{ talent.city }}{{ talent.city and talent.country ? ', ' : '' }}{{ talent.country }}</p>
+            <div class="m-tags">
+              {% for tech in talent.technologies %}<span class="m-tag{{ tech.id in technologyIds ? ' m-tag--bleu' : '' }}">{{ tech.name }}</span>{% endfor %}
+            </div>
+          </div>
+          <div class="d-grid gap-2" style="width:190px">
+            {% if result.compatibility is not null %}
+              <div class="text-end"><span class="m-stat__valeur d-block" style="font-size:26px;color:var(--m-bleu)">{{ result.compatibility }}%</span><span class="m-stat__libelle">compatibilité</span></div>
+            {% endif %}
+            {% if talent.whatsappEnabled and talent.whatsapp %}
+              <a class="m-btn m-btn--primaire" href="https://wa.me/{{ talent.whatsapp }}" target="_blank" rel="noopener">Écrire sur WhatsApp</a>
+            {% endif %}
+            <a class="m-btn m-btn--secondaire" href="{{ path('app_profile_show', {slug: talent.slug}) }}">Voir le profil</a>
+          </div>
+        </div>
+      </article>
+    {% else %}
+      <p class="m-meta">Aucun talent ne correspond à ces critères pour le moment.</p>
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}
