@@ -21,6 +21,7 @@ class DefenseAnnounceType extends AbstractType
                 'label' => 'Heure',
                 'widget' => 'single_text',
                 'input' => 'string',
+                'input_format' => 'H:i',
                 'constraints' => [new NotBlank()],
             ])
             ->add('place', TextType::class, ['label' => 'Lieu', 'constraints' => [new NotBlank()], 'attr' => ['placeholder' => 'Ex. : Amphi B']])

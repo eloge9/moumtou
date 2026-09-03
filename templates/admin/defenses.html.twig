@@ -1,0 +1,51 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block title %}Administration — Soutenances — MOUMTOU{% endblock %}
+{% block admin_title %}Soutenances{% endblock %}
+
+{% block admin_body %}
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <a class="m-btn m-btn--sm {{ filter == 'toutes' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_defenses', {filtre: 'toutes'}) }}">Toutes</a>
+  <a class="m-btn m-btn--sm {{ filter == 'a_venir' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_defenses', {filtre: 'a_venir'}) }}">À venir</a>
+  <a class="m-btn m-btn--sm {{ filter == 'realisees' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_defenses', {filtre: 'realisees'}) }}">Réalisées</a>
+  <a class="m-btn m-btn--sm {{ filter == 'en_validation' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_defenses', {filtre: 'en_validation'}) }}">En validation</a>
+  <a class="m-btn m-btn--sm {{ filter == 'verifiees' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_defenses', {filtre: 'verifiees'}) }}">Vérifiées</a>
+  <a class="m-btn m-btn--sm {{ filter == 'reportees' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_defenses', {filtre: 'reportees'}) }}">Reportées</a>
+  <a class="m-btn m-btn--sm {{ filter == 'annulees' ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_defenses', {filtre: 'annulees'}) }}">Annulées</a>
+</div>
+
+<div class="m-carte m-carte--plate">
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Projet</th><th>Candidat</th><th>Établissement</th><th>Date</th><th>Jury</th><th>Statut</th><th>Résultat</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for defense in defenses %}
+          {% set project = defense.project %}
+          <tr>
+            <td class="fw-semibold">{{ project.name }}</td>
+            <td class="m-texte">{{ project.owner.fullName }}</td>
+            <td class="m-texte">{{ project.institution ? project.institution.name : '—' }}</td>
+            <td class="m-texte">{{ defense.date|date('d/m/Y') }} — {{ defense.time }}</td>
+            <td class="m-texte">{{ defense.juryMembers|length }} membre{{ defense.juryMembers|length > 1 ? 's' : '' }}</td>
+            <td>
+              {% if defense.status.value == 'verifiee' %}<span class="m-tag m-tag--bleu">✅ Vérifiée ({{ defense.validationCount }})</span>
+              {% elseif defense.status.value == 'realisee' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">Réalisée ({{ defense.validationCount }}/2)</span>
+              {% elseif defense.status.value == 'reportee' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">🔁 Reportée</span>
+              {% elseif defense.status.value == 'annulee' %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">❌ Annulée</span>
+              {% else %}<span class="m-tag">À venir</span>{% endif %}
+            </td>
+            <td class="m-texte">
+              {% if defense.academicResult %}
+                {{ defense.academicResult.status.label }}{% if defense.academicResult.validated %} ✓{% else %} (non validé){% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td><a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('admin_project_show', {id: project.id}) }}">Examiner</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8" class="m-meta">Aucune soutenance dans cette catégorie.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

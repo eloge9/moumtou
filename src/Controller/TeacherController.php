@@ -37,6 +37,15 @@ class TeacherController extends AbstractController
             ->orderBy('j.invitedAt', 'DESC')
             ->getQuery()->getResult();
 
+        // Pour chaque invitation, ce membre a-t-il déjà certifié que la
+        // soutenance a eu lieu ? (empêche une double validation côté UI).
+        $validatedInvitationIds = [];
+        foreach ($invitations as $invitation) {
+            if ($em->getRepository(\App\Entity\DefenseValidation::class)->findOneBy(['juryMember' => $invitation])) {
+                $validatedInvitationIds[] = $invitation->getId();
+            }
+        }
+
         $attachments = $em->getRepository(UserInstitution::class)->createQueryBuilder('ui')
             ->andWhere('ui.user = :teacher')->setParameter('teacher', $teacher)
             ->andWhere('ui.context = :context')->setParameter('context', InstitutionContext::ENSEIGNANT)
@@ -46,6 +55,9 @@ class TeacherController extends AbstractController
         return $this->render('teacher/dashboard.html.twig', [
             'teacher' => $teacher,
             'invitations' => $invitations,
+            'validatedInvitationIds' => $validatedInvitationIds,
+            'resultStatuses' => \App\Enum\DefenseResultStatus::cases(),
+            'decisions' => \App\Enum\DefenseDecision::cases(),
             'attachments' => $attachments,
             'institutions' => $em->getRepository(Institution::class)->createQueryBuilder('i')
                 ->andWhere('i.active = true')->orderBy('i.name', 'ASC')->getQuery()->getResult(),
@@ -138,20 +150,52 @@ class TeacherController extends AbstractController
             throw $this->createNotFoundException();
         }
 
+        // Accepter/refuser l'invitation (avant la soutenance) ne certifie en
+        // rien qu'elle a eu lieu — voir validateDefense() ci-dessous pour
+        // l'étape distincte prévue par le cahier des charges §19/§20.
         $juryMember->setStatus('confirmer' === $decision ? JuryStatus::CONFIRME : JuryStatus::REFUSE);
         if ('confirmer' === $decision) {
             $juryMember->setConfirmedAt(new \DateTimeImmutable());
         }
         $em->flush();
 
-        if ('confirmer' === $decision) {
-            $defense = $juryMember->getDefense();
-            $defense->setStatus(\App\Enum\DefenseStatus::VERIFIEE);
-            $defense->getProject()->setStatus(\App\Enum\ProjectStatus::VERIFIE);
-            $em->flush();
+        $this->addFlash('succes', 'confirmer' === $decision ? 'Votre participation est confirmée.' : 'Invitation déclinée.');
+
+        return $this->redirectToRoute('app_teacher_dashboard');
+    }
+
+    /**
+     * « Je confirme que cette soutenance a bien eu lieu » (cahier des
+     * charges §20) : distinct de l'acceptation de l'invitation, disponible
+     * uniquement après acceptation ET une fois la soutenance au moins
+     * "réalisée". La soutenance ne devient VERIFIEE qu'à la 2ᵉ validation
+     * distincte (cahier §19), jamais dès la première.
+     */
+    #[Route('/mon-espace-enseignant/jury/{id}/valider-soutenance', name: 'app_teacher_validate_defense', methods: ['POST'])]
+    public function validateDefense(int $id, Request $request, EntityManagerInterface $em, \App\Service\DefenseValidator $defenseValidator): Response
+    {
+        $juryMember = $em->getRepository(JuryMember::class)->find($id);
+        if (!$juryMember) {
+            throw $this->createNotFoundException();
         }
 
-        $this->addFlash('succes', 'confirmer' === $decision ? 'Votre participation est confirmée.' : 'Invitation déclinée.');
+        $this->denyAccessUnlessGranted(\App\Security\Voter\JuryMemberVoter::VALIDATE, $juryMember);
+
+        if (!$this->isCsrfTokenValid('valider-soutenance-'.$id, $request->request->get('_csrf_token'))) {
+            throw new InvalidCsrfTokenException();
+        }
+
+        if (\App\Enum\DefenseStatus::ANNONCEE === $juryMember->getDefense()->getStatus()) {
+            $this->addFlash('erreur', 'Cette soutenance n\'a pas encore été marquée comme réalisée par le candidat.');
+
+            return $this->redirectToRoute('app_teacher_dashboard');
+        }
+
+        $created = $defenseValidator->recordValidation($juryMember, $request->getClientIp());
+
+        $this->addFlash('succes', $created
+            ? 'Votre confirmation a été enregistrée. Merci.'
+            : 'Vous aviez déjà confirmé la tenue de cette soutenance.');
 
         return $this->redirectToRoute('app_teacher_dashboard');
     }

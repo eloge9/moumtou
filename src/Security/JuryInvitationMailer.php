@@ -84,4 +84,35 @@ class JuryInvitationMailer
 
         return $signedUrl;
     }
+
+    /**
+     * Prévient les membres du jury ayant déjà répondu (accepté ou en
+     * attente) qu'une soutenance est annulée ou reportée (cahier des
+     * charges §28 : réutiliser le système de notification existant).
+     */
+    public function notifyCancelledOrPostponed(\App\Entity\Defense $defense, string $situation, string $reason): void
+    {
+        $project = $defense->getProject();
+
+        foreach ($defense->getJuryMembers() as $juryMember) {
+            if (\App\Enum\JuryStatus::REFUSE === $juryMember->getStatus()) {
+                continue;
+            }
+
+            $email = (new TemplatedEmail())
+                ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+                ->to($juryMember->getEmail())
+                ->subject(sprintf('Soutenance %s — %s', $situation, $project->getName()))
+                ->htmlTemplate('emails/defense_cancelled_or_postponed.html.twig')
+                ->context([
+                    'juryMember' => $juryMember,
+                    'project' => $project,
+                    'defense' => $defense,
+                    'situation' => $situation,
+                    'reason' => $reason,
+                ]);
+
+            $this->mailer->send($email);
+        }
+    }
 }

@@ -39,14 +39,48 @@ class Defense
     #[ORM\Column]
     private \DateTimeImmutable $announcedAt;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $cancellationReason = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $postponementReason = null;
+
+    /** Ancienne date conservée à titre d'historique lors d'un report. */
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $previousDate = null;
+
+    /**
+     * Empêche l'envoi de plusieurs rappels par e-mail pour la même
+     * soutenance (cahier des charges §28/§29).
+     */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $reminderSentAt = null;
+
     /** @var Collection<int, JuryMember> */
     #[ORM\OneToMany(targetEntity: JuryMember::class, mappedBy: 'defense', orphanRemoval: true, cascade: ['persist'])]
     private Collection $juryMembers;
+
+    /**
+     * Confirmations post-soutenance ("elle a réellement eu lieu"),
+     * distinctes de l'acceptation d'invitation portée par {@see JuryMember}.
+     *
+     * @var Collection<int, DefenseValidation>
+     */
+    #[ORM\OneToMany(targetEntity: DefenseValidation::class, mappedBy: 'defense', orphanRemoval: true)]
+    private Collection $validations;
+
+    /**
+     * Résultat académique structuré (note/appréciation/décision) — cahier
+     * §12-§17. Distinct de {@see $result}, mention libre déjà existante.
+     */
+    #[ORM\OneToOne(targetEntity: DefenseResult::class, mappedBy: 'defense', cascade: ['persist', 'remove'])]
+    private ?DefenseResult $academicResult = null;
 
     public function __construct()
     {
         $this->announcedAt = new \DateTimeImmutable();
         $this->juryMembers = new ArrayCollection();
+        $this->validations = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -131,6 +165,54 @@ class Defense
         return $this->announcedAt;
     }
 
+    public function getCancellationReason(): ?string
+    {
+        return $this->cancellationReason;
+    }
+
+    public function setCancellationReason(?string $cancellationReason): static
+    {
+        $this->cancellationReason = $cancellationReason;
+
+        return $this;
+    }
+
+    public function getPostponementReason(): ?string
+    {
+        return $this->postponementReason;
+    }
+
+    public function setPostponementReason(?string $postponementReason): static
+    {
+        $this->postponementReason = $postponementReason;
+
+        return $this;
+    }
+
+    public function getPreviousDate(): ?\DateTimeImmutable
+    {
+        return $this->previousDate;
+    }
+
+    public function setPreviousDate(?\DateTimeImmutable $previousDate): static
+    {
+        $this->previousDate = $previousDate;
+
+        return $this;
+    }
+
+    public function getReminderSentAt(): ?\DateTimeImmutable
+    {
+        return $this->reminderSentAt;
+    }
+
+    public function setReminderSentAt(?\DateTimeImmutable $reminderSentAt): static
+    {
+        $this->reminderSentAt = $reminderSentAt;
+
+        return $this;
+    }
+
     /** @return Collection<int, JuryMember> */
     public function getJuryMembers(): Collection
     {
@@ -154,10 +236,38 @@ class Defense
         return $this;
     }
 
+    /** Nombre de membres ayant accepté l'invitation (avant la soutenance). */
     public function getConfirmedCount(): int
     {
         return $this->juryMembers->filter(
             fn (JuryMember $member) => $member->getStatus() === \App\Enum\JuryStatus::CONFIRME
         )->count();
+    }
+
+    /** @return Collection<int, DefenseValidation> */
+    public function getValidations(): Collection
+    {
+        return $this->validations;
+    }
+
+    /** Nombre de membres ayant certifié que la soutenance a réellement eu lieu. */
+    public function getValidationCount(): int
+    {
+        return $this->validations->count();
+    }
+
+    public function getAcademicResult(): ?DefenseResult
+    {
+        return $this->academicResult;
+    }
+
+    public function setAcademicResult(?DefenseResult $academicResult): static
+    {
+        $this->academicResult = $academicResult;
+        if ($academicResult && $academicResult->getDefense() !== $this) {
+            $academicResult->setDefense($this);
+        }
+
+        return $this;
     }
 }

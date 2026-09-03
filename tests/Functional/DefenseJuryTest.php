@@ -15,7 +15,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class DefenseJuryTest extends FunctionalTestCase
 {
-    public function testAnnounceInviteAndConfirmVerifiesProjectAndDefense(): void
+    public function testFullAnnounceInviteRealizeAndVerifyFlowRequiresTwoDistinctValidations(): void
     {
         $client = static::createClient();
         $client->disableReboot(); // garde le même EntityManager entre les requêtes du test
@@ -65,7 +65,7 @@ class DefenseJuryTest extends FunctionalTestCase
         self::assertNotNull($project->getDefense());
         self::assertSame('annoncee', $project->getDefense()->getStatus()->value);
 
-        // 2. Inviter un membre du jury
+        // 2. Inviter deux membres du jury (le seuil de vérification est de 2)
         $crawler = $client->request('GET', '/ma-soutenance');
         $form = $crawler->selectButton('+ Inviter')->form([
             'jury_invite[firstName]' => 'A.',
@@ -76,27 +76,78 @@ class DefenseJuryTest extends FunctionalTestCase
         $client->submit($form);
         self::assertResponseRedirects('/ma-soutenance');
 
-        $em = static::getContainer()->get(EntityManagerInterface::class);
-        $juryMember = $em->getRepository(JuryMember::class)->findOneBy(['email' => 'akodjo@example.com']);
-        self::assertNotNull($juryMember);
-        self::assertSame('en_attente', $juryMember->getStatus()->value);
-        $juryMemberId = $juryMember->getId();
+        $crawler = $client->request('GET', '/ma-soutenance');
+        $form = $crawler->selectButton('+ Inviter')->form([
+            'jury_invite[firstName]' => 'B.',
+            'jury_invite[lastName]' => 'Amah',
+            'jury_invite[role]' => 'rapporteur',
+            'jury_invite[email]' => 'bamah@example.com',
+        ]);
+        $client->submit($form);
+        self::assertResponseRedirects('/ma-soutenance');
 
-        // 3. Le juré confirme via son lien signé (aucun compte requis)
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $juryA = $em->getRepository(JuryMember::class)->findOneBy(['email' => 'akodjo@example.com']);
+        $juryB = $em->getRepository(JuryMember::class)->findOneBy(['email' => 'bamah@example.com']);
+        self::assertSame('en_attente', $juryA->getStatus()->value);
+        self::assertSame('en_attente', $juryB->getStatus()->value);
+        $juryAId = $juryA->getId();
+        $juryBId = $juryB->getId();
+
         $mailer = static::getContainer()->get(JuryInvitationMailer::class);
-        $confirmUrl = $mailer->generateDecisionUrl($juryMember, 'confirmer');
 
-        $client->request('GET', $confirmUrl);
+        // 3. Les deux jurés acceptent leur invitation — ceci seul ne doit
+        // jamais vérifier la soutenance (cahier §19 : accepter ≠ valider).
+        $client->request('GET', $mailer->generateDecisionUrl($juryA, 'confirmer'));
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('body', 'confirmée');
+        $client->request('GET', $mailer->generateDecisionUrl($juryB, 'confirmer'));
+        self::assertResponseIsSuccessful();
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
-        $juryMember = $em->getRepository(JuryMember::class)->find($juryMemberId);
         $project = $em->getRepository(Project::class)->find($projectId);
-        self::assertSame('confirme', $juryMember->getStatus()->value);
+        self::assertSame('confirme', $em->getRepository(JuryMember::class)->find($juryAId)->getStatus()->value);
+        self::assertSame('annoncee', $project->getDefense()->getStatus()->value, 'Accepter l\'invitation ne doit pas vérifier la soutenance.');
+        self::assertSame('publie', $project->getStatus()->value);
+
+        // 4. La soutenance a lieu : l'étudiant la marque comme réalisée.
+        $crawler = $client->request('GET', '/ma-soutenance');
+        $token = $crawler->filter('form[action="/ma-soutenance/'.$projectId.'/realisee"] input[name="_csrf_token"]')->attr('value');
+        $client->request('POST', '/ma-soutenance/'.$projectId.'/realisee', ['_csrf_token' => $token]);
+        self::assertResponseRedirects('/ma-soutenance');
+
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        self::assertSame('realisee', $em->getRepository(Project::class)->find($projectId)->getDefense()->getStatus()->value);
+
+        // 5. Un seul juré valide que la soutenance a bien eu lieu : toujours pas vérifiée.
+        $juryA = $em->getRepository(JuryMember::class)->find($juryAId);
+        $client->request('GET', $mailer->generateDecisionUrl($juryA, 'valider'));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'enregistrée');
+
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $project = $em->getRepository(Project::class)->find($projectId);
+        self::assertSame(1, $project->getDefense()->getValidationCount());
+        self::assertSame('realisee', $project->getDefense()->getStatus()->value, 'Une seule validation ne doit jamais suffire.');
+        self::assertSame('publie', $project->getStatus()->value);
+
+        // Ce même juré ne peut pas valider une seconde fois.
+        $juryA = $em->getRepository(JuryMember::class)->find($juryAId);
+        $client->request('GET', $mailer->generateDecisionUrl($juryA, 'valider'));
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        self::assertSame(1, $em->getRepository(Project::class)->find($projectId)->getDefense()->getValidationCount(), 'Une double validation par le même juré ne doit pas être comptée deux fois.');
+
+        // 6. Le 2ᵉ juré valide à son tour : le seuil de 2 est atteint.
+        $juryB = $em->getRepository(JuryMember::class)->find($juryBId);
+        $client->request('GET', $mailer->generateDecisionUrl($juryB, 'valider'));
+        self::assertResponseIsSuccessful();
+
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $project = $em->getRepository(Project::class)->find($projectId);
+        self::assertSame(2, $project->getDefense()->getValidationCount());
         self::assertSame('verifiee', $project->getDefense()->getStatus()->value);
         self::assertSame('verifie', $project->getStatus()->value);
     }
+
 
     /**
      * Régression : soumettre le formulaire d'annonce avec des champs vides

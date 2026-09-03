@@ -64,6 +64,59 @@
       </div>
     {% endif %}
 
+    {% if project.defense %}
+      {% set defense = project.defense %}
+      {% set result = defense.academicResult %}
+      <div class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Soutenance</p>
+        <p class="m-texte mb-2">{{ defense.date|date('d/m/Y') }} — {{ defense.time }} — {{ defense.place }} ·
+          {% if defense.status.value == 'verifiee' %}<span class="m-tag m-tag--bleu">✅ Vérifiée ({{ defense.validationCount }} membres)</span>
+          {% elseif defense.status.value == 'realisee' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">Réalisée — {{ defense.validationCount }}/2 validations</span>
+          {% else %}<span class="m-tag">À venir</span>{% endif %}
+        </p>
+        <p class="m-surtitre mb-2 mt-3">Jury</p>
+        <div class="d-grid gap-2">
+          {% for membre in defense.juryMembers %}
+            <div class="d-flex justify-content-between align-items-center" style="font-size:13.5px">
+              <span>{{ membre.firstName }} {{ membre.lastName }} — {{ membre.role.label }}{% if membre.institutionLabel %} · {{ membre.institutionLabel }}{% endif %}</span>
+              <span class="m-tag{{ membre.status.value == 'confirme' ? ' m-tag--bleu' : '' }}">{{ membre.status.label }}</span>
+            </div>
+          {% else %}
+            <p class="m-meta mb-0">Aucun membre invité.</p>
+          {% endfor %}
+        </div>
+
+        <p class="m-surtitre mb-2 mt-3">Résultat</p>
+        {% if result %}
+          <p class="m-texte mb-1">{{ result.status.label }}{% if result.decision.value != 'en_attente' %} — {{ result.decision.label }}{% endif %} {% if result.validated %}<span style="color:var(--m-bleu)">(validé)</span>{% else %}<span style="color:#B36B00">(non validé)</span>{% endif %}</p>
+          {% if result.grade is not null %}<p class="m-texte mb-1">Note : {{ result.grade }}/{{ result.gradeScale|round }}</p>{% endif %}
+          {% if result.appreciation %}<p class="m-texte mb-2" style="font-style:italic">« {{ result.appreciation }} »</p>{% endif %}
+          {% if not result.validated %}
+            <form method="post" action="{{ path('app_defense_result_validate', {id: defense.id}) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('valider-resultat-' ~ defense.id) }}">
+              <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Valider le résultat (admin)</button>
+            </form>
+          {% endif %}
+        {% else %}
+          <p class="m-meta mb-0">Aucun résultat saisi pour l'instant.</p>
+        {% endif %}
+
+        {% if defense.status.value == 'annoncee' %}
+          <p class="m-surtitre mb-2 mt-3">Annuler / reporter (admin)</p>
+          <form method="post" action="{{ path('app_defense_cancel', {id: project.id}) }}" class="mb-2" onsubmit="return confirm('Confirmer l\'annulation de cette soutenance ?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('soutenance-annuler-' ~ project.id) }}">
+            <textarea class="m-textarea mb-2" name="reason" placeholder="Motif de l'annulation" required></textarea>
+            <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" style="color:#B3261E">Annuler la soutenance</button>
+          </form>
+          <form method="post" action="{{ path('app_defense_postpone', {id: project.id}) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('soutenance-reporter-' ~ project.id) }}">
+            <textarea class="m-textarea mb-2" name="reason" placeholder="Motif du report" required></textarea>
+            <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Reporter la soutenance</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endif %}
+
     {% if history|length %}
       <div class="m-carte m-carte--plate p-3 mt-3">
         <p class="m-surtitre mb-2">Historique de modération</p>

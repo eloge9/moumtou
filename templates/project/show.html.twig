@@ -206,10 +206,21 @@
           {% if project.mention %}<div class="d-flex justify-content-between"><span class="m-meta">Mention</span><span class="fw-semibold">{{ project.mention.name }}</span></div>{% endif %}
           {% if project.specialty %}<div class="d-flex justify-content-between"><span class="m-meta">Spécialité</span><span class="fw-semibold">{{ project.specialty.name }}</span></div>{% endif %}
         </div>
+        <a class="m-btn m-btn--secondaire m-btn--bloc mt-3" href="{{ path('app_defense_show', {slug: project.slug}) }}">Voir la page de la soutenance</a>
       </div>
 
       <div class="m-carte m-carte--plate p-3" style="border-color:var(--m-bleu-bordure)">
-        <p class="m-statut mb-3">Vérifié par {{ defense.confirmedCount }} membre{{ defense.confirmedCount > 1 ? 's' : '' }} du jury</p>
+        {% if defense.status.value == 'verifiee' %}
+          <p class="m-statut mb-3">✅ Vérifiée par {{ defense.validationCount }} membre{{ defense.validationCount > 1 ? 's' : '' }} du jury</p>
+        {% elseif defense.status.value == 'realisee' %}
+          <p class="m-statut mb-3">⚠️ Soutenance réalisée, en attente de vérification ({{ defense.validationCount }}/2)</p>
+        {% elseif defense.status.value == 'reportee' %}
+          <p class="m-statut mb-3" style="color:#B36B00">🔁 Soutenance reportée</p>
+        {% elseif defense.status.value == 'annulee' %}
+          <p class="m-statut mb-3" style="color:#B3261E">❌ Soutenance annulée</p>
+        {% else %}
+          <p class="m-statut mb-3">📅 Soutenance à venir</p>
+        {% endif %}
         <div class="d-grid gap-3">
           {% for membre in defense.juryMembers %}
             <div class="d-flex align-items-center gap-2 {{ membre.status.value != 'confirme' ? 'opacity-75' : '' }}">

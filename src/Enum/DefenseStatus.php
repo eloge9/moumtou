@@ -5,6 +5,8 @@ namespace App\Enum;
 enum DefenseStatus: string
 {
     case ANNONCEE = 'annoncee';
+    case REPORTEE = 'reportee';
+    case ANNULEE = 'annulee';
     case REALISEE = 'realisee';
     case VERIFIEE = 'verifiee';
 
@@ -12,6 +14,8 @@ enum DefenseStatus: string
     {
         return match ($this) {
             self::ANNONCEE => 'Annoncée',
+            self::REPORTEE => 'Reportée',
+            self::ANNULEE => 'Annulée',
             self::REALISEE => 'Réalisée',
             self::VERIFIEE => 'Vérifiée',
         };

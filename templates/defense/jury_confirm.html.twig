@@ -14,16 +14,30 @@
         Soutenance de <strong>{{ project.owner.fullName }}</strong>, le {{ defense.date|date('d F Y') }} à {{ defense.time }} — {{ defense.place }}.
       </p>
 
-      {% if decided %}
+      {% if justValidated %}
+        <p class="m-avis mt-3 mb-0">Votre confirmation a été enregistrée. Merci.
+          {% if defense.status.value == 'verifiee' %}La soutenance affiche désormais le statut « vérifiée » ({{ defense.validationCount }} membre{{ defense.validationCount > 1 ? 's' : '' }} du jury).
+          {% else %}En attente d'une 2ᵉ confirmation d'un autre membre du jury pour que la soutenance soit officiellement vérifiée.{% endif %}
+        </p>
+      {% elseif alreadyValidated %}
+        <p class="m-avis mt-3 mb-0">Vous aviez déjà confirmé que cette soutenance a eu lieu.</p>
+      {% elseif decided %}
         {% if juryMember.status.value == 'confirme' %}
-          <p class="m-avis mt-3 mb-0">Merci, votre participation est confirmée. La soutenance affiche désormais le statut « vérifiée ».</p>
+          <p class="m-avis mt-3 mb-0">Merci, votre participation au jury est confirmée. Vous recevrez ce même lien pour attester, après la soutenance, qu'elle a bien eu lieu.</p>
         {% else %}
           <p class="m-avis mt-3 mb-0" style="color:#B3261E;background:#FDECEA;border-color:#F5C6C2">Vous avez décliné cette invitation.</p>
         {% endif %}
+      {% elseif canValidateNow %}
+        <p class="m-aide mb-0">La soutenance a eu lieu. Confirmez-vous qu'elle s'est réellement déroulée ?</p>
+        <a class="m-btn m-btn--primaire mt-3" href="{{ validateUrl }}">Je confirme que cette soutenance a bien eu lieu</a>
+      {% elseif juryMember.status.value == 'confirme' %}
+        <p class="m-aide mb-0">Votre participation est confirmée. La soutenance n'a pas encore été marquée comme réalisée par le candidat.</p>
+      {% elseif juryMember.status.value == 'refuse' %}
+        <p class="m-avis mb-0" style="color:#B3261E;background:#FDECEA;border-color:#F5C6C2">Vous avez décliné cette invitation.</p>
       {% else %}
         <p class="m-aide mb-0">Après la soutenance : « Confirmez-vous que l'étudiant a soutenu ce projet ? »</p>
         <div class="d-flex gap-2 mt-3">
-          <a class="m-btn m-btn--primaire" href="{{ confirmUrl }}">Confirmer</a>
+          <a class="m-btn m-btn--primaire" href="{{ confirmUrl }}">Accepter l'invitation</a>
           <a class="m-btn m-btn--secondaire" href="{{ declineUrl }}">Refuser</a>
         </div>
       {% endif %}

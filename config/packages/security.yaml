@@ -39,7 +39,7 @@ security:
         - { path: ^/mon-espace-enseignant, roles: ROLE_TEACHER }
         - { path: ^/recruteur, roles: ROLE_RECRUITER }
         - { path: ^/publier, roles: ROLE_TALENT }
-        - { path: ^/ma-soutenance, roles: ROLE_TALENT }
+        - { path: ^/ma-soutenance, roles: [ROLE_TALENT, ROLE_ADMIN] }
         - { path: ^/projets/[^/]+/(modifier|supprimer)$, roles: ROLE_TALENT }
         - { path: ^/inscription, roles: PUBLIC_ACCESS }
         - { path: ^/connexion/(google|facebook|linkedin), roles: PUBLIC_ACCESS }

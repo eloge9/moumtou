@@ -16,6 +16,8 @@ abstract class FunctionalTestCase extends WebTestCase
     {
         $em->createQuery('DELETE FROM App\Entity\Rating')->execute();
         $em->createQuery('DELETE FROM App\Entity\Comment')->execute();
+        $em->createQuery('DELETE FROM App\Entity\DefenseValidation')->execute();
+        $em->createQuery('DELETE FROM App\Entity\DefenseResult')->execute();
         $em->createQuery('DELETE FROM App\Entity\JuryMember')->execute();
         $em->createQuery('DELETE FROM App\Entity\Defense')->execute();
         $em->createQuery('DELETE FROM App\Entity\ProjectProof')->execute();
