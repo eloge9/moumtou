@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Demandes de contact — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'profil'} %}{% endblock %}
+
+{% block body %}
+<section class="p-4">
+  <h1 style="font-size:24px">Demandes de contact reçues</h1>
+  <p class="m-texte mt-1">Des recruteurs peuvent vous contacter via MOUMTOU. Vos coordonnées privées ne sont jamais transmises automatiquement — vous choisissez d'accepter ou de refuser chaque demande.</p>
+
+  <div class="d-grid gap-3 mt-3">
+    {% for request in requests %}
+      <article class="m-carte m-carte--plate p-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <span class="fw-bold d-block" style="font-size:15px">{{ request.recruiter.fullName }}</span>
+            {% if request.recruiter.recruiterProfile %}<span class="m-meta">{{ request.recruiter.recruiterProfile.organizationName }}</span>{% endif %}
+          </div>
+          <span class="m-tag{{ request.status.value == 'accepted' ? ' m-tag--bleu' : '' }}" style="{{ request.status.value == 'refused' ? 'background:#FDECEA;color:#B3261E' : '' }}">{{ request.status.label }}</span>
+        </div>
+        <p class="m-texte mt-2 mb-1" style="white-space:pre-line">{{ request.message }}</p>
+        <p class="m-meta mb-0">Reçue le {{ request.createdAt|date('d/m/Y H:i') }}</p>
+
+        {% if request.status.value == 'pending' %}
+          <div class="d-flex gap-2 mt-3">
+            <form method="post" action="{{ path('app_talent_contact_request_accept', {id: request.id}) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('accepter-demande-' ~ request.id) }}">
+              <button class="m-btn m-btn--primaire m-btn--sm" type="submit">Accepter</button>
+            </form>
+            <form method="post" action="{{ path('app_talent_contact_request_refuse', {id: request.id}) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('refuser-demande-' ~ request.id) }}">
+              <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Refuser</button>
+            </form>
+          </div>
+        {% elseif request.status.value == 'accepted' and request.recruiter.recruiterProfile %}
+          <div class="m-carte m-carte--plate p-3 mt-3" style="background:var(--m-fond)">
+            <p class="m-surtitre mb-2">Coordonnées du recruteur</p>
+            {% if request.recruiter.recruiterProfile.professionalEmail %}<p class="m-texte mb-1">✉️ {{ request.recruiter.recruiterProfile.professionalEmail }}</p>{% endif %}
+            {% if request.recruiter.recruiterProfile.linkedinUrl %}<p class="m-texte mb-1"><a href="{{ request.recruiter.recruiterProfile.linkedinUrl }}" target="_blank" rel="noopener">LinkedIn</a></p>{% endif %}
+            {% if request.recruiter.recruiterProfile.websiteUrl %}<p class="m-texte mb-0"><a href="{{ request.recruiter.recruiterProfile.websiteUrl }}" target="_blank" rel="noopener">Site web</a></p>{% endif %}
+          </div>
+        {% endif %}
+      </article>
+    {% else %}
+      <p class="m-meta">Aucune demande de contact reçue pour l'instant.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

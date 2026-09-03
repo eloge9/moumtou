@@ -102,6 +102,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?Institution $institution = null;
 
     /**
+     * Volet "organisation" du rôle recruteur (cahier des charges —
+     * FONCTIONNALITÉ 7 §4). Optionnel : présent seulement une fois que le
+     * compte a rejoint ROLE_RECRUITER via le parcours self-service.
+     */
+    #[ORM\OneToOne(targetEntity: RecruiterProfile::class, mappedBy: 'user', cascade: ['persist', 'remove'])]
+    private ?RecruiterProfile $recruiterProfile = null;
+
+    /**
      * Informations académiques du profil (cahier des charges — gestion des
      * établissements §7), distinctes de la classification par projet déjà
      * existante sur {@see Project} : un profil peut afficher un cursus même
@@ -450,6 +458,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setInstitution(?Institution $institution): static
     {
         $this->institution = $institution;
+
+        return $this;
+    }
+
+    public function getRecruiterProfile(): ?RecruiterProfile
+    {
+        return $this->recruiterProfile;
+    }
+
+    public function setRecruiterProfile(?RecruiterProfile $recruiterProfile): static
+    {
+        $this->recruiterProfile = $recruiterProfile;
 
         return $this;
     }

@@ -7,6 +7,7 @@
 {% block header %}{% include 'components/_header.html.twig' with {active_nav: 'talents'} %}{% endblock %}
 
 {% block body %}
+{% include 'recruiter/_nav.html.twig' with {recruiterNav: 'search'} %}
 <div class="m-mise-en-page">
 
   <aside class="m-filtres">
@@ -151,12 +152,22 @@
               </div>
               {% if talent.professionalTitle %}<p class="fw-semibold mb-1" style="font-size:14.5px;color:var(--m-bleu)">{{ talent.professionalTitle }}</p>{% endif %}
               <p class="m-meta mt-1 mb-2">
-                {{ talent.city }}{{ talent.city and talent.country ? ', ' : '' }}{{ talent.country }}
+                📍 {{ talent.city }}{{ talent.city and talent.country ? ', ' : '' }}{{ talent.country }}
                 {% if talent.institution %}{{ (talent.city or talent.country) ? ' · ' : '' }}🎓 {{ talent.institution.name }}{% endif %}
               </p>
+              {% if talent.skills|length %}
+                <p class="m-meta mb-1">Compétences</p>
+                <div class="m-tags">{% for skill in talent.skills %}<span class="m-tag">{{ skill.name }}</span>{% endfor %}</div>
+              {% endif %}
+              <p class="m-meta mt-2 mb-1">Technologies</p>
               <div class="m-tags">
                 {% for tech in talent.technologies %}<span class="m-tag{{ tech.id in criteria.technologyIds ? ' m-tag--bleu' : '' }}">{{ tech.name }}</span>{% endfor %}
               </div>
+              <p class="m-meta mt-2 mb-0">
+                {{ result.counts.total }} projet{{ result.counts.total > 1 ? 's' : '' }}
+                {% if result.counts.verified %} · <span style="color:var(--m-bleu)">✓ {{ result.counts.verified }} projet{{ result.counts.verified > 1 ? 's' : '' }} vérifié{{ result.counts.verified > 1 ? 's' : '' }}</span>{% endif %}
+                {% if result.counts.verifiedDefenses %} · <span style="color:var(--m-bleu)">✓ {{ result.counts.verifiedDefenses }} soutenance{{ result.counts.verifiedDefenses > 1 ? 's' : '' }} vérifiée{{ result.counts.verifiedDefenses > 1 ? 's' : '' }}</span>{% endif %}
+              </p>
             </div>
             <div class="d-grid gap-2" style="width:190px">
               {% if result.compatibility is not null %}
@@ -166,6 +177,17 @@
                 <a class="m-btn m-btn--primaire" href="https://wa.me/{{ talent.whatsapp }}" target="_blank" rel="noopener">💬 Contacter sur WhatsApp</a>
               {% endif %}
               <a class="m-btn m-btn--secondaire" href="{{ path('app_profile_show', {slug: talent.slug}) }}">Voir le profil</a>
+              {% if result.isFavorite %}
+                <form method="post" action="{{ path('app_recruiter_favorite_remove', {talentId: talent.id}) }}">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('favori-retirer-' ~ talent.id) }}">
+                  <button class="m-btn m-btn--secondaire m-btn--bloc" type="submit">★ Enregistré</button>
+                </form>
+              {% else %}
+                <form method="post" action="{{ path('app_recruiter_favorite_add', {talentId: talent.id}) }}">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('favori-' ~ talent.id) }}">
+                  <button class="m-btn m-btn--secondaire m-btn--bloc" type="submit">☆ Favoris</button>
+                </form>
+              {% endif %}
             </div>
           </div>
         </article>

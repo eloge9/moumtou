@@ -1,0 +1,8 @@
+{# Sous-navigation de l'espace recruteur (cahier des charges — FONCTIONNALITÉ 7 §29). #}
+<nav class="m-onglets" aria-label="Espace recruteur">
+  <a class="m-onglet{{ recruiterNav|default('') == 'dashboard' ? ' is-active' : '' }}" href="{{ path('app_recruiter_dashboard') }}">Tableau de bord</a>
+  <a class="m-onglet{{ recruiterNav|default('') == 'search' ? ' is-active' : '' }}" href="{{ path('app_recruiter_search') }}">Rechercher des talents</a>
+  <a class="m-onglet{{ recruiterNav|default('') == 'favorites' ? ' is-active' : '' }}" href="{{ path('app_recruiter_favorites') }}">Talents enregistrés</a>
+  <a class="m-onglet{{ recruiterNav|default('') == 'requests' ? ' is-active' : '' }}" href="{{ path('app_recruiter_contact_requests') }}">Demandes de contact</a>
+  <a class="m-onglet{{ recruiterNav|default('') == 'profile' ? ' is-active' : '' }}" href="{{ path('app_recruiter_profile_edit') }}">Mon profil</a>
+</nav>

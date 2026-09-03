@@ -10,6 +10,7 @@ parameters:
     app.project_uploads_directory: '%kernel.project_dir%/public/uploads/projects'
     app.avatar_uploads_directory: '%kernel.project_dir%/public/uploads/avatars'
     app.institution_logo_uploads_directory: '%kernel.project_dir%/public/uploads/institutions'
+    app.recruiter_logo_uploads_directory: '%kernel.project_dir%/public/uploads/recruiters'
 
 services:
     # default configuration for services in *this* file
@@ -33,6 +34,10 @@ services:
     App\Service\InstitutionLogoUploader:
         arguments:
             $institutionLogoUploadsDirectory: '%app.institution_logo_uploads_directory%'
+
+    App\Service\RecruiterLogoUploader:
+        arguments:
+            $recruiterLogoUploadsDirectory: '%app.recruiter_logo_uploads_directory%'
 
     App\Security\OAuth\OAuthProviderRegistry:
         arguments:

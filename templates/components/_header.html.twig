@@ -15,7 +15,7 @@
   <nav class="m-nav" data-nav>
     <a class="m-nav__link{{ active_nav|default('') == 'explorer' ? ' is-active' : '' }}" href="{{ path('app_explorer') }}">Explorer</a>
     <a class="m-nav__link{{ active_nav|default('') == 'soutenances' ? ' is-active' : '' }}" href="{{ path('app_explorer', {'types[]': 'soutenance'}) }}">Soutenances</a>
-    <a class="m-nav__link{{ active_nav|default('') == 'talents' ? ' is-active' : '' }}" href="{{ path('app_recruiter_search') }}">Talents</a>
+    <a class="m-nav__link{{ active_nav|default('') == 'talents' ? ' is-active' : '' }}" href="{{ is_granted('ROLE_RECRUITER') ? path('app_recruiter_search') : path('app_search', {type: 'talents'}) }}">Talents</a>
   </nav>
   <div class="ms-auto d-flex align-items-center gap-3">
     <form action="{{ path('app_search') }}" method="get" data-recherche-globale style="position:relative">
@@ -36,12 +36,16 @@
             <a class="m-menu__item" href="{{ path('app_profile_show', {slug: app.user.slug}) }}">Mon profil</a>
             <a class="m-menu__item" href="{{ path('app_publish_start') }}">Publier un projet</a>
             <a class="m-menu__item" href="{{ path('app_defense_manage') }}">Ma soutenance</a>
+            {% set pendingContactRequestsCount = pending_contact_requests_count() %}
+            <a class="m-menu__item" href="{{ path('app_talent_contact_requests') }}">Demandes de recrutement{% if pendingContactRequestsCount > 0 %} <span class="m-admin__compteur m-admin__compteur--alerte">{{ pendingContactRequestsCount }}</span>{% endif %}</a>
           {% endif %}
           {% if is_granted('ROLE_TEACHER') %}
             <a class="m-menu__item" href="{{ path('app_teacher_dashboard') }}">Mon espace enseignant</a>
           {% endif %}
           {% if is_granted('ROLE_RECRUITER') %}
-            <a class="m-menu__item" href="{{ path('app_recruiter_search') }}">Recherche de talents</a>
+            <a class="m-menu__item" href="{{ path('app_recruiter_dashboard') }}">Mon espace recruteur</a>
+          {% else %}
+            <a class="m-menu__item" href="{{ path('app_recruiter_profile_edit') }}">Devenir recruteur</a>
           {% endif %}
           {% if is_granted('ROLE_ADMIN') %}<a class="m-menu__item" href="{{ path('admin_dashboard') }}">Administration</a>{% endif %}
           <a class="m-menu__item" href="{{ path('app_logout') }}">Déconnexion</a>

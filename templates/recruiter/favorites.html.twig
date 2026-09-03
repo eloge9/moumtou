@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Talents enregistrés — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'talents'} %}{% endblock %}
+
+{% block body %}
+{% include 'recruiter/_nav.html.twig' with {recruiterNav: 'favorites'} %}
+
+<section class="p-4">
+  <h1 style="font-size:24px">{{ favorites|length }} talent{{ favorites|length > 1 ? 's' : '' }} enregistré{{ favorites|length > 1 ? 's' : '' }}</h1>
+
+  <div class="row g-3 mt-1">
+    {% for favorite in favorites %}
+      {% set talent = favorite.talent %}
+      {% set counts = projectCounts[talent.id]|default({total: 0, verified: 0, verifiedDefenses: 0}) %}
+      <div class="col-lg-6">
+        <article class="m-carte m-carte--plate p-3 h-100">
+          <div class="d-flex gap-3">
+            <span class="m-avatar" style="width:52px;height:52px;{% if talent.photo %}background-image:url('{{ asset(talent.photo) }}');background-size:cover{% endif %}"></span>
+            <div class="flex-fill">
+              <a class="fw-bold d-block" style="font-size:15.5px" href="{{ path('app_profile_show', {slug: talent.slug}) }}">{{ talent.fullName }}</a>
+              {% if talent.professionalTitle %}<p class="m-meta mb-1">{{ talent.professionalTitle }}</p>{% endif %}
+              <div class="m-tags mt-1">{% for tech in talent.technologies|slice(0, 5) %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
+              <p class="m-meta mt-2 mb-0">{{ counts.total }} projet{{ counts.total > 1 ? 's' : '' }} · {{ counts.verified }} vérifié{{ counts.verified > 1 ? 's' : '' }} · Ajouté le {{ favorite.createdAt|date('d/m/Y') }}</p>
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-3">
+            <a class="m-btn m-btn--secondaire" href="{{ path('app_profile_show', {slug: talent.slug}) }}">Voir le profil</a>
+            <form method="post" action="{{ path('app_recruiter_favorite_remove', {talentId: talent.id}) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('favori-retirer-' ~ talent.id) }}">
+              <button class="m-btn m-btn--secondaire" type="submit" style="color:#B3261E">Retirer des favoris</button>
+            </form>
+          </div>
+        </article>
+      </div>
+    {% else %}
+      <div class="col-12">
+        <p class="m-meta">Aucun talent enregistré pour l'instant.</p>
+        <a class="m-btn m-btn--primaire mt-2" href="{{ path('app_recruiter_search') }}">Rechercher des talents</a>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

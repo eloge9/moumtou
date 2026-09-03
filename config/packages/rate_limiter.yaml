@@ -9,3 +9,9 @@ framework:
             policy: sliding_window
             limit: 15
             interval: '1 hour'
+        # Cahier des charges — FONCTIONNALITÉ 7 §24 : limiter les demandes de
+        # contact recruteur → talent pour éviter le spam de masse.
+        contact_request:
+            policy: sliding_window
+            limit: 20
+            interval: '1 day'

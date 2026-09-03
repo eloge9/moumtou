@@ -4,6 +4,8 @@ namespace App\Repository;
 
 use App\Entity\Project;
 use App\Entity\User;
+use App\Enum\DefenseStatus;
+use App\Enum\ProjectStatus;
 use App\Search\TalentSearchCriteria;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -194,5 +196,47 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             default => $qb->addOrderBy('u.createdAt', 'DESC'),
         };
         $qb->addOrderBy('u.id', 'DESC');
+    }
+
+    /**
+     * Compteurs "projets / projets vérifiés / soutenances vérifiées" pour un
+     * lot de talents en une seule requête groupée (cahier — FONCTIONNALITÉ 7
+     * §8/§31 : jamais une requête par talent, pour éviter le N+1).
+     *
+     * @param int[] $talentIds
+     *
+     * @return array<int, array{total: int, verified: int, verifiedDefenses: int}>
+     */
+    public function countProjectsByTalents(array $talentIds): array
+    {
+        if (!$talentIds) {
+            return [];
+        }
+
+        $rows = $this->getEntityManager()->getRepository(Project::class)->createQueryBuilder('p')
+            ->select(
+                'IDENTITY(p.owner) AS ownerId',
+                'COUNT(DISTINCT p.id) AS total',
+                'SUM(CASE WHEN p.status = :verifie THEN 1 ELSE 0 END) AS verified',
+                'SUM(CASE WHEN d.status = :defenseVerifiee THEN 1 ELSE 0 END) AS verifiedDefenses'
+            )
+            ->leftJoin('p.defense', 'd')
+            ->andWhere('p.owner IN (:talentIds)')->setParameter('talentIds', $talentIds)
+            ->andWhere('p.status IN (:publicStatuses)')->setParameter('publicStatuses', ProjectRepository::PUBLIC_STATUSES)
+            ->setParameter('verifie', ProjectStatus::VERIFIE)
+            ->setParameter('defenseVerifiee', DefenseStatus::VERIFIEE)
+            ->groupBy('p.owner')
+            ->getQuery()->getResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['ownerId']] = [
+                'total' => (int) $row['total'],
+                'verified' => (int) $row['verified'],
+                'verifiedDefenses' => (int) $row['verifiedDefenses'],
+            ];
+        }
+
+        return $counts;
     }
 }

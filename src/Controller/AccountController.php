@@ -2,10 +2,14 @@
 
 namespace App\Controller;
 
+use App\Entity\RecruiterProfile;
 use App\Entity\User;
 use App\Enum\UserStatus;
+use App\Form\RecruiterProfileType;
+use App\Service\RecruiterLogoUploader;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -58,6 +62,72 @@ class AccountController extends AbstractController
         $this->addFlash('succes', 'Votre mot de passe a été modifié.');
 
         return $this->redirectToRoute('app_profile_edit');
+    }
+
+    /**
+     * Parcours "devenir recruteur" (cahier des charges — FONCTIONNALITÉ 7
+     * §3) : n'importe quel compte déjà connecté peut ajouter ROLE_RECRUITER
+     * sans créer un second compte, sur le même principe additif que
+     * l'auto-octroi de ROLE_TEACHER via les invitations de jury. Sert aussi
+     * de page d'édition du profil recruteur une fois le rôle acquis — cette
+     * action reste donc volontairement hors du contrôleur recruteur (gardé
+     * par ROLE_RECRUITER) puisqu'elle doit être accessible avant de l'avoir.
+     */
+    #[Route('/recruteur/profil', name: 'app_recruiter_profile_edit')]
+    public function recruiterProfile(Request $request, EntityManagerInterface $em, RecruiterLogoUploader $logoUploader, Security $security): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $isNewRecruiter = !\in_array('ROLE_RECRUITER', $user->getRoles(), true);
+
+        $profile = $user->getRecruiterProfile();
+        if (!$profile) {
+            $profile = new RecruiterProfile();
+            $profile->setUser($user);
+        }
+
+        $form = $this->createForm(RecruiterProfileType::class, $profile);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $logo = $form->get('logo')->getData();
+            if ($logo) {
+                $logoUploader->upload($profile, $logo);
+            }
+
+            $profile->setUpdatedAt(new \DateTimeImmutable());
+
+            if (null === $profile->getId()) {
+                $em->persist($profile);
+                $user->setRecruiterProfile($profile);
+            }
+
+            if ($isNewRecruiter) {
+                $roles = $user->getRoles();
+                $roles[] = 'ROLE_RECRUITER';
+                $user->setRoles($roles);
+            }
+
+            $em->flush();
+
+            if ($isNewRecruiter) {
+                // Réauthentifie immédiatement la session avec le nouveau rôle :
+                // sans cela, le jeton de sécurité déjà en session reste sur
+                // l'ancien jeu de rôles jusqu'à la prochaine connexion, et la
+                // redirection vers l'espace recruteur qui suit échouerait.
+                $security->login($user, 'form_login', 'main');
+            }
+
+            $this->addFlash('succes', $isNewRecruiter ? 'Bienvenue dans l\'espace recruteur MOUMTOU !' : 'Votre profil recruteur a été mis à jour.');
+
+            return $this->redirectToRoute('app_recruiter_dashboard');
+        }
+
+        return $this->render('recruiter/profile_edit.html.twig', [
+            'active_nav' => 'talents',
+            'form' => $form,
+            'isNewRecruiter' => $isNewRecruiter,
+        ]);
     }
 
     #[Route('/mon-compte/supprimer', name: 'app_account_delete', methods: ['POST'])]

@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tableau de bord recruteur — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'talents'} %}{% endblock %}
+
+{% block body %}
+{% include 'recruiter/_nav.html.twig' with {recruiterNav: 'dashboard'} %}
+
+<section class="p-4">
+  <h1 style="font-size:24px">Bonjour {{ recruiter.firstName }}</h1>
+  {% if recruiter.recruiterProfile %}<p class="m-meta mt-1">{{ recruiter.recruiterProfile.organizationName }}</p>{% endif %}
+
+  <div class="row g-3 mt-1">
+    <div class="col-xl-3 col-md-6">
+      <div class="m-stat h-100"><p class="m-surtitre mb-1">Talents consultés</p><div class="m-stat__valeur">{{ stats.talentsViewedCount }}</div></div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="m-stat h-100"><p class="m-surtitre mb-1">Talents enregistrés</p><div class="m-stat__valeur">{{ stats.favoritesCount }}</div></div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="m-stat h-100"><p class="m-surtitre mb-1">Demandes envoyées</p><div class="m-stat__valeur">{{ stats.sentCount }}</div><div class="m-stat__libelle">{{ stats.pendingCount }} en attente</div></div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="m-stat m-stat--sombre h-100"><p class="m-surtitre mb-1" style="color:#9AA8C0">Demandes acceptées</p><div class="m-stat__valeur">{{ stats.acceptedCount }}</div></div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-lg-6">
+      <div class="m-carte m-carte--plate p-4 h-100">
+        <div class="d-flex align-items-center justify-content-between">
+          <span class="fw-bold" style="font-size:15.5px">Derniers talents consultés</span>
+          <a href="{{ path('app_recruiter_search') }}" style="color:var(--m-bleu);font-size:13px">Rechercher</a>
+        </div>
+        <div class="d-grid gap-2 mt-3">
+          {% for view in recentViews %}
+            <a class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid #EEF1F6" href="{{ path('app_profile_show', {slug: view.talent.slug}) }}">
+              <span class="fw-semibold" style="font-size:14px">{{ view.talent.fullName }}</span>
+              <span class="m-meta">{{ view.viewedAt|date('d/m/Y') }}</span>
+            </a>
+          {% else %}
+            <p class="m-meta mb-0">Aucun talent consulté pour l'instant.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="m-carte m-carte--plate p-4 h-100">
+        <div class="d-flex align-items-center justify-content-between">
+          <span class="fw-bold" style="font-size:15.5px">Derniers favoris</span>
+          <a href="{{ path('app_recruiter_favorites') }}" style="color:var(--m-bleu);font-size:13px">Voir tout</a>
+        </div>
+        <div class="d-grid gap-2 mt-3">
+          {% for favorite in recentFavorites %}
+            <a class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid #EEF1F6" href="{{ path('app_profile_show', {slug: favorite.talent.slug}) }}">
+              <span class="fw-semibold" style="font-size:14px">{{ favorite.talent.fullName }}</span>
+              <span class="m-meta">{{ favorite.createdAt|date('d/m/Y') }}</span>
+            </a>
+          {% else %}
+            <p class="m-meta mb-0">Aucun talent enregistré pour l'instant.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="m-carte m-carte--plate p-4 mt-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <span class="fw-bold" style="font-size:15.5px">Demandes de contact envoyées</span>
+      <a href="{{ path('app_recruiter_contact_requests') }}" style="color:var(--m-bleu);font-size:13px">Voir tout</a>
+    </div>
+    <div class="d-grid gap-2 mt-3">
+      {% for request in sentRequests %}
+        <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid #EEF1F6">
+          <a class="fw-semibold" style="font-size:14px" href="{{ path('app_profile_show', {slug: request.talent.slug}) }}">{{ request.talent.fullName }}</a>
+          <span class="m-tag{{ request.status.value == 'accepted' ? ' m-tag--bleu' : '' }}">{{ request.status.label }}</span>
+        </div>
+      {% else %}
+        <p class="m-meta mb-0">Aucune demande envoyée pour l'instant.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

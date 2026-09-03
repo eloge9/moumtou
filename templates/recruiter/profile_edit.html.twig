@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_form_macros.html.twig' as forms %}
+
+{% block title %}{{ isNewRecruiter ? 'Devenir recruteur' : 'Mon profil recruteur' }} — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}
+  {% if isNewRecruiter %}
+    {% include 'components/_header_minimal.html.twig' with {context_label: 'Devenir recruteur'} %}
+  {% else %}
+    {% include 'components/_header.html.twig' with {active_nav: 'talents'} %}
+  {% endif %}
+{% endblock %}
+
+{% block body %}
+{% if not isNewRecruiter %}{% include 'recruiter/_nav.html.twig' with {recruiterNav: 'profile'} %}{% endif %}
+
+<section class="m-section d-flex justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <h1 class="mb-1" style="font-size:26px">{{ isNewRecruiter ? 'Devenir recruteur sur MOUMTOU' : 'Mon profil recruteur' }}</h1>
+    <p class="m-texte mb-4">
+      {% if isNewRecruiter %}
+        Complétez ces informations pour activer votre espace recruteur — aucun nouveau compte n'est nécessaire, votre compte actuel conserve tous ses autres rôles.
+      {% else %}
+        Ces informations apparaissent aux talents lorsqu'ils reçoivent une demande de contact de votre part.
+      {% endif %}
+    </p>
+    <div class="m-carte m-carte--plate p-4">
+      {{ form_start(form, {attr: {novalidate: 'novalidate'}}) }}
+        <div class="mb-3">
+          {{ forms.label(form.organizationName, 'Entreprise / organisation', true) }}
+          {{ form_widget(form.organizationName, {attr: {class: 'm-input'}}) }}
+          {{ form_errors(form.organizationName) }}
+        </div>
+        <div class="mb-3">
+          {{ form_label(form.sector, null, {label_attr: {class: 'm-label'}}) }}
+          {{ form_widget(form.sector, {attr: {class: 'm-input'}}) }}
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            {{ form_label(form.country, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.country, {attr: {class: 'm-input'}}) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(form.city, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.city, {attr: {class: 'm-input'}}) }}
+          </div>
+        </div>
+        <div class="mb-3">
+          {{ form_label(form.description, null, {label_attr: {class: 'm-label'}}) }}
+          {{ form_widget(form.description, {attr: {class: 'm-textarea'}}) }}
+          {{ form_errors(form.description) }}
+        </div>
+        <div class="mb-3">
+          {{ form_label(form.websiteUrl, null, {label_attr: {class: 'm-label'}}) }}
+          {{ form_widget(form.websiteUrl, {attr: {class: 'm-input'}}) }}
+          {{ form_errors(form.websiteUrl) }}
+        </div>
+        <div class="mb-3">
+          {{ form_label(form.linkedinUrl, null, {label_attr: {class: 'm-label'}}) }}
+          {{ form_widget(form.linkedinUrl, {attr: {class: 'm-input'}}) }}
+          {{ form_errors(form.linkedinUrl) }}
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            {{ form_label(form.professionalEmail, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.professionalEmail, {attr: {class: 'm-input'}}) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(form.professionalPhone, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.professionalPhone, {attr: {class: 'm-input'}}) }}
+          </div>
+        </div>
+        <div class="mb-4">
+          {{ form_label(form.logo, null, {label_attr: {class: 'm-label'}}) }}
+          {{ form_widget(form.logo) }}
+          {{ form_errors(form.logo) }}
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+          <button class="m-btn m-btn--primaire" type="submit">{{ isNewRecruiter ? 'Activer mon espace recruteur' : 'Enregistrer' }}</button>
+        </div>
+      {{ form_end(form) }}
+    </div>
+  </div>
+</section>
+{% endblock %}

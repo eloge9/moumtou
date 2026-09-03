@@ -3,14 +3,19 @@
 namespace App\Controller;
 
 use App\Entity\Experience;
+use App\Entity\TalentView;
 use App\Entity\Technology;
 use App\Entity\User;
 use App\Entity\UserInstitution;
+use App\Enum\ContactRequestStatus;
+use App\Enum\DefenseStatus;
 use App\Enum\InstitutionContext;
 use App\Enum\ProjectStatus;
 use App\Form\ExperienceType;
 use App\Form\ProfileEditType;
+use App\Repository\ContactRequestRepository;
 use App\Repository\ProjectRepository;
+use App\Repository\RecruiterFavoriteRepository;
 use App\Service\AvatarUploader;
 use App\Service\QrCodeGenerator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,8 +30,14 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class ProfileController extends AbstractController
 {
     #[Route('/profils/{slug}', name: 'app_profile_show')]
-    public function show(string $slug, EntityManagerInterface $em, QrCodeGenerator $qrCodeGenerator, UrlGeneratorInterface $urlGenerator): Response
-    {
+    public function show(
+        string $slug,
+        EntityManagerInterface $em,
+        QrCodeGenerator $qrCodeGenerator,
+        UrlGeneratorInterface $urlGenerator,
+        RecruiterFavoriteRepository $favoriteRepository,
+        ContactRequestRepository $contactRequestRepository,
+    ): Response {
         $user = $em->getRepository(User::class)->findOneBy(['slug' => $slug]);
         if (!$user) {
             throw $this->createNotFoundException('Profil introuvable.');
@@ -40,10 +51,14 @@ class ProfileController extends AbstractController
         });
 
         $verifiedCount = 0;
+        $verifiedDefenseCount = 0;
         $totalViews = 0;
         foreach ($projects as $project) {
             if ($project->getStatus() === ProjectStatus::VERIFIE) {
                 ++$verifiedCount;
+            }
+            if ($project->getDefense() && DefenseStatus::VERIFIEE === $project->getDefense()->getStatus()) {
+                ++$verifiedDefenseCount;
             }
             $totalViews += $project->getViewsCount();
         }
@@ -55,6 +70,26 @@ class ProfileController extends AbstractController
 
         $publicUrl = $urlGenerator->generate('app_profile_show', ['slug' => $user->getSlug()], UrlGeneratorInterface::ABSOLUTE_URL);
 
+        // Journal des consultations recruteur (cahier — FONCTIONNALITÉ 7
+        // §20), et état favori/demande pour afficher les bons boutons —
+        // jamais pour un visiteur, ni pour le propriétaire consultant son
+        // propre profil.
+        $recruiterContext = null;
+        $viewer = $this->getUser();
+        $isTalent = \in_array('ROLE_TALENT', $user->getRoles(), true);
+        if (!$isOwner && $isTalent && $viewer instanceof User && \in_array('ROLE_RECRUITER', $viewer->getRoles(), true)) {
+            $view = new TalentView();
+            $view->setRecruiter($viewer);
+            $view->setTalent($user);
+            $em->persist($view);
+            $em->flush();
+
+            $recruiterContext = [
+                'isFavorite' => $favoriteRepository->isFavorite($viewer, $user),
+                'hasPendingRequest' => $contactRequestRepository->hasPendingRequest($viewer, $user),
+            ];
+        }
+
         return $this->render('profile/show.html.twig', [
             'profileUser' => $user,
             'isOwner' => $isOwner,
@@ -63,11 +98,13 @@ class ProfileController extends AbstractController
             'stats' => [
                 'publishedCount' => \count($projects),
                 'verifiedCount' => $verifiedCount,
+                'verifiedDefenseCount' => $verifiedDefenseCount,
                 'averageRating' => $averageRating,
                 'totalViews' => $totalViews,
             ],
             'publicUrl' => $publicUrl,
             'qrCodeDataUri' => $qrCodeGenerator->generateSvgDataUri($publicUrl),
+            'recruiterContext' => $recruiterContext,
         ]);
     }
 

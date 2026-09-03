@@ -37,6 +37,10 @@ security:
     access_control:
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/mon-espace-enseignant, roles: ROLE_TEACHER }
+        # Accessible à tout compte connecté : c'est le parcours self-service
+        # "devenir recruteur" (cahier — FONCTIONNALITÉ 7 §3), donc réévalué
+        # avant la règle générale ci-dessous qui protège le reste de l'espace.
+        - { path: ^/recruteur/profil$, roles: ROLE_USER }
         - { path: ^/recruteur, roles: ROLE_RECRUITER }
         - { path: ^/publier, roles: ROLE_TALENT }
         - { path: ^/ma-soutenance, roles: [ROLE_TALENT, ROLE_ADMIN] }

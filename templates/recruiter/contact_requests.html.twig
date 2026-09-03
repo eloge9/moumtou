@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes demandes de contact — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'talents'} %}{% endblock %}
+
+{% block body %}
+{% include 'recruiter/_nav.html.twig' with {recruiterNav: 'requests'} %}
+
+<section class="p-4">
+  <h1 style="font-size:24px">Mes demandes de contact</h1>
+
+  <div class="d-grid gap-3 mt-3">
+    {% for request in requests %}
+      <article class="m-carte m-carte--plate p-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <a class="fw-bold" style="font-size:15px" href="{{ path('app_profile_show', {slug: request.talent.slug}) }}">{{ request.talent.fullName }}</a>
+          <span class="m-tag{{ request.status.value == 'accepted' ? ' m-tag--bleu' : '' }}" style="{{ request.status.value == 'refused' ? 'background:#FDECEA;color:#B3261E' : '' }}{{ request.status.value == 'cancelled' ? 'background:#F0F1F4;color:#6B7690' : '' }}">{{ request.status.label }}</span>
+        </div>
+        <p class="m-texte mt-2 mb-1" style="white-space:pre-line">{{ request.message }}</p>
+        <p class="m-meta mb-0">Envoyée le {{ request.createdAt|date('d/m/Y H:i') }}{% if request.respondedAt %} · Répondu le {{ request.respondedAt|date('d/m/Y H:i') }}{% endif %}</p>
+        {% if request.status.value == 'pending' %}
+          <form method="post" action="{{ path('app_recruiter_contact_request_cancel', {id: request.id}) }}" class="mt-2" onsubmit="return confirm('Annuler cette demande ?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('annuler-demande-' ~ request.id) }}">
+            <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Annuler la demande</button>
+          </form>
+        {% endif %}
+      </article>
+    {% else %}
+      <p class="m-meta">Aucune demande de contact envoyée pour l'instant.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
