@@ -93,6 +93,7 @@
   <button class="m-onglet" type="button" data-onglet="competences">Compétences</button>
   <button class="m-onglet" type="button" data-onglet="soutenances">Soutenances</button>
   <button class="m-onglet" type="button" data-onglet="experiences">Expériences</button>
+  {% if talentStats %}<button class="m-onglet" type="button" data-onglet="statistiques">Mes statistiques</button>{% endif %}
 </nav>
 
 <section class="px-4 py-4">
@@ -194,6 +195,71 @@
     </div>
   </div>
 </section>
+
+{% if talentStats %}
+<section class="px-4 py-4 m-onglet-panneau" data-onglet-panneau="statistiques">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <h2 style="font-size:19px" class="mb-0">Mes statistiques</h2>
+    <form method="get" class="d-flex gap-2">
+      <select class="m-select" name="periode" onchange="this.form.submit()" aria-label="Filtrer la période des statistiques">
+        {% for value, label in statsPeriodChoices %}
+          <option value="{{ value }}" {{ talentStats.period == value ? 'selected' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+  <p class="m-meta mt-1">Uniquement les interactions mesurables sur MOUMTOU — jamais des chiffres inventés.</p>
+
+  <div class="row g-2 mt-2">
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.aggregate.totalViews }}</div><div class="m-stat__libelle">vues totales</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.aggregate.uniqueViews }}</div><div class="m-stat__libelle">vues uniques</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.aggregate.shares }}</div><div class="m-stat__libelle">partages</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.aggregate.qrViews }}</div><div class="m-stat__libelle">visites via QR code</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.proofClicks.github|default(0) }}</div><div class="m-stat__libelle">clics GitHub</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.proofClicks.demo|default(0) }}</div><div class="m-stat__libelle">clics démo</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.proofClicks.site|default(0) }}</div><div class="m-stat__libelle">clics site web</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.aggregate.qrDownloads }}</div><div class="m-stat__libelle">QR code téléchargé</div></div></div>
+    {% if talentStats.favoritesReceivedCount is defined %}
+      <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.favoritesReceivedCount }}</div><div class="m-stat__libelle">ajouts aux favoris (recruteurs)</div></div></div>
+      <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ talentStats.contactRequestsReceivedCount }}</div><div class="m-stat__libelle">demandes de contact reçues</div></div></div>
+    {% endif %}
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-lg-8">
+      <div class="m-carte m-carte--plate p-3">
+        <p class="m-surtitre mb-3">Évolution des vues</p>
+        {% set maxDaily = talentStats.dailyViews|reduce((max, v) => v > max ? v : max, 0) %}
+        {% if maxDaily > 0 %}
+          <div class="d-flex align-items-end gap-1" style="height:120px">
+            {% for day, count in talentStats.dailyViews %}
+              <div class="flex-fill" style="height:100%;display:flex;align-items:flex-end" title="{{ day }} : {{ count }} vue{{ count > 1 ? 's' : '' }}">
+                <div style="width:100%;min-height:2px;height:{{ (count / maxDaily * 100)|round }}%;background:var(--m-bleu);border-radius:2px 2px 0 0"></div>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="d-flex justify-content-between mt-2"><span class="m-meta">{{ talentStats.dailyViews|keys|first }}</span><span class="m-meta">{{ talentStats.dailyViews|keys|last }}</span></div>
+        {% else %}
+          <p class="m-meta mb-0">Pas encore de vues sur cette période.</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="m-carte m-carte--plate p-3">
+        <p class="m-surtitre mb-3">Mes projets les plus vus</p>
+        {% for entry in talentStats.topProjects %}
+          <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:13.5px">
+            <a href="{{ path('app_project_stats', {slug: entry.project.slug}) }}">{{ loop.index }}. {{ entry.project.name }}</a>
+            <span class="m-meta">{{ entry.views }} vue{{ entry.views > 1 ? 's' : '' }}</span>
+          </div>
+        {% else %}
+          <p class="m-meta mb-0">Pas encore de vues mesurées.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
 
 {% block modals %}
 <div class="m-modale" id="modale-partage-profil" data-modale role="dialog" aria-modal="true">

@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Statistiques — {{ project.name }} — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+
+{% block header %}
+  {% include 'components/_header_minimal.html.twig' with {context_label: 'Statistiques du projet'} %}
+{% endblock %}
+
+{% block body %}
+<div class="px-4 py-4">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <p class="m-fil mb-1"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a> / Statistiques</p>
+      <h1 style="font-size:24px" class="mb-0">Statistiques du projet</h1>
+    </div>
+    <form method="get" class="d-flex gap-2">
+      <select class="m-select" name="periode" onchange="this.form.submit()" aria-label="Filtrer la période des statistiques">
+        {% for value, label in statsPeriodChoices %}
+          <option value="{{ value }}" {{ period == value ? 'selected' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+  <p class="m-meta mt-1">Uniquement les interactions réellement mesurées sur MOUMTOU.</p>
+
+  <div class="row g-2 mt-2">
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ projectStats.totalViews }}</div><div class="m-stat__libelle">vues du projet</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ projectStats.uniqueViews }}</div><div class="m-stat__libelle">vues uniques</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ projectStats.qrViews }}</div><div class="m-stat__libelle">scans du QR code</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ projectStats.shares }}</div><div class="m-stat__libelle">partages</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ projectStats.proofClicks.github|default(0) }}</div><div class="m-stat__libelle">clics GitHub</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ projectStats.proofClicks.demo|default(0) }}</div><div class="m-stat__libelle">clics démo</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ projectStats.proofClicks.site|default(0) }}</div><div class="m-stat__libelle">clics site web</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ projectStats.youtubeOpens }}</div><div class="m-stat__libelle">ouvertures vidéo</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ projectStats.qrDownloads }}</div><div class="m-stat__libelle">QR code téléchargé</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ project.ratingsCount }}</div><div class="m-stat__libelle">évaluations reçues</div></div></div>
+    <div class="col-6 col-md-3"><div class="m-stat"><div class="m-stat__valeur" style="font-size:22px">{{ commentsCount }}</div><div class="m-stat__libelle">commentaires</div></div></div>
+  </div>
+
+  <div class="m-carte m-carte--plate p-3 mt-3">
+    <p class="m-surtitre mb-3">Évolution des vues</p>
+    {% set maxDaily = dailyViews|reduce((max, v) => v > max ? v : max, 0) %}
+    {% if maxDaily > 0 %}
+      <div class="d-flex align-items-end gap-1" style="height:140px">
+        {% for day, count in dailyViews %}
+          <div class="flex-fill" style="height:100%;display:flex;align-items:flex-end" title="{{ day }} : {{ count }} vue{{ count > 1 ? 's' : '' }}">
+            <div style="width:100%;min-height:2px;height:{{ (count / maxDaily * 100)|round }}%;background:var(--m-bleu);border-radius:2px 2px 0 0"></div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="d-flex justify-content-between mt-2"><span class="m-meta">{{ dailyViews|keys|first }}</span><span class="m-meta">{{ dailyViews|keys|last }}</span></div>
+    {% else %}
+      <p class="m-meta mb-0">Pas encore de vues sur cette période.</p>
+    {% endif %}
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-md-6">
+      <div class="m-carte m-carte--plate p-3">
+        <p class="m-surtitre mb-2">Origine des visites</p>
+        <div class="d-grid gap-1" style="font-size:13.5px">
+          <div class="d-flex justify-content-between"><span class="m-meta">Visites directes</span><span class="fw-semibold">{{ projectStats.directViews }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Visites via QR code</span><span class="fw-semibold">{{ projectStats.qrViews }}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="m-aide mt-3">La note moyenne actuelle est de {{ project.ratingAverage|number_format(1, ',') }} / 5{% if project.ratingsCount %} sur {{ project.ratingsCount }} évaluation{{ project.ratingsCount > 1 ? 's' : '' }}{% endif %}. La popularité n'implique pas la vérification du projet.</p>
+</div>
+{% endblock %}

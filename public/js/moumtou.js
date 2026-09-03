@@ -333,6 +333,18 @@
     document.querySelectorAll('[data-modale].is-open').forEach(function (m) { m.classList.remove('is-open'); });
   }
 
+  /* ----------- Mesure d'une interaction (cahier des charges — F12) : ----- */
+  /* ----------- requête "fire-and-forget", n'empêche jamais l'action ------ */
+  /* ----------- elle-même (partage, navigation) de continuer normalement -- */
+  function mesurerInteraction(url) {
+    if (!url) return;
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url);
+    } else {
+      fetch(url, {method: 'POST', keepalive: true}).catch(function () {});
+    }
+  }
+
   /* --- Partage natif du navigateur (cahier des charges — F11 §12) : ------ */
   /* --- essaie navigator.share() en priorité, repli sur la modale de ------ */
   /* --- partage (copier le lien / réseaux sociaux) si indisponible. ------- */
@@ -345,14 +357,29 @@
             title: bouton.getAttribute('data-partage-titre') || undefined,
             text: bouton.getAttribute('data-partage-texte') || undefined,
             url: url,
+          }).then(function () {
+            mesurerInteraction(bouton.getAttribute('data-partage-suivi-url'));
           }).catch(function () {
             // Annulation par l'utilisateur ou échec silencieux : pas de repli,
-            // la modale se rouvrirait sans que l'utilisateur l'ait demandé.
+            // la modale se rouvrirait sans que l'utilisateur l'ait demandé —
+            // et pas de mesure, l'action n'a pas réellement abouti.
           });
           return;
         }
         var repliId = bouton.getAttribute('data-partage-repli');
         if (repliId) ouvrirModale(repliId);
+      });
+    });
+  }
+
+  /* --- Repli de partage (modale) : mesure chaque action réellement ------- */
+  /* --- déclenchée — copier, WhatsApp, LinkedIn, Facebook, X (cahier §10) - */
+  function initPartageSuivi() {
+    document.querySelectorAll('[data-partage-conteneur]').forEach(function (conteneur) {
+      var url = conteneur.getAttribute('data-partage-suivi-url');
+      conteneur.querySelectorAll('button, a').forEach(function (action) {
+        if (action.hasAttribute('data-partage-exclure')) return;
+        action.addEventListener('click', function () { mesurerInteraction(url); });
       });
     });
   }
@@ -373,6 +400,7 @@
         iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%';
         bloc.innerHTML = '';
         bloc.appendChild(iframe);
+        mesurerInteraction(bloc.getAttribute('data-partage-suivi-url'));
       });
     });
   }
@@ -469,6 +497,7 @@
     initMenus();
     initModales();
     initPartageNatif();
+    initPartageSuivi();
     initYoutubeFacade();
     initRemplacerPhoto();
     initAutrePrecision();

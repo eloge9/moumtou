@@ -67,12 +67,13 @@ class ProjectShareTest extends FunctionalTestCase
         self::assertStringContainsString('data:image/svg+xml', $qrImg->attr('src'));
         self::assertStringContainsString('Projet projet-qr-partage', $qrImg->attr('alt'));
 
-        $svgLink = $crawler->filter('#qr-code-projet a[download$=".svg"]');
-        $pngLink = $crawler->filter('#qr-code-projet a[download$=".png"]');
+        // Téléchargements réels (routes serveur, cahier — FONCTIONNALITÉ 12
+        // §11 : mesurer le téléchargement du QR code), plus le data-URI de
+        // prévisualisation seul depuis F11.
+        $svgLink = $crawler->filter('#qr-code-projet a[href="/projets/projet-qr-partage/qr.svg"]');
+        $pngLink = $crawler->filter('#qr-code-projet a[href="/projets/projet-qr-partage/qr.png"]');
         self::assertCount(1, $svgLink);
         self::assertCount(1, $pngLink);
-        self::assertStringContainsString('data:image/svg+xml', $svgLink->attr('href'));
-        self::assertStringContainsString('data:image/png', $pngLink->attr('href'));
 
         // Bouton « Partager » : attributs pour le partage natif, avec repli
         // vers la modale (cahier §12).

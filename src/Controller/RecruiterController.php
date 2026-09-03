@@ -15,6 +15,7 @@ use App\Enum\Availability;
 use App\Enum\ContactRequestStatus;
 use App\Enum\NotificationType;
 use App\Enum\ProjectType;
+use App\Repository\AnalyticsEventRepository;
 use App\Repository\ContactRequestRepository;
 use App\Repository\RecruiterFavoriteRepository;
 use App\Repository\TalentViewRepository;
@@ -93,6 +94,7 @@ class RecruiterController extends AbstractController
         TalentViewRepository $talentViewRepository,
         RecruiterFavoriteRepository $favoriteRepository,
         ContactRequestRepository $contactRequestRepository,
+        AnalyticsEventRepository $analyticsEventRepository,
     ): Response {
         /** @var User $recruiter */
         $recruiter = $this->getUser();
@@ -105,6 +107,10 @@ class RecruiterController extends AbstractController
             'recruiter' => $recruiter,
             'stats' => [
                 'talentsViewedCount' => $talentViewRepository->countDistinctTalents($recruiter),
+                // Cahier des charges — FONCTIONNALITÉ 12 §18 : "Projets
+                // consultés", à partir des mêmes événements de vue que le
+                // reste de l'application, pas d'un journal séparé.
+                'projectsViewedCount' => $analyticsEventRepository->distinctProjectsViewedByUser($recruiter),
                 'favoritesCount' => (int) $em->getRepository(RecruiterFavorite::class)->count(['recruiter' => $recruiter]),
                 'sentCount' => (int) $em->getRepository(ContactRequest::class)->count(['recruiter' => $recruiter]),
                 'acceptedCount' => (int) $em->getRepository(ContactRequest::class)->count(['recruiter' => $recruiter, 'status' => ContactRequestStatus::ACCEPTED]),

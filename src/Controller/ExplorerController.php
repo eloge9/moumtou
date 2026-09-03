@@ -12,6 +12,7 @@ use App\Enum\ProjectType;
 use App\Repository\ProjectPhotoRepository;
 use App\Repository\ProjectRepository;
 use App\Search\ProjectSearchCriteria;
+use App\Service\AnalyticsTracker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,12 +22,14 @@ use Symfony\Component\Routing\Attribute\Route;
 class ExplorerController extends AbstractController
 {
     #[Route('/explorer', name: 'app_explorer')]
-    public function index(Request $request, ProjectRepository $projectRepository, ProjectPhotoRepository $projectPhotoRepository, EntityManagerInterface $em): Response
+    public function index(Request $request, ProjectRepository $projectRepository, ProjectPhotoRepository $projectPhotoRepository, EntityManagerInterface $em, AnalyticsTracker $analyticsTracker): Response
     {
         $criteria = $this->buildCriteria($request);
         $result = $projectRepository->search($criteria);
 
         $countByType = $projectRepository->countByType();
+
+        $this->trackTechnologySearch($criteria->technologyIds, $em, $analyticsTracker);
 
         return $this->render('explorer/index.html.twig', [
             'active_nav' => 'explorer',
@@ -87,6 +90,25 @@ class ExplorerController extends AbstractController
         $raw = $request->query->get($key);
 
         return ($raw === null || $raw === '') ? null : (int) $raw;
+    }
+
+    /**
+     * Comptabilise une recherche par technologie (cahier — FONCTIONNALITÉ 12
+     * §19), de façon strictement anonyme et agrégée — voir
+     * {@see AnalyticsTracker::trackTechnologySearch()}.
+     *
+     * @param int[] $technologyIds
+     */
+    private function trackTechnologySearch(array $technologyIds, EntityManagerInterface $em, AnalyticsTracker $analyticsTracker): void
+    {
+        if (!$technologyIds) {
+            return;
+        }
+
+        $technologies = $em->getRepository(Technology::class)->findBy(['id' => $technologyIds]);
+        foreach ($technologies as $technology) {
+            $analyticsTracker->trackTechnologySearch($technology);
+        }
     }
 
     /**

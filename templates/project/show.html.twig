@@ -36,13 +36,14 @@
   </nav>
   <div class="ms-auto d-flex align-items-center gap-2">
     {% if is_granted('PROJECT_EDIT', project) %}
+      <a class="m-btn m-btn--secondaire" href="{{ path('app_project_stats', {slug: project.slug}) }}">Statistiques</a>
       <a class="m-btn m-btn--secondaire" href="{{ path('app_project_edit', {slug: project.slug}) }}">Modifier</a>
       <form method="post" action="{{ path('app_project_delete', {slug: project.slug}) }}" onsubmit="return confirm('Supprimer définitivement ce projet ?');">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('supprimer-projet-' ~ project.id) }}">
         <button class="m-btn m-btn--secondaire" type="submit" style="color:#B3261E">Supprimer</button>
       </form>
     {% endif %}
-    <button class="m-btn m-btn--secondaire" type="button" data-partage-natif data-partage-titre="{{ project.name }}" data-partage-texte="Découvrez {{ project.name }} sur MOUMTOU" data-partage-url="{{ publicUrl }}" data-partage-repli="modale-partage">Partager</button>
+    <button class="m-btn m-btn--secondaire" type="button" data-partage-natif data-partage-titre="{{ project.name }}" data-partage-texte="Découvrez {{ project.name }} sur MOUMTOU" data-partage-url="{{ publicUrl }}" data-partage-repli="modale-partage" data-partage-suivi-url="{{ path('app_project_share_track', {slug: project.slug}) }}">Partager</button>
     {% if app.user %}
       <button class="m-btn m-btn--secondaire" type="button" data-modale-ouvrir="modale-signalement">Signaler</button>
     {% endif %}
@@ -116,7 +117,7 @@
 
     {% if youtubeVideoId %}
       <h2 class="mt-4" style="font-size:20px">Vidéo</h2>
-      <div class="mt-2 m-youtube-facade" data-youtube-facade data-video-id="{{ youtubeVideoId }}" style="position:relative;padding-top:56.25%;border-radius:var(--m-r);overflow:hidden;cursor:pointer;background:#000">
+      <div class="mt-2 m-youtube-facade" data-youtube-facade data-video-id="{{ youtubeVideoId }}" data-partage-suivi-url="{{ path('app_project_video_track', {slug: project.slug}) }}" style="position:relative;padding-top:56.25%;border-radius:var(--m-r);overflow:hidden;cursor:pointer;background:#000">
         <img src="https://i.ytimg.com/vi/{{ youtubeVideoId }}/hqdefault.jpg" alt="Miniature de la vidéo" loading="lazy" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:.85">
         <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(220,20,20,.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px">▶</span>
       </div>
@@ -127,7 +128,7 @@
       <div class="row g-3 mt-2">
         {% for proof in project.proofs %}
           <div class="col-md-6">
-            <a class="m-preuve" href="{{ proof.url }}" target="_blank" rel="noopener">
+            <a class="m-preuve" href="{{ path('app_project_proof_open', {slug: project.slug, proofId: proof.id}) }}" target="_blank" rel="noopener">
               <span class="m-preuve__icone">{{ proof.type.icon }}</span>
               <span><span class="fw-bold d-block" style="font-size:14.5px">{{ proof.title ?: proof.type.actionLabel }}</span><span class="m-meta">{{ proof.url }}</span></span>
             </a>
@@ -380,8 +381,8 @@
       <img src="{{ qrCodeDataUri }}" alt="QR Code permettant d'accéder au projet {{ project.name }} sur MOUMTOU" width="100" height="100" class="mt-2">
       <p class="m-meta mt-2 mb-1">À imprimer sur un CV, un poster ou un badge de soutenance.</p>
       <div class="d-flex justify-content-center gap-2 flex-wrap">
-        <a href="{{ qrCodeDataUri }}" download="moumtou-{{ project.slug }}.svg">Télécharger (SVG)</a>
-        <a href="{{ qrCodePngDataUri }}" download="moumtou-{{ project.slug }}.png">Télécharger (PNG)</a>
+        <a href="{{ path('app_project_qr_svg', {slug: project.slug}) }}">Télécharger (SVG)</a>
+        <a href="{{ path('app_project_qr_png', {slug: project.slug}) }}">Télécharger (PNG)</a>
       </div>
     </div>
   </aside>
@@ -411,13 +412,13 @@
     <h2 class="m-modale__titre">Partager ce projet</h2>
     <label class="m-label mt-3" for="lien-partage">Lien public</label>
     <input class="m-input" id="lien-partage" type="text" value="{{ publicUrl }}" readonly aria-label="Lien public du projet {{ project.name }}">
-    <div class="d-flex flex-wrap gap-2 mt-3">
+    <div class="d-flex flex-wrap gap-2 mt-3" data-partage-conteneur data-partage-suivi-url="{{ path('app_project_share_track', {slug: project.slug}) }}">
       <button class="m-btn m-btn--secondaire" type="button" onclick="navigator.clipboard.writeText('{{ publicUrl|e('js') }}')">Copier le lien</button>
       <a class="m-btn m-btn--secondaire" href="https://wa.me/?text={{ ('Découvrez ' ~ project.name ~ ' sur MOUMTOU : ' ~ publicUrl)|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
       <a class="m-btn m-btn--secondaire" href="https://www.linkedin.com/sharing/share-offsite/?url={{ publicUrl|url_encode }}" target="_blank" rel="noopener">LinkedIn</a>
       <a class="m-btn m-btn--secondaire" href="https://www.facebook.com/sharer/sharer.php?u={{ publicUrl|url_encode }}" target="_blank" rel="noopener">Facebook</a>
       <a class="m-btn m-btn--secondaire" href="https://twitter.com/intent/tweet?url={{ publicUrl|url_encode }}&amp;text={{ ('Découvrez ' ~ project.name ~ ' sur MOUMTOU')|url_encode }}" target="_blank" rel="noopener">X</a>
-      <a class="m-btn m-btn--secondaire" href="#qr-code-projet" data-modale-fermer>QR Code</a>
+      <a class="m-btn m-btn--secondaire" href="#qr-code-projet" data-modale-fermer data-partage-exclure>QR Code</a>
     </div>
     <div class="text-end mt-4"><button class="m-btn m-btn--primaire" type="button" data-modale-fermer>Fermer</button></div>
   </div>

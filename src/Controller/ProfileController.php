@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\ContactRequest;
 use App\Entity\Experience;
+use App\Entity\RecruiterFavorite;
 use App\Entity\TalentView;
 use App\Entity\Technology;
 use App\Entity\User;
@@ -13,12 +15,14 @@ use App\Enum\InstitutionContext;
 use App\Enum\ProjectStatus;
 use App\Form\ExperienceType;
 use App\Form\ProfileEditType;
+use App\Repository\AnalyticsEventRepository;
 use App\Repository\ContactRequestRepository;
 use App\Repository\ProjectPhotoRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\RecruiterFavoriteRepository;
 use App\Service\AvatarUploader;
 use App\Service\QrCodeGenerator;
+use App\Service\StatsPeriod;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,12 +37,14 @@ class ProfileController extends AbstractController
     #[Route('/profils/{slug}', name: 'app_profile_show')]
     public function show(
         string $slug,
+        Request $request,
         EntityManagerInterface $em,
         QrCodeGenerator $qrCodeGenerator,
         UrlGeneratorInterface $urlGenerator,
         RecruiterFavoriteRepository $favoriteRepository,
         ContactRequestRepository $contactRequestRepository,
         ProjectPhotoRepository $projectPhotoRepository,
+        AnalyticsEventRepository $analyticsEventRepository,
     ): Response {
         $user = $em->getRepository(User::class)->findOneBy(['slug' => $slug]);
         if (!$user) {
@@ -71,6 +77,35 @@ class ProfileController extends AbstractController
         $defenseProjects = $projects->filter(fn ($p) => $p->getDefense() !== null);
 
         $publicUrl = $urlGenerator->generate('app_profile_show', ['slug' => $user->getSlug()], UrlGeneratorInterface::ABSOLUTE_URL);
+
+        // « Mes statistiques » (cahier des charges — FONCTIONNALITÉ 12
+        // §13-§16) : uniquement calculé pour le propriétaire du profil,
+        // jamais pour un visiteur — évite des requêtes inutiles et respecte
+        // la confidentialité (§32 : "le talent voit uniquement les
+        // statistiques de ses propres projets").
+        $talentStats = null;
+        if ($isOwner) {
+            $ownedProjectIds = array_map(fn ($p) => $p->getId(), $projects->toArray());
+            [$periodFrom, $periodTo, $period] = StatsPeriod::resolve($request->query->get('periode'));
+
+            $talentStats = [
+                'aggregate' => $analyticsEventRepository->aggregateStatsForProjects($ownedProjectIds),
+                'proofClicks' => $analyticsEventRepository->proofClicksByTypeForProjects($ownedProjectIds),
+                'topProjects' => $this->resolveTopProjects($projects->toArray(), $analyticsEventRepository->viewCountsByProject($ownedProjectIds, 5)),
+                'dailyViews' => $analyticsEventRepository->dailyViewsForProjects($ownedProjectIds, $periodFrom, $periodTo),
+                'period' => $period,
+            ];
+
+            // Cahier des charges — FONCTIONNALITÉ 12 §17 : "ajouts aux
+            // favoris, demandes de contact" — uniquement pertinent pour un
+            // compte talent (destinataire de ces actions recruteur), à
+            // partir des entités déjà existantes (FONCTIONNALITÉ 7),
+            // jamais dupliquées ici.
+            if (\in_array('ROLE_TALENT', $user->getRoles(), true)) {
+                $talentStats['favoritesReceivedCount'] = (int) $em->getRepository(RecruiterFavorite::class)->count(['talent' => $user]);
+                $talentStats['contactRequestsReceivedCount'] = (int) $em->getRepository(ContactRequest::class)->count(['talent' => $user]);
+            }
+        }
 
         // Journal des consultations recruteur (cahier — FONCTIONNALITÉ 7
         // §20), et état favori/demande pour afficher les bons boutons —
@@ -108,6 +143,8 @@ class ProfileController extends AbstractController
             'publicUrl' => $publicUrl,
             'qrCodeDataUri' => $qrCodeGenerator->generateSvgDataUri($publicUrl),
             'recruiterContext' => $recruiterContext,
+            'talentStats' => $talentStats,
+            'statsPeriodChoices' => StatsPeriod::CHOICES,
         ]);
     }
 
@@ -273,5 +310,28 @@ class ProfileController extends AbstractController
         }
 
         return $technologies;
+    }
+
+    /**
+     * @param \App\Entity\Project[] $ownedProjects
+     * @param array<int,int>        $viewCountsById
+     *
+     * @return array<int, array{project: \App\Entity\Project, views: int}>
+     */
+    private function resolveTopProjects(array $ownedProjects, array $viewCountsById): array
+    {
+        $byId = [];
+        foreach ($ownedProjects as $project) {
+            $byId[$project->getId()] = $project;
+        }
+
+        $top = [];
+        foreach ($viewCountsById as $projectId => $views) {
+            if (isset($byId[$projectId])) {
+                $top[] = ['project' => $byId[$projectId], 'views' => $views];
+            }
+        }
+
+        return $top;
     }
 }

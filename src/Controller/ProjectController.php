@@ -14,6 +14,7 @@ use App\Enum\ReportStatus;
 use App\Enum\ReportTargetType;
 use App\Repository\ProjectRepository;
 use App\Security\Voter\CommentVoter;
+use App\Service\AnalyticsTracker;
 use App\Service\NotificationService;
 use App\Service\QrCodeGenerator;
 use App\Service\RatingIntegrityChecker;
@@ -37,16 +38,29 @@ class ProjectController extends AbstractController
     #[Route('/projets/{slug}', name: 'app_project_show')]
     public function show(
         string $slug,
+        Request $request,
         EntityManagerInterface $em,
         RequestStack $requestStack,
         UrlGeneratorInterface $urlGenerator,
         QrCodeGenerator $qrCodeGenerator,
         YoutubeUrlExtractor $youtubeUrlExtractor,
+        AnalyticsTracker $analyticsTracker,
     ): Response {
         $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         $this->assertViewable($project);
 
-        $this->trackView($project, $em, $requestStack);
+        // Une vue n'est comptabilisée que si le projet est réellement
+        // accessible publiquement (cahier des charges — FONCTIONNALITÉ 12
+        // §4) : un propriétaire ou un admin prévisualisant un brouillon ne
+        // génère jamais de vue, même si assertViewable() le laisse passer.
+        if (\in_array($project->getStatus(), ProjectRepository::PUBLIC_STATUSES, true)) {
+            $this->trackView($project, $em, $requestStack);
+
+            /** @var User|null $viewer */
+            $viewer = $this->getUser();
+            $source = 'qr' === $request->query->get('src') ? 'qr' : 'direct';
+            $analyticsTracker->trackProjectView($project, $viewer, $source);
+        }
 
         $comments = $em->getRepository(Comment::class)->createQueryBuilder('c')
             ->andWhere('c.project = :project')->setParameter('project', $project)
@@ -61,14 +75,21 @@ class ProjectController extends AbstractController
         }
 
         $publicUrl = $urlGenerator->generate('app_project_show', ['slug' => $project->getSlug()], UrlGeneratorInterface::ABSOLUTE_URL);
+        // Le QR code encode l'URL publique avec un marqueur d'origine
+        // (cahier des charges — FONCTIONNALITÉ 12 §7/§8) : la destination
+        // reste rigoureusement la même page, seule une visite provenant du
+        // QR peut être distinguée d'une visite directe. Le lien copié/partagé
+        // (publicUrl) et les balises Open Graph restent l'URL propre, non
+        // modifiée (cahier — FONCTIONNALITÉ 11 §4 : stabilité de l'URL).
+        $qrCodeUrl = $publicUrl.'?src=qr';
 
         return $this->render('project/show.html.twig', [
             'project' => $project,
             'comments' => $comments,
             'myRating' => $myRating?->getValue(),
             'publicUrl' => $publicUrl,
-            'qrCodeDataUri' => $qrCodeGenerator->generateSvgDataUri($publicUrl),
-            'qrCodePngDataUri' => $qrCodeGenerator->generatePngDataUri($publicUrl),
+            'qrCodeDataUri' => $qrCodeGenerator->generateSvgDataUri($qrCodeUrl),
+            'qrCodePngDataUri' => $qrCodeGenerator->generatePngDataUri($qrCodeUrl),
             'reportReasons' => ReportReason::cases(),
             'youtubeVideoId' => $youtubeUrlExtractor->extractVideoId($project),
         ]);
