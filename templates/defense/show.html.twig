@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Soutenance — {{ project.name }} — MOUMTOU{% endblock %}
-{% block meta_description %}Soutenance de {{ project.owner.fullName }} : {{ project.name }}, le {{ defense.date|date('d F Y') }}{% if project.institution %} à {{ project.institution.name }}{% endif %}.{% endblock %}
+{% block meta_description %}Soutenance de {{ project.owner.fullName }} : {{ project.name }}, le {{ defense.date|date('d F Y') }}{% if project.institution %} à {{ project.institution.name }}{% endif %}.{% if defense.status.value == 'verifiee' %} Soutenance vérifiée par le jury.{% endif %}{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ publicUrl }}">{% endblock %}
 {% block og_url %}<meta property="og:url" content="{{ publicUrl }}">{% endblock %}
 {% block og_type %}article{% endblock %}
@@ -57,7 +57,14 @@
         <span class="m-badge">🌐 Soutenance réalisée</span>
         <span class="m-badge" style="color:#B36B00;background:#FFF4E5">⚠️ Pas encore vérifiée</span>
       {% else %}
-        <span class="m-badge m-badge--verifie">✅ SOUTENANCE VÉRIFIÉE</span>
+        <details style="display:inline-block">
+          <summary class="m-badge m-badge--verifie" style="cursor:pointer;list-style:none">✅ SOUTENANCE VÉRIFIÉE</summary>
+          <div class="m-carte m-carte--plate p-3 mt-2" style="max-width:360px;font-size:13.5px">
+            <p class="fw-bold mb-1">SOUTENANCE VÉRIFIÉE</p>
+            <p class="m-meta mb-1">Vérifiée par le jury{% if defense.verifiedAt %} · {{ defense.verifiedAt|date('d F Y') }}{% endif %} ({{ defense.validationCount }} validation{{ defense.validationCount > 1 ? 's' : '' }})</p>
+            <p class="m-texte mb-0">Au moins deux membres du jury ont confirmé que cette soutenance a réellement eu lieu.</p>
+          </div>
+        </details>
       {% endif %}
     </div>
 

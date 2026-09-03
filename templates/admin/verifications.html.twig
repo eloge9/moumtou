@@ -1,0 +1,90 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block title %}Administration — Vérifications — MOUMTOU{% endblock %}
+{% block admin_title %}Vérifications{% endblock %}
+
+{% block admin_body %}
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-2">
+      <label class="m-label">Type</label>
+      <select class="m-select" name="type">
+        <option value="">Tous</option>
+        {% for t in targetTypes %}<option value="{{ t.value }}" {{ targetType is not null and targetType.value == t.value ? 'selected' }}>{{ t.label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="m-label">Statut</label>
+      <select class="m-select" name="status">
+        <option value="">Tous</option>
+        {% for s in statuses %}<option value="{{ s.value }}" {{ status is not null and status.value == s.value ? 'selected' }}>{{ s.label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="m-label">Auteur</label>
+      <input class="m-input" type="text" name="author" value="{{ author }}" placeholder="Nom, e-mail…">
+    </div>
+    <div class="col-md-2">
+      <label class="m-label">Du</label>
+      <input class="m-input" type="date" name="date_from" value="{{ dateFrom }}">
+    </div>
+    <div class="col-md-2">
+      <label class="m-label">Au</label>
+      <input class="m-input" type="date" name="date_to" value="{{ dateTo }}">
+    </div>
+    <div class="col-md-2">
+      <button class="m-btn m-btn--primaire m-btn--bloc" type="submit">Filtrer</button>
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Domaine (projets)</label>
+      <select class="m-select" name="domain">
+        <option value="">Tous</option>
+        {% for d in domains %}<option value="{{ d.id }}" {{ domainId == d.id ? 'selected' }}>{{ d.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Établissement (projets)</label>
+      <select class="m-select" name="institution">
+        <option value="">Tous</option>
+        {% for i in institutions %}<option value="{{ i.id }}" {{ institutionId == i.id ? 'selected' }}>{{ i.name }}</option>{% endfor %}
+      </select>
+    </div>
+  </form>
+</div>
+
+<div class="m-carte m-carte--plate">
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Cible</th><th>Type</th><th>Demandeur</th><th>Statut</th><th>Créée le</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for request in requests %}
+          {% set t = targets[request.id] %}
+          <tr>
+            <td class="fw-semibold">{{ t.label }}</td>
+            <td class="m-texte">{{ request.targetType.label }}</td>
+            <td class="m-texte">{{ request.requester.fullName }}</td>
+            <td>
+              {% if request.status.value == 'verifiee' %}<span class="m-tag m-tag--bleu">Vérifiée</span>
+              {% elseif request.status.value in ['refusee', 'retiree'] %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">{{ request.status.label }}</span>
+              {% elseif request.status.value == 'correction_demandee' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">{{ request.status.label }}</span>
+              {% else %}<span class="m-tag">{{ request.status.label }}</span>{% endif %}
+            </td>
+            <td class="m-meta">{{ request.createdAt|date('d/m/Y H:i') }}</td>
+            <td><a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('admin_verification_show', {id: request.id}) }}">Examiner</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="m-meta">Aucune demande ne correspond à ces filtres.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pageCount > 1 %}
+  <nav class="d-flex justify-content-center gap-2 mt-3">
+    {% for p in 1..pageCount %}
+      <a class="m-btn m-btn--sm {{ p == page ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_verifications', {type: targetType ? targetType.value : '', status: status ? status.value : '', author: author, date_from: dateFrom, date_to: dateTo, domain: domainId ?: '', institution: institutionId ?: '', page: p}) }}">{{ p }}</a>
+    {% endfor %}
+  </nav>
+{% endif %}
+{% endblock %}

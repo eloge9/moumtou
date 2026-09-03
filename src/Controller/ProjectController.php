@@ -13,11 +13,14 @@ use App\Enum\ReportReason;
 use App\Enum\ReportStatus;
 use App\Enum\ReportTargetType;
 use App\Repository\ProjectRepository;
+use App\Repository\VerificationRequestRepository;
 use App\Security\Voter\CommentVoter;
+use App\Security\Voter\ProjectVoter;
 use App\Service\AnalyticsTracker;
 use App\Service\NotificationService;
 use App\Service\QrCodeGenerator;
 use App\Service\RatingIntegrityChecker;
+use App\Service\VerificationService;
 use App\Service\YoutubeUrlExtractor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -45,6 +48,8 @@ class ProjectController extends AbstractController
         QrCodeGenerator $qrCodeGenerator,
         YoutubeUrlExtractor $youtubeUrlExtractor,
         AnalyticsTracker $analyticsTracker,
+        VerificationRequestRepository $verificationRequestRepository,
+        VerificationService $verificationService,
     ): Response {
         $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         $this->assertViewable($project);
@@ -83,6 +88,13 @@ class ProjectController extends AbstractController
         // modifiée (cahier — FONCTIONNALITÉ 11 §4 : stabilité de l'URL).
         $qrCodeUrl = $publicUrl.'?src=qr';
 
+        $verificationRequest = null;
+        $verificationEligibility = [];
+        if ($this->isGranted(ProjectVoter::EDIT, $project)) {
+            $verificationRequest = $verificationRequestRepository->findLatestForTarget(ReportTargetType::PROJECT, $project->getId());
+            $verificationEligibility = $verificationService->eligibilityForProject($project);
+        }
+
         return $this->render('project/show.html.twig', [
             'project' => $project,
             'comments' => $comments,
@@ -92,6 +104,8 @@ class ProjectController extends AbstractController
             'qrCodePngDataUri' => $qrCodeGenerator->generatePngDataUri($qrCodeUrl),
             'reportReasons' => ReportReason::cases(),
             'youtubeVideoId' => $youtubeUrlExtractor->extractVideoId($project),
+            'verificationRequest' => $verificationRequest,
+            'verificationEligibility' => $verificationEligibility,
         ]);
     }
 

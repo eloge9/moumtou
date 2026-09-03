@@ -33,6 +33,15 @@ class ProjectProof
     #[ORM\Column(length: 500)]
     private ?string $url = null;
 
+    /**
+     * Cahier des charges — FONCTIONNALITÉ 14 §8 : "ne considère pas
+     * automatiquement une preuve comme vraie" — coché individuellement par
+     * un administrateur lors de l'examen d'une demande de vérification,
+     * jamais par le talent.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $reviewed = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -82,6 +91,18 @@ class ProjectProof
     public function setUrl(string $url): static
     {
         $this->url = $url;
+
+        return $this;
+    }
+
+    public function isReviewed(): bool
+    {
+        return $this->reviewed;
+    }
+
+    public function setReviewed(bool $reviewed): static
+    {
+        $this->reviewed = $reviewed;
 
         return $this;
     }

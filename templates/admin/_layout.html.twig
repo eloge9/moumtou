@@ -17,6 +17,7 @@
     <a class="m-admin__lien{{ adminNav|default('') == 'projects' ? ' is-active' : '' }}" href="{{ path('admin_projects') }}">Projets</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'defenses' ? ' is-active' : '' }}" href="{{ path('admin_defenses') }}">Soutenances</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'moderation' ? ' is-active' : '' }}" href="{{ path('admin_moderation') }}">Modération {% if stats is defined and stats.openReportsCount is defined and stats.openReportsCount > 0 %}<span class="m-admin__compteur m-admin__compteur--alerte">{{ stats.openReportsCount }}</span>{% endif %}</a>
+    <a class="m-admin__lien{{ adminNav|default('') == 'verifications' ? ' is-active' : '' }}" href="{{ path('admin_verifications') }}">Vérifications {% if stats is defined and stats.pendingVerificationsCount is defined and stats.pendingVerificationsCount > 0 %}<span class="m-admin__compteur m-admin__compteur--alerte">{{ stats.pendingVerificationsCount }}</span>{% endif %}</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'comments' ? ' is-active' : '' }}" href="{{ path('admin_comments') }}">Commentaires</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'users' ? ' is-active' : '' }}" href="{{ path('admin_users') }}">Utilisateurs</a>
 

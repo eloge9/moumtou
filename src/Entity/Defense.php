@@ -56,6 +56,10 @@ class Defense
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $reminderSentAt = null;
 
+    /** Date à laquelle le seuil de validations du jury a été atteint (cahier — FONCTIONNALITÉ 14 §18). */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $verifiedAt = null;
+
     /** @var Collection<int, JuryMember> */
     #[ORM\OneToMany(targetEntity: JuryMember::class, mappedBy: 'defense', orphanRemoval: true, cascade: ['persist'])]
     private Collection $juryMembers;
@@ -209,6 +213,18 @@ class Defense
     public function setReminderSentAt(?\DateTimeImmutable $reminderSentAt): static
     {
         $this->reminderSentAt = $reminderSentAt;
+
+        return $this;
+    }
+
+    public function getVerifiedAt(): ?\DateTimeImmutable
+    {
+        return $this->verifiedAt;
+    }
+
+    public function setVerifiedAt(?\DateTimeImmutable $verifiedAt): static
+    {
+        $this->verifiedAt = $verifiedAt;
 
         return $this;
     }

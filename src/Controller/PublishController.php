@@ -13,10 +13,14 @@ use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
 use App\Enum\ProofType;
 use App\Form\PublishProjectType;
+use App\Enum\ReportTargetType;
+use App\Enum\VerificationStatus;
 use App\Service\ForbiddenContentDetector;
 use App\Service\ProjectDocumentUploader;
 use App\Service\ProjectPhotoUploader;
 use App\Service\SlugGenerator;
+use App\Service\VerificationService;
+use App\Repository\VerificationRequestRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
@@ -109,6 +113,8 @@ class PublishController extends AbstractController
         ProjectPhotoUploader $photoUploader,
         ProjectDocumentUploader $documentUploader,
         ForbiddenContentDetector $forbiddenContentDetector,
+        VerificationRequestRepository $verificationRequestRepository,
+        VerificationService $verificationService,
     ): Response {
         $project = $entityManager->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         if (!$project) {
@@ -171,9 +177,18 @@ class PublishController extends AbstractController
                 $wasVerified = ProjectStatus::VERIFIE === $project->getStatus();
                 if ($wasVerified) {
                     $project->setStatus(ProjectStatus::PUBLIE);
+                    $project->setVerifiedAt(null);
+                    $project->setVerifiedBy(null);
                 }
 
                 $entityManager->flush();
+
+                if ($wasVerified) {
+                    $verificationRequest = $verificationRequestRepository->findLatestForTarget(ReportTargetType::PROJECT, $project->getId());
+                    if ($verificationRequest && VerificationStatus::VERIFIEE === $verificationRequest->getStatus()) {
+                        $verificationService->revokeAfterSubstantialEdit($verificationRequest, $project->getOwner());
+                    }
+                }
 
                 $this->addFlash('succes', $wasVerified
                     ? 'Votre projet a été mis à jour. Le contenu ayant changé, il redevient « publié, non vérifié » en attendant une nouvelle vérification.'

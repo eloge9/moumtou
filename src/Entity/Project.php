@@ -79,6 +79,18 @@ class Project
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
 
+    /**
+     * Date de vérification MOUMTOU (cahier des charges — FONCTIONNALITÉ 14
+     * §18) — distincte de $publishedAt, jamais affichée publiquement pour
+     * l'administrateur ({@see $verifiedBy}), seulement pour la date.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $verifiedAt = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $verifiedBy = null;
+
     /** @var Collection<int, Technology> */
     #[ORM\ManyToMany(targetEntity: Technology::class)]
     #[ORM\JoinTable(name: 'project_technology')]
@@ -335,6 +347,30 @@ class Project
     public function setPublishedAt(?\DateTimeImmutable $publishedAt): static
     {
         $this->publishedAt = $publishedAt;
+
+        return $this;
+    }
+
+    public function getVerifiedAt(): ?\DateTimeImmutable
+    {
+        return $this->verifiedAt;
+    }
+
+    public function setVerifiedAt(?\DateTimeImmutable $verifiedAt): static
+    {
+        $this->verifiedAt = $verifiedAt;
+
+        return $this;
+    }
+
+    public function getVerifiedBy(): ?User
+    {
+        return $this->verifiedBy;
+    }
+
+    public function setVerifiedBy(?User $verifiedBy): static
+    {
+        $this->verifiedBy = $verifiedBy;
 
         return $this;
     }

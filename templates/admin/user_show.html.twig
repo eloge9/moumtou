@@ -33,8 +33,12 @@
         <div class="d-flex justify-content-between"><span class="m-meta">Mention</span><span class="fw-semibold">{{ user.mention ? user.mention.name : '—' }}</span></div>
         <div class="d-flex justify-content-between"><span class="m-meta">Spécialité</span><span class="fw-semibold">{{ user.specialty ? user.specialty.name : '—' }}</span></div>
         <div class="d-flex justify-content-between"><span class="m-meta">E-mail vérifié</span><span class="fw-semibold">{{ user.emailVerified ? 'Oui' : 'Non' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Profil vérifié</span><span class="fw-semibold">{{ user.profileVerified ? 'Oui, le ' ~ user.profileVerifiedAt|date('d/m/Y') : 'Non' }}</span></div>
         <div class="d-flex justify-content-between"><span class="m-meta">Inscrit le</span><span class="fw-semibold">{{ user.createdAt|date('d/m/Y') }}</span></div>
       </div>
+      {% if verificationRequest %}
+        <a class="m-btn m-btn--secondaire m-btn--sm mt-2" href="{{ path('admin_verification_show', {id: verificationRequest.id}) }}">Voir la demande de vérification de profil ({{ verificationRequest.status.label }})</a>
+      {% endif %}
     </div>
 
     <div class="m-carte m-carte--plate p-3 mt-3">

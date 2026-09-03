@@ -12,6 +12,7 @@ enum NotificationCategory: string
     case CONTACT = 'contact';
     case SOUTENANCE = 'soutenance';
     case PROJET = 'projet';
+    case PROFIL = 'profil';
     case COMMUNAUTE = 'communaute';
     case SECURITE = 'securite';
     case MODERATION = 'moderation';
@@ -22,6 +23,7 @@ enum NotificationCategory: string
             self::CONTACT => 'Demandes de contact',
             self::SOUTENANCE => 'Soutenance et jury',
             self::PROJET => 'Projets',
+            self::PROFIL => 'Vérification du profil',
             self::COMMUNAUTE => 'Commentaires et évaluations',
             self::SECURITE => 'Sécurité du compte',
             self::MODERATION => 'Modération (administrateurs)',

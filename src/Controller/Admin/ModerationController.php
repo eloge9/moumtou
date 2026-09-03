@@ -16,9 +16,11 @@ use App\Enum\ProjectStatus;
 use App\Enum\RatingStatus;
 use App\Enum\ReportStatus;
 use App\Enum\ReportTargetType;
+use App\Enum\VerificationStatus;
 use App\Service\AdminAuditLogger;
 use App\Service\NotificationService;
 use App\Service\SanctionApplier;
+use App\Service\VerificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -141,7 +143,7 @@ class ModerationController extends AbstractController
     }
 
     #[Route('/admin/moderation/signalements/{id}/decider', name: 'admin_moderation_report_decide', methods: ['POST'])]
-    public function decideReport(int $id, Request $request, EntityManagerInterface $em, SanctionApplier $sanctionApplier, NotificationService $notificationService, AdminAuditLogger $auditLogger): Response
+    public function decideReport(int $id, Request $request, EntityManagerInterface $em, SanctionApplier $sanctionApplier, NotificationService $notificationService, AdminAuditLogger $auditLogger, VerificationService $verificationService): Response
     {
         $report = $em->getRepository(Report::class)->find($id);
         if (!$report) {
@@ -172,7 +174,7 @@ class ModerationController extends AbstractController
         // le contenu est conservé tel quel.
         $effectiveAction = $contentAction ?? ModerationActionType::AUCUNE_ACTION;
         if ($target['entity']) {
-            $this->applyContentAction($effectiveAction, $target['entity'], $em, $notificationService, $auditLogger, $admin, $reason);
+            $this->applyContentAction($effectiveAction, $target['entity'], $em, $notificationService, $auditLogger, $admin, $reason, $verificationService);
         }
 
         $moderationAction = new ModerationAction();
@@ -209,7 +211,7 @@ class ModerationController extends AbstractController
     }
 
     #[Route('/admin/moderation/projets/{id}/decider', name: 'admin_moderation_project_decide', methods: ['POST'])]
-    public function decideProject(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService, AdminAuditLogger $auditLogger): Response
+    public function decideProject(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService, AdminAuditLogger $auditLogger, VerificationService $verificationService): Response
     {
         $project = $em->getRepository(Project::class)->find($id);
         if (!$project) {
@@ -236,7 +238,7 @@ class ModerationController extends AbstractController
         $admin = $this->getUser();
         $effectiveReason = $reason ?: sprintf('Décision directe depuis le tableau de bord : %s.', $action->label());
 
-        $this->applyContentAction($action, $project, $em, $notificationService, $auditLogger, $admin, $effectiveReason);
+        $this->applyContentAction($action, $project, $em, $notificationService, $auditLogger, $admin, $effectiveReason, $verificationService);
 
         $moderationAction = new ModerationAction();
         $moderationAction->setAdmin($admin);
@@ -260,6 +262,7 @@ class ModerationController extends AbstractController
         AdminAuditLogger $auditLogger,
         User $admin,
         string $reason,
+        ?VerificationService $verificationService = null,
     ): void {
         if ($target instanceof Comment) {
             match ($action) {
@@ -300,6 +303,16 @@ class ModerationController extends AbstractController
             default => null,
         };
 
+        // Cahier des charges — FONCTIONNALITÉ 14 §18 : date/auteur de la
+        // vérification, utilisés par le badge public (jamais l'admin lui-même).
+        if (ModerationActionType::MARQUER_VERIFIE === $action) {
+            $target->setVerifiedAt(new \DateTimeImmutable());
+            $target->setVerifiedBy($admin);
+        } elseif (ModerationActionType::RETIRER_VERIFICATION === $action) {
+            $target->setVerifiedAt(null);
+            $target->setVerifiedBy(null);
+        }
+
         if ($target->getStatus() === ProjectStatus::PUBLIE || $target->getStatus() === ProjectStatus::VERIFIE) {
             $target->setPublishedAt($target->getPublishedAt() ?? new \DateTimeImmutable());
         }
@@ -318,6 +331,17 @@ class ModerationController extends AbstractController
         };
         if ($projectAuditAction) {
             $auditLogger->log($admin, $projectAuditAction, 'Project', $target->getId(), $target->getName(), $reason);
+        }
+
+        // Garde en cohérence une éventuelle demande de vérification déjà
+        // ouverte pour ce projet, sans dupliquer notification/audit (cahier
+        // des charges — FONCTIONNALITÉ 14 §15).
+        if ($verificationService) {
+            if (ModerationActionType::MARQUER_VERIFIE === $action) {
+                $verificationService->syncFromQuickModeration($target, VerificationStatus::VERIFIEE, $admin, $reason);
+            } elseif (ModerationActionType::RETIRER_VERIFICATION === $action) {
+                $verificationService->syncFromQuickModeration($target, VerificationStatus::RETIREE, $admin, $reason);
+            }
         }
 
         $projectUrl = $this->generateUrl('app_project_show', ['slug' => $target->getSlug()]);

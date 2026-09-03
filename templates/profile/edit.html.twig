@@ -129,6 +129,40 @@
       {{ form_end(form) }}
     </div>
 
+    <div class="m-carte m-carte--plate p-4 mt-4">
+      <h2 style="font-size:18px">Vérification du profil</h2>
+      {% if user.profileVerified %}
+        <p class="m-statut mt-2 mb-0">✅ PROFIL VÉRIFIÉ — vérifié le {{ user.profileVerifiedAt ? user.profileVerifiedAt|date('d/m/Y') : '—' }}.</p>
+      {% elseif verificationRequest and verificationRequest.status.value == 'en_attente' %}
+        <p class="m-statut mt-2 mb-0">⏳ Votre demande est en attente de prise en charge.</p>
+      {% elseif verificationRequest and verificationRequest.status.value == 'en_verification' %}
+        <p class="m-statut mt-2 mb-0">🔍 Votre demande est en cours d'examen.</p>
+      {% elseif verificationRequest and verificationRequest.status.value == 'correction_demandee' %}
+        <p class="m-statut mt-2 mb-2" style="color:#B36B00">⚠️ Correction demandée</p>
+        {% if verificationRequest.reason %}<p class="m-texte mb-2"><strong>Motif :</strong> {{ verificationRequest.reason }}</p>{% endif %}
+        <form method="post" action="{{ path('app_profile_verification_resubmit') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-profil-' ~ user.id) }}">
+          <button class="m-btn m-btn--primaire m-btn--sm" type="submit">Soumettre à nouveau</button>
+        </form>
+      {% elseif verificationRequest and verificationRequest.status.value == 'refusee' %}
+        <p class="m-statut mt-2 mb-0" style="color:#B3261E">✖️ Demande refusée{% if verificationRequest.reason %} — {{ verificationRequest.reason }}{% endif %}</p>
+      {% else %}
+        {% if verificationRequest and verificationRequest.status.value == 'retiree' %}
+          <p class="m-statut mt-2 mb-2" style="color:#B3261E">✖️ Vérification retirée{% if verificationRequest.reason %} — {{ verificationRequest.reason }}{% endif %}</p>
+        {% else %}
+          <p class="m-meta mt-2 mb-2">Votre profil n'est pas encore vérifié.</p>
+        {% endif %}
+        {% if verificationEligibility|length %}
+          <ul class="m-meta mb-0 ps-3">{% for m in verificationEligibility %}<li>{{ m }}</li>{% endfor %}</ul>
+        {% else %}
+          <form method="post" action="{{ path('app_profile_verification_request') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-profil-' ~ user.id) }}">
+            <button class="m-btn m-btn--primaire m-btn--sm" type="submit">Demander la vérification</button>
+          </form>
+        {% endif %}
+      {% endif %}
+    </div>
+
     {% if user.photo %}
       <div class="m-carte m-carte--plate p-4 mt-4">
         <h2 style="font-size:18px">Photo de profil</h2>

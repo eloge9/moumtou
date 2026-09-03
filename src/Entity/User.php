@@ -151,6 +151,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $emailVerified = false;
 
+    /**
+     * Profil vérifié par MOUMTOU (cahier des charges — FONCTIONNALITÉ 14
+     * §3.1/§16) : distinct de $emailVerified (simple preuve de propriété de
+     * l'adresse e-mail) — celui-ci résulte d'une procédure de vérification
+     * administrative volontaire, jamais accordé automatiquement.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $profileVerified = false;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $profileVerifiedAt = null;
+
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $profileVerifiedBy = null;
+
     #[ORM\Column(enumType: UserStatus::class)]
     private UserStatus $status = UserStatus::ACTIF;
 
@@ -592,6 +608,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmailVerified(bool $emailVerified): static
     {
         $this->emailVerified = $emailVerified;
+
+        return $this;
+    }
+
+    public function isProfileVerified(): bool
+    {
+        return $this->profileVerified;
+    }
+
+    public function setProfileVerified(bool $profileVerified): static
+    {
+        $this->profileVerified = $profileVerified;
+
+        return $this;
+    }
+
+    public function getProfileVerifiedAt(): ?\DateTimeImmutable
+    {
+        return $this->profileVerifiedAt;
+    }
+
+    public function setProfileVerifiedAt(?\DateTimeImmutable $profileVerifiedAt): static
+    {
+        $this->profileVerifiedAt = $profileVerifiedAt;
+
+        return $this;
+    }
+
+    public function getProfileVerifiedBy(): ?self
+    {
+        return $this->profileVerifiedBy;
+    }
+
+    public function setProfileVerifiedBy(?self $profileVerifiedBy): static
+    {
+        $this->profileVerifiedBy = $profileVerifiedBy;
 
         return $this;
     }

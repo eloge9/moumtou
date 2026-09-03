@@ -1,0 +1,187 @@
+{% extends 'admin/_layout.html.twig' %}
+{% set adminNav = 'verifications' %}
+
+{% block title %}Administration — Vérification #{{ verificationRequest.id }} — MOUMTOU{% endblock %}
+{% block admin_title %}Examiner une demande de vérification{% endblock %}
+
+{% block admin_body %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1 style="font-size:22px" class="mb-1">{{ verificationRequest.targetType.label }} — {{ project ? project.name : profileUser.fullName }}</h1>
+    <p class="m-meta mb-0">
+      Demandé par <a href="{{ path('admin_user_show', {id: verificationRequest.requester.id}) }}">{{ verificationRequest.requester.fullName }}</a> le {{ verificationRequest.createdAt|date('d/m/Y H:i') }} ·
+      {% if verificationRequest.status.value == 'verifiee' %}<span class="m-tag m-tag--bleu">Vérifiée</span>
+      {% elseif verificationRequest.status.value in ['refusee', 'retiree'] %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">{{ verificationRequest.status.label }}</span>
+      {% elseif verificationRequest.status.value == 'correction_demandee' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">{{ verificationRequest.status.label }}</span>
+      {% else %}<span class="m-tag">{{ verificationRequest.status.label }}</span>{% endif %}
+    </p>
+  </div>
+  {% if project %}
+    <a class="m-btn m-btn--secondaire" href="{{ path('admin_project_show', {id: project.id}) }}">Voir la fiche projet (admin)</a>
+  {% else %}
+    <a class="m-btn m-btn--secondaire" href="{{ path('admin_user_show', {id: profileUser.id}) }}">Voir la fiche utilisateur (admin)</a>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="m-carte m-carte--plate p-3">
+      <p class="m-surtitre mb-2">Demandeur</p>
+      <div class="d-flex align-items-center gap-3">
+        <span class="m-avatar" style="{% if verificationRequest.requester.photo %}background-image:url('{{ asset(verificationRequest.requester.photo) }}');background-size:cover{% endif %}"></span>
+        <div>
+          <p class="fw-bold mb-0">{{ verificationRequest.requester.fullName }}</p>
+          <p class="m-meta mb-0">{{ verificationRequest.requester.email }} ·
+            {% for r in verificationRequest.requester.roles %}{% if r != 'ROLE_USER' %}{{ r|replace({'ROLE_': ''})|lower }} {% endif %}{% endfor %}
+          </p>
+        </div>
+        <a class="m-btn m-btn--secondaire m-btn--sm ms-auto" href="{{ path('app_profile_show', {slug: verificationRequest.requester.slug}) }}" target="_blank" rel="noopener">Profil public</a>
+      </div>
+    </div>
+
+    {% if project %}
+      <div class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Projet</p>
+        <p class="fw-bold mb-1">{{ project.name }}</p>
+        {% if project.shortDescription %}<p class="m-texte mb-2">{{ project.shortDescription }}</p>{% endif %}
+        <div class="d-grid gap-1" style="font-size:13.5px">
+          <div class="d-flex justify-content-between"><span class="m-meta">Type</span><span class="fw-semibold">{{ project.type.label }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Domaine</span><span class="fw-semibold">{{ project.domain ? project.domain.name : '—' }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Mention</span><span class="fw-semibold">{{ project.mention ? project.mention.name : '—' }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Spécialité</span><span class="fw-semibold">{{ project.specialty ? project.specialty.name : '—' }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Établissement</span><span class="fw-semibold">{{ project.institution ? project.institution.name : '—' }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Date de réalisation</span><span class="fw-semibold">{{ project.realizationDate ? project.realizationDate|date('d/m/Y') : '—' }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Statut du projet</span><span class="fw-semibold">{{ project.status.label }}</span></div>
+        </div>
+        {% if project.technologies|length %}
+          <div class="m-tags mt-2">{% for tech in project.technologies %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
+        {% endif %}
+      </div>
+
+      <div class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Preuves de réalisation ({{ project.proofs|length }})</p>
+        {% for proof in project.proofs %}
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <a class="m-preuve flex-fill" href="{{ proof.url }}" target="_blank" rel="noopener">
+              <span class="m-preuve__icone">{{ proof.type.icon }}</span>
+              <span><span class="fw-bold d-block" style="font-size:14px">{{ proof.title ?: proof.type.label }}</span><span class="m-meta">{{ proof.url }}</span></span>
+            </a>
+            <form method="post" action="{{ path('admin_verification_proof_toggle', {id: verificationRequest.id, proofId: proof.id}) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-admin-' ~ verificationRequest.id) }}">
+              <button class="m-btn m-btn--sm {{ proof.reviewed ? 'm-btn--primaire' : 'm-btn--secondaire' }}" type="submit">{{ proof.reviewed ? '✅ Examinée' : 'Marquer comme examinée' }}</button>
+            </form>
+          </div>
+        {% else %}
+          <p class="m-meta mb-0">Aucune preuve fournie.</p>
+        {% endfor %}
+        {% if project.documents|length %}
+          <p class="m-surtitre mb-2 mt-3">Documents ({{ project.documents|length }})</p>
+          {% for document in project.documents %}
+            <a class="m-preuve d-block mb-2" href="{{ asset(document.path) }}" target="_blank" rel="noopener">
+              <span class="m-preuve__icone">📄</span>
+              <span><span class="fw-bold d-block" style="font-size:14px">{{ document.title ?: document.type.label }}</span><span class="m-meta">{{ document.originalFilename }}</span></span>
+            </a>
+          {% endfor %}
+        {% endif %}
+      </div>
+
+      {% if project.defense %}
+        {% set defense = project.defense %}
+        <div class="m-carte m-carte--plate p-3 mt-3">
+          <p class="m-surtitre mb-2">Soutenance</p>
+          <p class="m-texte mb-2">{{ defense.date|date('d/m/Y') }} — {{ defense.time }} — {{ defense.place }} ·
+            {% if defense.status.value == 'verifiee' %}<span class="m-tag m-tag--bleu">✅ Vérifiée par le jury ({{ defense.validationCount }} membres)</span>
+            {% elseif defense.status.value == 'realisee' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">Réalisée — {{ defense.validationCount }}/2 validations</span>
+            {% else %}<span class="m-tag">{{ defense.status.label }}</span>{% endif %}
+          </p>
+          <p class="m-surtitre mb-2 mt-3">Jury</p>
+          <div class="d-grid gap-2">
+            {% for membre in defense.juryMembers %}
+              <div class="d-flex justify-content-between align-items-center" style="font-size:13.5px">
+                <span>{{ membre.firstName }} {{ membre.lastName }} — {{ membre.role.label }}{% if membre.institutionLabel %} · {{ membre.institutionLabel }}{% endif %}</span>
+                <span class="m-tag{{ membre.status.value == 'confirme' ? ' m-tag--bleu' : '' }}">{{ membre.status.label }}</span>
+              </div>
+            {% else %}
+              <p class="m-meta mb-0">Aucun membre invité.</p>
+            {% endfor %}
+          </div>
+          <p class="m-meta mt-3 mb-0">La vérification de la soutenance dépend uniquement des validations du jury (au moins 2) — elle ne peut pas être forcée depuis cet écran.</p>
+        </div>
+      {% endif %}
+    {% elseif profileUser %}
+      <div class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Profil</p>
+        {% if profileUser.professionalTitle %}<p class="fw-bold mb-1">{{ profileUser.professionalTitle }}</p>{% endif %}
+        {% if profileUser.bio %}<p class="m-texte mb-2">{{ profileUser.bio }}</p>{% endif %}
+        <div class="d-grid gap-1" style="font-size:13.5px">
+          <div class="d-flex justify-content-between"><span class="m-meta">Établissement</span><span class="fw-semibold">{{ profileUser.institution ? profileUser.institution.name : '—' }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Spécialité</span><span class="fw-semibold">{{ profileUser.specialty ? profileUser.specialty.name : '—' }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Projets publiés</span><span class="fw-semibold">{{ profileUser.projects|length }}</span></div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          {% if profileUser.linkedinUrl %}<a class="m-btn m-btn--secondaire m-btn--sm" href="{{ profileUser.linkedinUrl }}" target="_blank" rel="noopener">LinkedIn</a>{% endif %}
+          {% if profileUser.githubUrl %}<a class="m-btn m-btn--secondaire m-btn--sm" href="{{ profileUser.githubUrl }}" target="_blank" rel="noopener">GitHub</a>{% endif %}
+          {% if profileUser.websiteUrl %}<a class="m-btn m-btn--secondaire m-btn--sm" href="{{ profileUser.websiteUrl }}" target="_blank" rel="noopener">Site personnel</a>{% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="m-carte m-carte--plate p-3 mt-3">
+      <p class="m-surtitre mb-2">Historique de la demande</p>
+      <div class="m-journal">
+        {% for h in history %}
+          <div class="m-journal__ligne">
+            <span class="m-journal__date">{{ h.createdAt|date('d/m/Y H:i') }}</span>
+            <span class="flex-fill m-texte">{{ h.newStatus.label }} — {{ h.actor.fullName }}{% if h.note %} — {{ h.note }}{% endif %}</span>
+          </div>
+        {% else %}
+          <p class="m-meta mb-0">Aucun évènement.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="m-carte m-carte--plate m-carte--bleue p-3">
+      <p class="m-surtitre m-surtitre--bleu mb-2">Décision</p>
+
+      {% if verificationRequest.status.value == 'en_attente' %}
+        <form method="post" action="{{ path('admin_verification_claim', {id: verificationRequest.id}) }}" class="mb-2">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-admin-' ~ verificationRequest.id) }}">
+          <button class="m-btn m-btn--secondaire m-btn--bloc m-btn--sm" type="submit">Prendre en charge</button>
+        </form>
+      {% endif %}
+
+      {% if verificationRequest.status.value in ['en_attente', 'en_verification'] %}
+        <form method="post" action="{{ path('admin_verification_approve', {id: verificationRequest.id}) }}" class="mb-2">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-admin-' ~ verificationRequest.id) }}">
+          <textarea class="m-textarea mb-2" name="comment" placeholder="Commentaire interne (facultatif)"></textarea>
+          <button class="m-btn m-btn--primaire m-btn--bloc m-btn--sm" type="submit">✅ Valider la vérification</button>
+        </form>
+
+        <form method="post" action="{{ path('admin_verification_request_correction', {id: verificationRequest.id}) }}" class="mb-2">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-admin-' ~ verificationRequest.id) }}">
+          <textarea class="m-textarea mb-2" name="reason" placeholder="Motif (obligatoire) — ce que le talent doit corriger" required></textarea>
+          <button class="m-btn m-btn--secondaire m-btn--bloc m-btn--sm" type="submit">Demander une correction</button>
+        </form>
+
+        <form method="post" action="{{ path('admin_verification_reject', {id: verificationRequest.id}) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-admin-' ~ verificationRequest.id) }}">
+          <textarea class="m-textarea mb-2" name="reason" placeholder="Motif du refus (obligatoire)" required></textarea>
+          <button class="m-btn m-btn--secondaire m-btn--bloc m-btn--sm" type="submit" style="color:#B3261E">Refuser la vérification</button>
+        </form>
+      {% elseif verificationRequest.status.value == 'verifiee' %}
+        <p class="m-texte mb-2">Vérifiée le {{ verificationRequest.decidedAt ? verificationRequest.decidedAt|date('d/m/Y') : '—' }}.</p>
+        <form method="post" action="{{ path('admin_verification_revoke', {id: verificationRequest.id}) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-admin-' ~ verificationRequest.id) }}">
+          <textarea class="m-textarea mb-2" name="reason" placeholder="Motif du retrait (obligatoire)" required></textarea>
+          <button class="m-btn m-btn--secondaire m-btn--bloc m-btn--sm" type="submit" style="color:#B3261E">Retirer la vérification</button>
+        </form>
+      {% else %}
+        <p class="m-texte mb-0">{{ verificationRequest.status.label }}{% if verificationRequest.reason %} — {{ verificationRequest.reason }}{% endif %}</p>
+        <p class="m-meta mt-2 mb-0">Cette demande est close ; le talent peut en soumettre une nouvelle depuis sa fiche.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

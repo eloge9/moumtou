@@ -5,7 +5,9 @@ namespace App\Controller\Admin;
 use App\Entity\Sanction;
 use App\Entity\User;
 use App\Enum\AdminAuditAction;
+use App\Enum\ReportTargetType;
 use App\Enum\UserStatus;
+use App\Repository\VerificationRequestRepository;
 use App\Service\AdminAuditLogger;
 use App\Service\SanctionApplier;
 use Doctrine\ORM\EntityManagerInterface;
@@ -68,7 +70,7 @@ class UserController extends AbstractController
     }
 
     #[Route('/admin/utilisateurs/{id}', name: 'admin_user_show')]
-    public function show(int $id, EntityManagerInterface $em): Response
+    public function show(int $id, EntityManagerInterface $em, VerificationRequestRepository $verificationRequestRepository): Response
     {
         $user = $em->getRepository(User::class)->find($id);
         if (!$user) {
@@ -85,6 +87,7 @@ class UserController extends AbstractController
             'adminNav' => 'users',
             'user' => $user,
             'sanctions' => $sanctions,
+            'verificationRequest' => $verificationRequestRepository->findLatestForTarget(ReportTargetType::PROFILE, $id),
         ]);
     }
 

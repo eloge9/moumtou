@@ -20,9 +20,12 @@ use App\Repository\ContactRequestRepository;
 use App\Repository\ProjectPhotoRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\RecruiterFavoriteRepository;
+use App\Repository\VerificationRequestRepository;
+use App\Enum\ReportTargetType;
 use App\Service\AvatarUploader;
 use App\Service\QrCodeGenerator;
 use App\Service\StatsPeriod;
+use App\Service\VerificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -150,7 +153,7 @@ class ProfileController extends AbstractController
 
     #[Route('/mon-profil/modifier', name: 'app_profile_edit')]
     #[IsGranted('ROLE_USER')]
-    public function edit(Request $request, EntityManagerInterface $em, AvatarUploader $avatarUploader): Response
+    public function edit(Request $request, EntityManagerInterface $em, AvatarUploader $avatarUploader, VerificationRequestRepository $verificationRequestRepository, VerificationService $verificationService): Response
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -182,6 +185,8 @@ class ProfileController extends AbstractController
         return $this->render('profile/edit.html.twig', [
             'form' => $form,
             'user' => $user,
+            'verificationRequest' => $verificationRequestRepository->findLatestForTarget(ReportTargetType::PROFILE, $user->getId()),
+            'verificationEligibility' => $verificationService->eligibilityForProfile($user),
         ]);
     }
 

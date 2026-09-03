@@ -46,7 +46,7 @@
       {% for proof in project.proofs %}
         <a class="m-preuve d-block mb-2" href="{{ proof.url }}" target="_blank" rel="noopener">
           <span class="m-preuve__icone">{{ proof.type.icon }}</span>
-          <span><span class="fw-bold d-block" style="font-size:14px">{{ proof.title ?: proof.type.label }}</span><span class="m-meta">{{ proof.url }}</span></span>
+          <span><span class="fw-bold d-block" style="font-size:14px">{{ proof.title ?: proof.type.label }}{% if proof.reviewed %} <span class="m-tag m-tag--bleu">Examinée</span>{% endif %}</span><span class="m-meta">{{ proof.url }}</span></span>
         </a>
       {% else %}
         <p class="m-meta mb-0">Aucune preuve fournie — le projet n'a pas encore de preuve à vérifier.</p>
@@ -145,6 +145,14 @@
   </div>
 
   <div class="col-lg-4">
+    {% if verificationRequest %}
+      <div class="m-carte m-carte--plate p-3 mb-3">
+        <p class="m-surtitre mb-2">Demande de vérification</p>
+        <p class="m-texte mb-2">Statut : <strong>{{ verificationRequest.status.label }}</strong></p>
+        <a class="m-btn m-btn--secondaire m-btn--bloc m-btn--sm" href="{{ path('admin_verification_show', {id: verificationRequest.id}) }}">Examiner la demande</a>
+      </div>
+    {% endif %}
+
     <div class="m-carte m-carte--plate m-carte--bleue p-3">
       <p class="m-surtitre m-surtitre--bleu mb-2">Décision</p>
       <form method="post" action="{{ path('admin_moderation_project_decide', {id: project.id}) }}">

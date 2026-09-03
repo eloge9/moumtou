@@ -48,6 +48,15 @@
 </div>
 
 <div class="row g-3 mt-1">
+  <div class="col-xl-4 col-md-6">
+    <div class="m-stat h-100"><p class="m-surtitre mb-1">Profils vérifiés</p><div class="m-stat__valeur">{{ stats.verifiedProfilesCount }}</div></div>
+  </div>
+  <div class="col-xl-4 col-md-6">
+    <a class="m-stat h-100 d-block" style="text-decoration:none" href="{{ path('admin_verifications') }}"><p class="m-surtitre mb-1">Demandes de vérification en attente</p><div class="m-stat__valeur">{{ stats.pendingVerificationsCount }}</div></a>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
   <div class="col-lg-4">
     <div class="m-carte m-carte--plate p-4 h-100">
       <span class="fw-bold" style="font-size:15.5px">Technologies les plus utilisées</span>

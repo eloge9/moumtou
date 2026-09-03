@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ profileUser.fullName }}{{ profileUser.professionalTitle ? ' — ' ~ profileUser.professionalTitle : ' — Profil talent' }} — MOUMTOU{% endblock %}
-{% block meta_description %}{{ (profileUser.bio ?: profileUser.fullName ~ ' présente ses projets et compétences sur MOUMTOU.')|striptags|slice(0, 160) }}{% endblock %}
+{% block meta_description %}{{ (profileUser.bio ?: profileUser.fullName ~ ' présente ses projets et compétences sur MOUMTOU.')|striptags|slice(0, 140) }}{% if profileUser.profileVerified %} — Profil vérifié par MOUMTOU.{% endif %}{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ url('app_profile_show', {slug: profileUser.slug}) }}">{% endblock %}
 {% block og_url %}<meta property="og:url" content="{{ publicUrl }}">{% endblock %}
 {% block og_type %}profile{% endblock %}
@@ -49,6 +49,16 @@
     <div class="flex-fill" style="min-width:280px">
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <h1 style="font-size:32px">{{ profileUser.fullName }}</h1>
+        {% if profileUser.profileVerified %}
+          <details style="display:inline-block">
+            <summary class="m-badge m-badge--verifie" style="cursor:pointer;list-style:none">✓ Profil vérifié</summary>
+            <div class="m-carte m-carte--plate p-3 mt-2" style="max-width:360px;font-size:13.5px">
+              <p class="fw-bold mb-1">PROFIL VÉRIFIÉ</p>
+              <p class="m-meta mb-1">Vérifié par MOUMTOU{% if profileUser.profileVerifiedAt %} · {{ profileUser.profileVerifiedAt|date('d F Y') }}{% endif %}</p>
+              <p class="m-texte mb-0">Les informations de ce profil ont été examinées selon la procédure de vérification de la plateforme.</p>
+            </div>
+          </details>
+        {% endif %}
         {% if stats.verifiedCount > 0 %}<span class="m-badge m-badge--verifie">✓ {{ stats.verifiedCount }} projet{{ stats.verifiedCount > 1 ? 's' : '' }} vérifié{{ stats.verifiedCount > 1 ? 's' : '' }}</span>{% endif %}
         {% if stats.verifiedDefenseCount > 0 %}<span class="m-badge m-badge--verifie">✓ {{ stats.verifiedDefenseCount }} soutenance{{ stats.verifiedDefenseCount > 1 ? 's' : '' }} vérifiée{{ stats.verifiedDefenseCount > 1 ? 's' : '' }}</span>{% endif %}
       </div>

@@ -65,6 +65,11 @@ enum AdminAuditAction: string
 
     case USER_ROLE_CHANGED = 'user_role_changed';
 
+    case PROFILE_VERIFIED = 'profile_verified';
+    case PROFILE_UNVERIFIED = 'profile_unverified';
+    case VERIFICATION_REQUEST_CLAIMED = 'verification_request_claimed';
+    case VERIFICATION_REQUEST_REJECTED = 'verification_request_rejected';
+
     public function label(): string
     {
         return match ($this) {
@@ -114,6 +119,10 @@ enum AdminAuditAction: string
             self::SKILL_DELETED => 'Compétence supprimée',
             self::DEFENSE_RESULT_VALIDATED => 'Résultat de soutenance validé (admin)',
             self::USER_ROLE_CHANGED => 'Rôle utilisateur modifié',
+            self::PROFILE_VERIFIED => 'Profil vérifié',
+            self::PROFILE_UNVERIFIED => 'Vérification de profil retirée',
+            self::VERIFICATION_REQUEST_CLAIMED => 'Demande de vérification prise en charge',
+            self::VERIFICATION_REQUEST_REJECTED => 'Demande de vérification refusée',
         };
     }
 }

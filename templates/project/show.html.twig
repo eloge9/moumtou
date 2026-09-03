@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ project.name }} — MOUMTOU{% endblock %}
-{% block meta_description %}{{ (project.shortDescription ?: project.detailedDescription ?: 'Découvrez ' ~ project.name ~ ' par ' ~ project.owner.fullName ~ ' sur MOUMTOU.')|striptags|slice(0, 160) }}{% endblock %}
+{% block meta_description %}{{ (project.shortDescription ?: project.detailedDescription ?: 'Découvrez ' ~ project.name ~ ' par ' ~ project.owner.fullName ~ ' sur MOUMTOU.')|striptags|slice(0, 140) }}{% if project.status.value == 'verifie' %} — Projet vérifié par MOUMTOU.{% endif %}{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ publicUrl }}">{% endblock %}
 {% block og_url %}<meta property="og:url" content="{{ publicUrl }}">{% endblock %}
 {% block og_type %}article{% endblock %}
@@ -81,10 +81,27 @@
     <div class="d-flex flex-wrap gap-2">
       <span class="m-badge m-badge--type">{{ project.type.label }}</span>
       {% if project.status.value == 'verifie' %}
-        <span class="m-badge m-badge--verifie">✅ {{ project.type.value == 'soutenance' ? 'Soutenance vérifiée par le jury' : 'Projet vérifié' }}</span>
+        <details style="display:inline-block">
+          <summary class="m-badge m-badge--verifie" style="cursor:pointer;list-style:none">✅ Projet vérifié</summary>
+          <div class="m-carte m-carte--plate p-3 mt-2" style="max-width:360px;font-size:13.5px">
+            <p class="fw-bold mb-1">PROJET VÉRIFIÉ</p>
+            <p class="m-meta mb-1">Vérifié par MOUMTOU{% if project.verifiedAt %} · {{ project.verifiedAt|date('d F Y') }}{% endif %}</p>
+            <p class="m-texte mb-0">Les éléments présentés pour ce projet ont été examinés selon la procédure de vérification de la plateforme.</p>
+          </div>
+        </details>
       {% elseif project.status.value == 'publie' %}
         <span class="m-badge">🌐 Projet publié</span>
         <span class="m-badge" style="color:#B36B00;background:#FFF4E5">⚠️ Pas encore vérifié</span>
+      {% endif %}
+      {% if project.defense and project.defense.status.value == 'verifiee' %}
+        <details style="display:inline-block">
+          <summary class="m-badge m-badge--verifie" style="cursor:pointer;list-style:none">✅ Soutenance vérifiée</summary>
+          <div class="m-carte m-carte--plate p-3 mt-2" style="max-width:360px;font-size:13.5px">
+            <p class="fw-bold mb-1">SOUTENANCE VÉRIFIÉE</p>
+            <p class="m-meta mb-1">Vérifiée par le jury{% if project.defense.verifiedAt %} · {{ project.defense.verifiedAt|date('d F Y') }}{% endif %} ({{ project.defense.validationCount }} validation{{ project.defense.validationCount > 1 ? 's' : '' }})</p>
+            <p class="m-texte mb-0">Au moins deux membres du jury ont confirmé que cette soutenance a réellement eu lieu.</p>
+          </div>
+        </details>
       {% endif %}
     </div>
 
@@ -317,6 +334,44 @@
   </main>
 
   <aside class="m-detail__cote">
+    {% if is_granted('PROJECT_EDIT', project) %}
+      <div class="m-carte m-carte--plate p-3">
+        <p class="m-surtitre mb-2">Vérification</p>
+        {% if project.status.value == 'verifie' %}
+          <p class="m-statut mb-1">✅ PROJET VÉRIFIÉ</p>
+          <p class="m-meta mb-0">Vérifié le {{ project.verifiedAt ? project.verifiedAt|date('d/m/Y') : '—' }}.</p>
+        {% elseif verificationRequest and verificationRequest.status.value == 'en_attente' %}
+          <p class="m-statut mb-0">⏳ En attente de prise en charge</p>
+        {% elseif verificationRequest and verificationRequest.status.value == 'en_verification' %}
+          <p class="m-statut mb-0">🔍 En cours d'examen</p>
+        {% elseif verificationRequest and verificationRequest.status.value == 'correction_demandee' %}
+          <p class="m-statut mb-2" style="color:#B36B00">⚠️ Correction demandée</p>
+          {% if verificationRequest.reason %}<p class="m-texte mb-2"><strong>Motif :</strong> {{ verificationRequest.reason }}</p>{% endif %}
+          <a class="m-btn m-btn--secondaire m-btn--bloc m-btn--sm mb-2" href="{{ path('app_project_edit', {slug: project.slug}) }}">Modifier le projet</a>
+          <form method="post" action="{{ path('app_project_verification_resubmit', {slug: project.slug}) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-projet-' ~ project.id) }}">
+            <button class="m-btn m-btn--primaire m-btn--bloc m-btn--sm" type="submit">Soumettre à nouveau</button>
+          </form>
+        {% elseif verificationRequest and verificationRequest.status.value == 'refusee' %}
+          <p class="m-statut mb-2" style="color:#B3261E">✖️ Vérification refusée</p>
+          {% if verificationRequest.reason %}<p class="m-texte mb-0"><strong>Motif :</strong> {{ verificationRequest.reason }}</p>{% endif %}
+        {% else %}
+          {% if verificationRequest and verificationRequest.status.value == 'retiree' %}
+            <p class="m-statut mb-2" style="color:#B3261E">✖️ Vérification retirée{% if verificationRequest.reason %} — {{ verificationRequest.reason }}{% endif %}</p>
+          {% else %}
+            <p class="m-meta mb-2">Non vérifié.</p>
+          {% endif %}
+          {% if verificationEligibility|length %}
+            <ul class="m-meta mb-2 ps-3">{% for m in verificationEligibility %}<li>{{ m }}</li>{% endfor %}</ul>
+          {% else %}
+            <form method="post" action="{{ path('app_project_verification_request', {slug: project.slug}) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('verification-projet-' ~ project.id) }}">
+              <button class="m-btn m-btn--primaire m-btn--bloc m-btn--sm" type="submit">Demander la vérification</button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </div>
+    {% endif %}
     {% if project.defense %}
       {% set defense = project.defense %}
       <div class="m-carte m-carte--plate p-3">

@@ -73,8 +73,10 @@ class DefenseValidator
         }
 
         $defense->setStatus(DefenseStatus::VERIFIEE);
+        $defense->setVerifiedAt(new \DateTimeImmutable());
         $project = $defense->getProject();
         $project->setStatus(ProjectStatus::VERIFIE);
+        $project->setVerifiedAt($defense->getVerifiedAt());
         $this->em->flush();
 
         $this->notificationService->notify(

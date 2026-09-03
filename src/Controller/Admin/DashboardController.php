@@ -16,6 +16,7 @@ use App\Enum\ProjectStatus;
 use App\Enum\ReportStatus;
 use App\Repository\AnalyticsEventRepository;
 use App\Repository\UserRepository;
+use App\Repository\VerificationRequestRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class DashboardController extends AbstractController
 {
     #[Route('/admin', name: 'admin_dashboard')]
-    public function index(EntityManagerInterface $em, AnalyticsEventRepository $analyticsEventRepository): Response
+    public function index(EntityManagerInterface $em, AnalyticsEventRepository $analyticsEventRepository, VerificationRequestRepository $verificationRequestRepository): Response
     {
         $userRepo = $em->getRepository(User::class);
         $projectRepo = $em->getRepository(Project::class);
@@ -54,6 +55,8 @@ class DashboardController extends AbstractController
             'defensesVerifiedCount' => $defenseRepo->count(['status' => DefenseStatus::VERIFIEE]),
             'institutionsCount' => $institutionRepo->count([]),
             'verifiedInstitutionsCount' => $institutionRepo->count(['verified' => true]),
+            'verifiedProfilesCount' => $userRepo->count(['profileVerified' => true]),
+            'pendingVerificationsCount' => $verificationRequestRepository->countOpen(),
             'technologiesCount' => $em->getRepository(Technology::class)->count([]),
             'commentsCount' => $em->getRepository(Comment::class)->count([]),
             'ratingsCount' => $em->getRepository(Rating::class)->count([]),

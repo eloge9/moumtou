@@ -5,6 +5,8 @@ namespace App\Controller\Admin;
 use App\Entity\Project;
 use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
+use App\Enum\ReportTargetType;
+use App\Repository\VerificationRequestRepository;
 use App\Service\QrCodeGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -67,7 +69,7 @@ class ProjectController extends AbstractController
     }
 
     #[Route('/{id}', name: 'admin_project_show', requirements: ['id' => '\d+'])]
-    public function show(int $id, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, QrCodeGenerator $qrCodeGenerator): Response
+    public function show(int $id, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, QrCodeGenerator $qrCodeGenerator, VerificationRequestRepository $verificationRequestRepository): Response
     {
         $project = $em->getRepository(Project::class)->find($id);
         if (!$project) {
@@ -88,6 +90,7 @@ class ProjectController extends AbstractController
             'publicUrl' => $publicUrl,
             'qrCodeDataUri' => $publicUrl ? $qrCodeGenerator->generateSvgDataUri($publicUrl) : null,
             'actionTypes' => \App\Enum\ModerationActionType::cases(),
+            'verificationRequest' => $verificationRequestRepository->findLatestForTarget(ReportTargetType::PROJECT, $id),
             'history' => $em->getRepository(\App\Entity\ModerationAction::class)->createQueryBuilder('ma')
                 ->andWhere('ma.targetType = :type')->setParameter('type', \App\Enum\ReportTargetType::PROJECT)
                 ->andWhere('ma.targetId = :id')->setParameter('id', $id)
