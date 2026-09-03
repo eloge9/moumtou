@@ -2,12 +2,16 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\Comment;
 use App\Entity\ModerationAction;
 use App\Entity\Project;
+use App\Entity\Rating;
 use App\Entity\Report;
 use App\Entity\User;
+use App\Enum\CommentStatus;
 use App\Enum\ModerationActionType;
 use App\Enum\ProjectStatus;
+use App\Enum\RatingStatus;
 use App\Enum\ReportStatus;
 use App\Enum\ReportTargetType;
 use App\Service\SanctionApplier;
@@ -44,6 +48,12 @@ class ModerationController extends AbstractController
             $reportTargets[$report->getId()] = $this->resolveTarget($report, $em);
         }
 
+        $suspectRatings = $em->getRepository(Rating::class)->createQueryBuilder('r')
+            ->andWhere('r.status IN (:statuses)')->setParameter('statuses', [RatingStatus::SUSPECT, RatingStatus::FLAGGED])
+            ->orderBy('r.createdAt', 'DESC')
+            ->setMaxResults(30)
+            ->getQuery()->getResult();
+
         return $this->render('admin/moderation.html.twig', [
             'reports' => $reports,
             'reportTargets' => $reportTargets,
@@ -51,7 +61,35 @@ class ModerationController extends AbstractController
             'inProgressCount' => $inProgressCount,
             'treatedCount' => $treatedCount,
             'pendingProjects' => $pendingProjects,
+            'suspectRatings' => $suspectRatings,
         ]);
+    }
+
+    /**
+     * Examen d'une évaluation suspecte (cahier des charges §10) : l'admin
+     * peut la disculper (retour à NORMAL) ou la signaler comme abusive
+     * (FLAGGED) ; aucune suppression automatique n'est effectuée ici.
+     */
+    #[Route('/admin/moderation/evaluations/{id}/examiner', name: 'admin_moderation_rating_review', methods: ['POST'])]
+    public function reviewRating(int $id, Request $request, EntityManagerInterface $em): Response
+    {
+        $rating = $em->getRepository(Rating::class)->find($id);
+        if (!$rating) {
+            throw $this->createNotFoundException();
+        }
+
+        if (!$this->isCsrfTokenValid('moderation-evaluation-'.$id, $request->request->get('_csrf_token'))) {
+            throw new \Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException();
+        }
+
+        $decision = RatingStatus::tryFrom((string) $request->request->get('decision'));
+        if ($decision) {
+            $rating->setStatus($decision);
+            $em->flush();
+            $this->addFlash('succes', 'Évaluation mise à jour : '.$decision->label().'.');
+        }
+
+        return $this->redirectToRoute('admin_moderation');
     }
 
     #[Route('/admin/moderation/signalements/{id}', name: 'admin_moderation_report_show')]
@@ -78,6 +116,12 @@ class ModerationController extends AbstractController
             $reportTargets[$r->getId()] = $this->resolveTarget($r, $em);
         }
 
+        $suspectRatings = $em->getRepository(Rating::class)->createQueryBuilder('r')
+            ->andWhere('r.status IN (:statuses)')->setParameter('statuses', [RatingStatus::SUSPECT, RatingStatus::FLAGGED])
+            ->orderBy('r.createdAt', 'DESC')
+            ->setMaxResults(30)
+            ->getQuery()->getResult();
+
         return $this->render('admin/moderation.html.twig', [
             'reports' => $reports,
             'reportTargets' => $reportTargets,
@@ -88,6 +132,7 @@ class ModerationController extends AbstractController
             'report' => $report,
             'target' => $target,
             'siblingReports' => $siblingReports,
+            'suspectRatings' => $suspectRatings,
         ]);
     }
 
@@ -117,27 +162,35 @@ class ModerationController extends AbstractController
         $admin = $this->getUser();
         $target = $this->resolveTarget($report, $em);
 
-        if ($contentAction && $target['entity']) {
-            $this->applyContentAction($contentAction, $target['entity'], $em);
-
-            $moderationAction = new ModerationAction();
-            $moderationAction->setReport($report);
-            $moderationAction->setAdmin($admin);
-            $moderationAction->setTargetType($report->getTargetType());
-            $moderationAction->setTargetId($report->getTargetId());
-            $moderationAction->setActionType($contentAction);
-            $moderationAction->setReason($reason);
-            $em->persist($moderationAction);
+        // Une décision est toujours consignée, même « aucune action », pour
+        // garder un historique complet de chaque signalement traité
+        // (cahier des charges §19). Sans choix explicite, on considère que
+        // le contenu est conservé tel quel.
+        $effectiveAction = $contentAction ?? ModerationActionType::AUCUNE_ACTION;
+        if ($target['entity']) {
+            $this->applyContentAction($effectiveAction, $target['entity'], $em);
         }
+
+        $moderationAction = new ModerationAction();
+        $moderationAction->setReport($report);
+        $moderationAction->setAdmin($admin);
+        $moderationAction->setTargetType($report->getTargetType());
+        $moderationAction->setTargetId($report->getTargetId());
+        $moderationAction->setActionType($effectiveAction);
+        $moderationAction->setReason($reason);
+        $em->persist($moderationAction);
 
         if ($authorAction && $target['author']) {
             $sanctionApplier->apply($authorAction, $target['author'], $admin, $reason);
         }
 
-        $report->setStatus(ReportStatus::TRAITE);
+        // Rejeté : ni action sur le contenu, ni sanction de l'auteur — le
+        // signalement était non fondé (cahier des charges §18).
+        $isDismissed = ModerationActionType::AUCUNE_ACTION === $effectiveAction && !$authorAction;
+        $report->setStatus($isDismissed ? ReportStatus::REJETE : ReportStatus::TRAITE);
         $em->flush();
 
-        $this->addFlash('succes', 'Décision enregistrée et consignée dans l\'historique de modération.');
+        $this->addFlash('succes', $isDismissed ? 'Signalement rejeté et consigné dans l\'historique.' : 'Décision enregistrée et consignée dans l\'historique de modération.');
 
         return $this->redirectToRoute('admin_moderation');
     }
@@ -184,8 +237,20 @@ class ModerationController extends AbstractController
         return $this->redirectToRoute('admin_project_show', ['id' => $project->getId()]);
     }
 
-    private function applyContentAction(ModerationActionType $action, object $target, EntityManagerInterface $em): void
+    private function applyContentAction(ModerationActionType $action, ?object $target, EntityManagerInterface $em): void
     {
+        if ($target instanceof Comment) {
+            match ($action) {
+                ModerationActionType::MASQUER => $target->setStatus(CommentStatus::MASQUE),
+                ModerationActionType::SUPPRIMER => $target->setStatus(CommentStatus::SUPPRIME),
+                ModerationActionType::RESTAURER => $target->setStatus(CommentStatus::VISIBLE),
+                default => null,
+            };
+            $em->flush();
+
+            return;
+        }
+
         if (!$target instanceof Project) {
             return;
         }
@@ -227,7 +292,7 @@ class ModerationController extends AbstractController
                 return ['entity' => $user, 'author' => $user, 'title' => $user?->getFullName() ?? 'Profil supprimé'];
             })(),
             ReportTargetType::COMMENT => (function () use ($report, $em) {
-                $comment = $em->getRepository(\App\Entity\Comment::class)->find($report->getTargetId());
+                $comment = $em->getRepository(Comment::class)->find($report->getTargetId());
 
                 return ['entity' => $comment, 'author' => $comment?->getAuthor(), 'title' => 'Commentaire'];
             })(),

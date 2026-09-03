@@ -15,6 +15,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 class CommentVoter extends Voter
 {
     public const DELETE = 'COMMENT_DELETE';
+    public const EDIT = 'COMMENT_EDIT';
 
     public function __construct(private readonly Security $security)
     {
@@ -22,7 +23,7 @@ class CommentVoter extends Voter
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return self::DELETE === $attribute && $subject instanceof Comment;
+        return \in_array($attribute, [self::DELETE, self::EDIT], true) && $subject instanceof Comment;
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
@@ -32,12 +33,19 @@ class CommentVoter extends Voter
             return false;
         }
 
+        /** @var Comment $comment */
+        $comment = $subject;
+
+        if (self::EDIT === $attribute) {
+            // Seul l'auteur peut réécrire son propre commentaire — la
+            // modération (masquer/supprimer/restaurer) reste distincte
+            // et réservée à l'administrateur (cahier des charges §13/§20).
+            return $comment->getAuthor() === $user;
+        }
+
         if ($this->security->isGranted('ROLE_ADMIN')) {
             return true;
         }
-
-        /** @var Comment $comment */
-        $comment = $subject;
 
         return $comment->getAuthor() === $user;
     }

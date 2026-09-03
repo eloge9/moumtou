@@ -6,10 +6,14 @@ use App\Entity\Comment;
 use App\Entity\Project;
 use App\Entity\Rating;
 use App\Entity\Report;
+use App\Enum\CommentStatus;
 use App\Enum\ReportReason;
+use App\Enum\ReportStatus;
 use App\Enum\ReportTargetType;
 use App\Repository\ProjectRepository;
+use App\Security\Voter\CommentVoter;
 use App\Service\QrCodeGenerator;
+use App\Service\RatingIntegrityChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,10 +23,13 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class ProjectController extends AbstractController
 {
+    private const MAX_COMMENT_LENGTH = 2000;
+
     #[Route('/projets/{slug}', name: 'app_project_show')]
     public function show(
         string $slug,
@@ -39,7 +46,7 @@ class ProjectController extends AbstractController
         $comments = $em->getRepository(Comment::class)->createQueryBuilder('c')
             ->andWhere('c.project = :project')->setParameter('project', $project)
             ->andWhere('c.parent IS NULL')
-            ->andWhere('c.status = :visible')->setParameter('visible', \App\Enum\CommentStatus::VISIBLE)
+            ->andWhere('c.status = :visible')->setParameter('visible', CommentStatus::VISIBLE)
             ->orderBy('c.createdAt', 'DESC')
             ->getQuery()->getResult();
 
@@ -77,11 +84,19 @@ class ProjectController extends AbstractController
 
     #[Route('/projets/{slug}/noter', name: 'app_project_rate', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function rate(string $slug, Request $request, EntityManagerInterface $em): Response
+    public function rate(string $slug, Request $request, EntityManagerInterface $em, RatingIntegrityChecker $integrityChecker): Response
     {
         $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         $this->assertViewable($project);
         $this->assertCsrf($request, 'note');
+
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        if ($project->getOwner() === $user) {
+            $this->addFlash('erreur', 'Vous ne pouvez pas évaluer votre propre projet.');
+
+            return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+        }
 
         $value = (int) $request->request->get('value');
         if ($value < 1 || $value > 5) {
@@ -90,21 +105,42 @@ class ProjectController extends AbstractController
             return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
         }
 
-        /** @var \App\Entity\User $user */
-        $user = $this->getUser();
         $rating = $em->getRepository(Rating::class)->findOneBy(['project' => $project, 'user' => $user]);
         if (!$rating) {
             $rating = new Rating();
             $rating->setProject($project);
             $rating->setUser($user);
+            $rating->setIpAddress($request->getClientIp());
             $em->persist($rating);
+        } else {
+            $rating->setUpdatedAt(new \DateTimeImmutable());
         }
         $rating->setValue($value);
+        $rating->setStatus($integrityChecker->evaluate($user, $em));
         $em->flush();
 
         $this->recomputeRatingAggregate($project, $em);
 
         $this->addFlash('succes', 'Votre évaluation a été enregistrée.');
+
+        return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+    }
+
+    #[Route('/projets/{slug}/annuler-note', name: 'app_project_unrate', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function unrate(string $slug, Request $request, EntityManagerInterface $em): Response
+    {
+        $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
+        $this->assertViewable($project);
+        $this->assertCsrf($request, 'annuler-note');
+
+        $rating = $em->getRepository(Rating::class)->findOneBy(['project' => $project, 'user' => $this->getUser()]);
+        if ($rating) {
+            $em->remove($rating);
+            $em->flush();
+            $this->recomputeRatingAggregate($project, $em);
+            $this->addFlash('succes', 'Votre évaluation a été supprimée.');
+        }
 
         return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
     }
@@ -125,10 +161,8 @@ class ProjectController extends AbstractController
             return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
         }
 
-        $content = trim((string) $request->request->get('content'));
-        if ($content === '') {
-            $this->addFlash('erreur', 'Le commentaire ne peut pas être vide.');
-
+        $content = $this->validatedContent((string) $request->request->get('content'));
+        if (null === $content) {
             return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
         }
 
@@ -156,10 +190,8 @@ class ProjectController extends AbstractController
         $this->assertViewable($parent->getProject());
         $this->assertCsrf($request, 'repondre-commentaire-'.$id);
 
-        $content = trim((string) $request->request->get('content'));
-        if ($content === '') {
-            $this->addFlash('erreur', 'La réponse ne peut pas être vide.');
-
+        $content = $this->validatedContent((string) $request->request->get('content'));
+        if (null === $content) {
             return $this->redirectToRoute('app_project_show', ['slug' => $parent->getProject()->getSlug()]);
         }
 
@@ -176,6 +208,33 @@ class ProjectController extends AbstractController
         return $this->redirectToRoute('app_project_show', ['slug' => $parent->getProject()->getSlug()]);
     }
 
+    #[Route('/commentaires/{id}/modifier', name: 'app_comment_edit', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function editComment(int $id, Request $request, EntityManagerInterface $em): Response
+    {
+        $comment = $em->getRepository(Comment::class)->find($id);
+        if (!$comment) {
+            throw $this->createNotFoundException();
+        }
+
+        $this->denyAccessUnlessGranted(CommentVoter::EDIT, $comment);
+        $this->assertCsrf($request, 'modifier-commentaire-'.$id);
+
+        $slug = $comment->getProject()->getSlug();
+        $content = $this->validatedContent((string) $request->request->get('content'));
+        if (null === $content) {
+            return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+        }
+
+        $comment->setContent($content);
+        $comment->setUpdatedAt(new \DateTimeImmutable());
+        $em->flush();
+
+        $this->addFlash('succes', 'Votre commentaire a été modifié.');
+
+        return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+    }
+
     #[Route('/commentaires/{id}/supprimer', name: 'app_comment_delete', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function deleteComment(int $id, Request $request, EntityManagerInterface $em): Response
@@ -185,14 +244,57 @@ class ProjectController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $this->denyAccessUnlessGranted(\App\Security\Voter\CommentVoter::DELETE, $comment);
+        $this->denyAccessUnlessGranted(CommentVoter::DELETE, $comment);
         $this->assertCsrf($request, 'supprimer-commentaire-'.$id);
 
         $slug = $comment->getProject()->getSlug();
-        $em->remove($comment);
+        // Suppression logique (cahier des charges §14) : préserve les
+        // réponses des autres utilisateurs plutôt que de les supprimer en
+        // cascade, et permet une restauration par l'administrateur.
+        $comment->setStatus(CommentStatus::SUPPRIME);
         $em->flush();
 
         $this->addFlash('succes', 'Le commentaire a été supprimé.');
+
+        return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+    }
+
+    #[Route('/commentaires/{id}/signaler', name: 'app_comment_report', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function reportComment(int $id, Request $request, EntityManagerInterface $em): Response
+    {
+        $comment = $em->getRepository(Comment::class)->find($id);
+        if (!$comment) {
+            throw $this->createNotFoundException();
+        }
+
+        $this->assertViewable($comment->getProject());
+        $this->assertCsrf($request, 'signalement-commentaire-'.$id);
+        $slug = $comment->getProject()->getSlug();
+
+        $reason = ReportReason::tryFrom((string) $request->request->get('reason'));
+        if (!$reason) {
+            $this->addFlash('erreur', 'Sélectionnez un motif de signalement.');
+
+            return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+        }
+
+        if ($this->hasOpenReport($em, ReportTargetType::COMMENT, $id)) {
+            $this->addFlash('erreur', 'Vous avez déjà signalé ce commentaire, il est en cours d\'examen.');
+
+            return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+        }
+
+        $report = new Report();
+        $report->setReporter($this->getUser());
+        $report->setTargetType(ReportTargetType::COMMENT);
+        $report->setTargetId($id);
+        $report->setReason($reason);
+        $report->setDetails(trim((string) $request->request->get('details')) ?: null);
+        $em->persist($report);
+        $em->flush();
+
+        $this->addFlash('succes', 'Votre signalement a été transmis à l\'équipe de modération.');
 
         return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
     }
@@ -208,6 +310,12 @@ class ProjectController extends AbstractController
         $reason = ReportReason::tryFrom((string) $request->request->get('reason'));
         if (!$reason) {
             $this->addFlash('erreur', 'Sélectionnez un motif de signalement.');
+
+            return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+        }
+
+        if ($this->hasOpenReport($em, ReportTargetType::PROJECT, $project->getId())) {
+            $this->addFlash('erreur', 'Vous avez déjà signalé ce projet, il est en cours d\'examen.');
 
             return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
         }
@@ -229,8 +337,45 @@ class ProjectController extends AbstractController
     private function assertCsrf(Request $request, string $tokenId): void
     {
         if (!$this->isCsrfTokenValid($tokenId, $request->request->get('_csrf_token'))) {
-            throw new \Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException();
+            throw new InvalidCsrfTokenException();
         }
+    }
+
+    /**
+     * Valide et normalise le contenu d'un commentaire/réponse (cahier des
+     * charges §25/§35 : ni vide, ni excessivement long). Ajoute un message
+     * flash et renvoie null si invalide, sinon le contenu épuré.
+     */
+    private function validatedContent(string $raw): ?string
+    {
+        $content = trim($raw);
+        if ('' === $content) {
+            $this->addFlash('erreur', 'Le commentaire ne peut pas être vide.');
+
+            return null;
+        }
+        if (mb_strlen($content) > self::MAX_COMMENT_LENGTH) {
+            $this->addFlash('erreur', \sprintf('Le commentaire est trop long (%d caractères maximum).', self::MAX_COMMENT_LENGTH));
+
+            return null;
+        }
+
+        return $content;
+    }
+
+    /**
+     * Empêche un même utilisateur de signaler plusieurs fois le même
+     * contenu tant qu'un premier signalement est encore ouvert (cahier des
+     * charges §17/§35 : pas de doublon).
+     */
+    private function hasOpenReport(EntityManagerInterface $em, ReportTargetType $targetType, int $targetId): bool
+    {
+        return null !== $em->getRepository(Report::class)->findOneBy([
+            'reporter' => $this->getUser(),
+            'targetType' => $targetType,
+            'targetId' => $targetId,
+            'status' => [ReportStatus::OUVERT, ReportStatus::EN_COURS],
+        ]);
     }
 
     private function assertViewable(?Project $project): void

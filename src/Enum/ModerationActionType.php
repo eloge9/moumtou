@@ -14,6 +14,8 @@ enum ModerationActionType: string
     case AVERTIR = 'avertir';
     case SUSPENDRE = 'suspendre';
     case BANNIR = 'bannir';
+    case RESTAURER = 'restaurer';
+    case AUCUNE_ACTION = 'aucune_action';
 
     public function label(): string
     {
@@ -28,6 +30,8 @@ enum ModerationActionType: string
             self::AVERTIR => 'Avertir l\'auteur',
             self::SUSPENDRE => 'Suspendre l\'auteur',
             self::BANNIR => 'Bannir l\'auteur',
+            self::RESTAURER => 'Restaurer le contenu',
+            self::AUCUNE_ACTION => 'Aucune action (contenu conservé)',
         };
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\RatingStatus;
 use App\Repository\RatingRepository;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -28,6 +29,15 @@ class Rating
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
+
+    #[ORM\Column(enumType: RatingStatus::class)]
+    private RatingStatus $status = RatingStatus::NORMAL;
+
+    #[ORM\Column(length: 45, nullable: true)]
+    private ?string $ipAddress = null;
 
     public function __construct()
     {
@@ -78,5 +88,41 @@ class Rating
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    public function getStatus(): RatingStatus
+    {
+        return $this->status;
+    }
+
+    public function setStatus(RatingStatus $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getIpAddress(): ?string
+    {
+        return $this->ipAddress;
+    }
+
+    public function setIpAddress(?string $ipAddress): static
+    {
+        $this->ipAddress = $ipAddress;
+
+        return $this;
     }
 }

@@ -146,13 +146,16 @@
       {% for comment in comments %}
         <article class="m-commentaire mt-3">
           <div class="d-flex align-items-center gap-2">
-            <span class="m-avatar" style="width:32px;height:32px"></span>
-            <div><p class="fw-bold mb-0" style="font-size:14.5px">{{ comment.author.fullName }}</p><p class="m-meta mb-0">{{ comment.createdAt|date('d/m/Y à H:i') }}</p></div>
+            <span class="m-avatar" style="width:32px;height:32px{% if comment.author.photo %};background-image:url('{{ asset(comment.author.photo) }}');background-size:cover;background-position:center{% endif %}"></span>
+            <div><p class="fw-bold mb-0" style="font-size:14.5px">{{ comment.author.fullName }}</p><p class="m-meta mb-0">{{ comment.createdAt|date('d/m/Y à H:i') }}{% if comment.isEdited %} · <span class="m-meta">Modifié</span>{% endif %}</p></div>
           </div>
           <p class="m-texte mt-3 mb-0">{{ comment.content }}</p>
           <div class="m-commentaire__actions">
             {% if app.user %}
               <button type="button" data-modale-ouvrir="modale-reponse-{{ comment.id }}">Répondre</button>
+            {% endif %}
+            {% if is_granted('COMMENT_EDIT', comment) %}
+              <button type="button" data-modale-ouvrir="modale-modifier-{{ comment.id }}">Modifier</button>
             {% endif %}
             {% if is_granted('COMMENT_DELETE', comment) %}
               <form method="post" action="{{ path('app_comment_delete', {id: comment.id}) }}" onsubmit="return confirm('Supprimer ce commentaire ?');">
@@ -160,17 +163,53 @@
                 <button type="submit">Supprimer</button>
               </form>
             {% endif %}
+            {% if app.user and comment.author != app.user %}
+              <button type="button" data-modale-ouvrir="modale-signaler-commentaire-{{ comment.id }}">🚩 Signaler</button>
+            {% endif %}
           </div>
           {% if app.user %}
           <div class="m-modale" id="modale-reponse-{{ comment.id }}" data-modale role="dialog" aria-modal="true">
             <div class="m-modale__boite">
               <form method="post" action="{{ path('app_comment_reply', {id: comment.id}) }}">
                 <h2 class="m-modale__titre">Répondre à {{ comment.author.fullName }}</h2>
-                <textarea class="m-textarea mt-3" name="content" placeholder="Votre réponse" required></textarea>
+                <textarea class="m-textarea mt-3" name="content" placeholder="Votre réponse" maxlength="2000" required></textarea>
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('repondre-commentaire-' ~ comment.id) }}">
                 <div class="d-flex justify-content-end gap-2 mt-3">
                   <button class="m-btn m-btn--secondaire" type="button" data-modale-fermer>Annuler</button>
                   <button class="m-btn m-btn--primaire" type="submit">Répondre</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div class="m-modale" id="modale-signaler-commentaire-{{ comment.id }}" data-modale role="dialog" aria-modal="true">
+            <div class="m-modale__boite">
+              <form method="post" action="{{ path('app_comment_report', {id: comment.id}) }}">
+                <h2 class="m-modale__titre">Signaler ce commentaire</h2>
+                <label class="m-label mt-3" for="motif-commentaire-{{ comment.id }}">Motif</label>
+                <select class="m-select" id="motif-commentaire-{{ comment.id }}" name="reason">
+                  {% for reason in reportReasons %}<option value="{{ reason.value }}">{{ reason.label }}</option>{% endfor %}
+                </select>
+                <label class="m-label mt-3" for="details-commentaire-{{ comment.id }}">Précisions</label>
+                <textarea class="m-textarea" id="details-commentaire-{{ comment.id }}" name="details" placeholder="Décrivez le problème constaté."></textarea>
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('signalement-commentaire-' ~ comment.id) }}">
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                  <button class="m-btn m-btn--secondaire" type="button" data-modale-fermer>Annuler</button>
+                  <button class="m-btn m-btn--primaire" type="submit">Envoyer le signalement</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          {% endif %}
+          {% if is_granted('COMMENT_EDIT', comment) %}
+          <div class="m-modale" id="modale-modifier-{{ comment.id }}" data-modale role="dialog" aria-modal="true">
+            <div class="m-modale__boite">
+              <form method="post" action="{{ path('app_comment_edit', {id: comment.id}) }}">
+                <h2 class="m-modale__titre">Modifier mon commentaire</h2>
+                <textarea class="m-textarea mt-3" name="content" maxlength="2000" required>{{ comment.content }}</textarea>
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('modifier-commentaire-' ~ comment.id) }}">
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                  <button class="m-btn m-btn--secondaire" type="button" data-modale-fermer>Annuler</button>
+                  <button class="m-btn m-btn--primaire" type="submit">Enregistrer</button>
                 </div>
               </form>
             </div>
@@ -180,16 +219,65 @@
             {% if reply.status.value == 'visible' %}
               <div class="m-commentaire__reponse">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="m-avatar" style="width:28px;height:28px"></span>
+                  <span class="m-avatar" style="width:28px;height:28px{% if reply.author.photo %};background-image:url('{{ asset(reply.author.photo) }}');background-size:cover;background-position:center{% endif %}"></span>
                   <p class="fw-bold mb-0" style="font-size:14px">{{ reply.author.fullName }}{% if reply.author == project.owner %} <span class="m-tag m-tag--bleu">Auteur</span>{% endif %}</p>
+                  <p class="m-meta mb-0">{{ reply.createdAt|date('d/m/Y à H:i') }}{% if reply.isEdited %} · Modifié{% endif %}</p>
                 </div>
                 <p class="m-texte mt-2 mb-0">{{ reply.content }}</p>
+                <div class="m-commentaire__actions">
+                  {% if is_granted('COMMENT_EDIT', reply) %}
+                    <button type="button" data-modale-ouvrir="modale-modifier-{{ reply.id }}">Modifier</button>
+                  {% endif %}
+                  {% if is_granted('COMMENT_DELETE', reply) %}
+                    <form method="post" action="{{ path('app_comment_delete', {id: reply.id}) }}" onsubmit="return confirm('Supprimer cette réponse ?');">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token('supprimer-commentaire-' ~ reply.id) }}">
+                      <button type="submit">Supprimer</button>
+                    </form>
+                  {% endif %}
+                  {% if app.user and reply.author != app.user %}
+                    <button type="button" data-modale-ouvrir="modale-signaler-commentaire-{{ reply.id }}">🚩 Signaler</button>
+                  {% endif %}
+                </div>
+                {% if app.user %}
+                <div class="m-modale" id="modale-signaler-commentaire-{{ reply.id }}" data-modale role="dialog" aria-modal="true">
+                  <div class="m-modale__boite">
+                    <form method="post" action="{{ path('app_comment_report', {id: reply.id}) }}">
+                      <h2 class="m-modale__titre">Signaler cette réponse</h2>
+                      <label class="m-label mt-3" for="motif-commentaire-{{ reply.id }}">Motif</label>
+                      <select class="m-select" id="motif-commentaire-{{ reply.id }}" name="reason">
+                        {% for reason in reportReasons %}<option value="{{ reason.value }}">{{ reason.label }}</option>{% endfor %}
+                      </select>
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token('signalement-commentaire-' ~ reply.id) }}">
+                      <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button class="m-btn m-btn--secondaire" type="button" data-modale-fermer>Annuler</button>
+                        <button class="m-btn m-btn--primaire" type="submit">Envoyer le signalement</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                {% endif %}
+                {% if is_granted('COMMENT_EDIT', reply) %}
+                <div class="m-modale" id="modale-modifier-{{ reply.id }}" data-modale role="dialog" aria-modal="true">
+                  <div class="m-modale__boite">
+                    <form method="post" action="{{ path('app_comment_edit', {id: reply.id}) }}">
+                      <h2 class="m-modale__titre">Modifier ma réponse</h2>
+                      <textarea class="m-textarea mt-3" name="content" maxlength="2000" required>{{ reply.content }}</textarea>
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token('modifier-commentaire-' ~ reply.id) }}">
+                      <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button class="m-btn m-btn--secondaire" type="button" data-modale-fermer>Annuler</button>
+                        <button class="m-btn m-btn--primaire" type="submit">Enregistrer</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                {% endif %}
               </div>
             {% endif %}
           {% endfor %}
         </article>
       {% else %}
-        <p class="m-meta mt-3">Aucun commentaire pour l'instant.</p>
+        <p class="m-meta mt-3">Aucun commentaire pour le moment.</p>
+        <p class="m-meta mb-0">Soyez le premier à donner votre avis.</p>
       {% endfor %}
     </section>
   </main>
@@ -235,7 +323,11 @@
 
     <div class="m-carte m-carte--plate p-3">
       <p class="m-surtitre mb-2">Évaluer ce projet</p>
-      {% if app.user %}
+      {% if not app.user %}
+        <p class="m-meta mb-0"><a href="{{ path('app_login') }}">Connectez-vous</a> pour évaluer ce projet.</p>
+      {% elseif project.owner == app.user %}
+        <p class="m-meta mb-0">Vous ne pouvez pas évaluer votre propre projet.</p>
+      {% else %}
         <form method="post" action="{{ path('app_project_rate', {slug: project.slug}) }}" data-note-form>
           <div class="m-note" data-note data-note-initiale="{{ myRating|default(0) }}">
             {% for i in 1..5 %}
@@ -248,8 +340,12 @@
           <input type="hidden" name="_csrf_token" value="{{ csrf_token('note') }}">
           <p class="m-meta mt-2 mb-0" data-note-valeur>{{ myRating ? 'Votre évaluation : ' ~ myRating ~ ' / 5' : 'Une évaluation par compte, modifiable.' }}</p>
         </form>
-      {% else %}
-        <p class="m-meta mb-0"><a href="{{ path('app_login') }}">Connectez-vous</a> pour évaluer ce projet.</p>
+        {% if myRating %}
+          <form method="post" action="{{ path('app_project_unrate', {slug: project.slug}) }}" class="mt-2" onsubmit="return confirm('Supprimer votre évaluation ?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('annuler-note') }}">
+            <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Supprimer mon évaluation</button>
+          </form>
+        {% endif %}
       {% endif %}
     </div>
 
@@ -310,7 +406,7 @@
   <div class="m-modale__boite">
     <form method="post" action="{{ path('app_project_comment', {slug: project.slug}) }}">
       <h2 class="m-modale__titre">Écrire un commentaire</h2>
-      <textarea class="m-textarea mt-3" name="content" placeholder="Votre question ou votre retour sur ce projet." required></textarea>
+      <textarea class="m-textarea mt-3" name="content" placeholder="Votre question ou votre retour sur ce projet." maxlength="2000" required></textarea>
       <p class="m-meta mt-2">Les commentaires sont modérés. Les propos offensants entraînent une suspension.</p>
       <input type="hidden" name="_csrf_token" value="{{ csrf_token('commentaire') }}">
       <div class="d-flex justify-content-end gap-2 mt-3">

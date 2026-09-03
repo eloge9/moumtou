@@ -7,6 +7,7 @@ enum ReportStatus: string
     case OUVERT = 'ouvert';
     case EN_COURS = 'en_cours';
     case TRAITE = 'traite';
+    case REJETE = 'rejete';
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum ReportStatus: string
             self::OUVERT => 'Ouvert',
             self::EN_COURS => 'En cours',
             self::TRAITE => 'Traité',
+            self::REJETE => 'Rejeté',
         };
     }
 }

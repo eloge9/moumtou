@@ -29,6 +29,33 @@
         {% endfor %}
       </div>
     {% endif %}
+
+    {% if suspectRatings|length %}
+      <p class="m-surtitre mt-4 mb-2">Évaluations suspectes</p>
+      <div class="d-grid gap-2">
+        {% for rating in suspectRatings %}
+          <div class="m-carte m-carte--plate p-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold" style="font-size:13.5px">{{ rating.user.fullName }} → {{ rating.project.name }}</span>
+              <span class="m-tag" style="{{ rating.status.value == 'flagged' ? 'background:#FDECEA;color:#B3261E' : 'background:#FFF4E5;color:#B36B00' }}">{{ rating.status.label }}</span>
+            </div>
+            <p class="m-meta mb-2">★ {{ rating.value }}/5 · {{ rating.createdAt|date('d/m H:i') }}{% if rating.ipAddress %} · {{ rating.ipAddress }}{% endif %}</p>
+            <div class="d-flex gap-2">
+              <form method="post" action="{{ path('admin_moderation_rating_review', {id: rating.id}) }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-evaluation-' ~ rating.id) }}">
+                <input type="hidden" name="decision" value="normal">
+                <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Marquer normale</button>
+              </form>
+              <form method="post" action="{{ path('admin_moderation_rating_review', {id: rating.id}) }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-evaluation-' ~ rating.id) }}">
+                <input type="hidden" name="decision" value="flagged">
+                <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Signaler</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
   </div>
 
   <main class="col-xl-8 p-4">
@@ -48,6 +75,12 @@
             <span class="m-tag">Statut : {{ target.entity.status.label }}</span>
           </div>
         </section>
+      {% elseif target.entity is not null and report.targetType.value == 'comment' %}
+        <section class="m-carte m-carte--plate p-3 mt-3">
+          <p class="m-surtitre mb-2">Commentaire signalé</p>
+          <p class="m-texte mb-2">« {{ target.entity.content }} »</p>
+          <span class="m-tag">Statut actuel : {{ target.entity.status.label }}</span>
+        </section>
       {% endif %}
 
       <section class="m-carte m-carte--plate p-3 mt-3">
@@ -65,7 +98,16 @@
           {% if report.targetType.value == 'project' %}
             <p class="m-label">Action sur le contenu</p>
             <div class="d-flex flex-wrap gap-2" data-chip-groupe>
-              {% for value, label in {'demander_correction': 'Demander des corrections', 'masquer': 'Masquer le projet', 'depublier': 'Dépublier', 'supprimer': 'Supprimer le projet'} %}
+              {% for value, label in {'aucune_action': 'Conserver (rejeter le signalement)', 'demander_correction': 'Demander des corrections', 'masquer': 'Masquer le projet', 'depublier': 'Dépublier', 'supprimer': 'Supprimer le projet'} %}
+                <label class="m-chip" data-chip data-chip-exclusif>
+                  <input type="radio" class="visually-hidden" name="content_action" value="{{ value }}">{{ label }}
+                </label>
+              {% endfor %}
+            </div>
+          {% elseif report.targetType.value == 'comment' %}
+            <p class="m-label">Action sur le commentaire</p>
+            <div class="d-flex flex-wrap gap-2" data-chip-groupe>
+              {% for value, label in {'aucune_action': 'Conserver (rejeter le signalement)', 'masquer': 'Masquer le commentaire', 'supprimer': 'Supprimer le commentaire', 'restaurer': 'Restaurer le commentaire'} %}
                 <label class="m-chip" data-chip data-chip-exclusif>
                   <input type="radio" class="visually-hidden" name="content_action" value="{{ value }}">{{ label }}
                 </label>
@@ -86,7 +128,7 @@
           <textarea class="m-textarea" id="motif-decision" name="reason" style="min-height:64px" required></textarea>
 
           <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">
-            <span class="m-meta">Historique conservé : utilisateur, motif, date, administrateur, durée.</span>
+            <span class="m-meta">Historique conservé : utilisateur, motif, date, administrateur, durée. Sans action sélectionnée, le signalement est rejeté comme non fondé.</span>
             <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-signalement-' ~ report.id) }}">
             <button class="m-btn m-btn--primaire" type="submit">Valider la décision</button>
           </div>
