@@ -414,6 +414,17 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -.028em; margin: 0; }
 .m-menu__item { display: block; width: 100%; text-align: left; padding: 9px 11px; border: 0; background: none; font-size: 14px; font-weight: 500; color: var(--m-texte); border-radius: var(--m-r-sm); cursor: pointer; }
 .m-menu__item:hover { background: var(--m-fond); color: var(--m-bleu); }
 
+/* Suggestions de recherche (autocomplétion, cahier §23) */
+.m-suggestions {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 30;
+  padding: 6px;
+  background: var(--m-blanc); border: 1px solid var(--m-bordure);
+  border-radius: var(--m-r); box-shadow: var(--m-ombre);
+}
+.m-suggestions a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 11px; border-radius: var(--m-r-sm); font-size: 14px; font-weight: 500; color: var(--m-texte); }
+.m-suggestions a:hover { background: var(--m-fond); color: var(--m-bleu); }
+.m-suggestions a span.m-meta { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+
 .m-modale { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 24px; background: rgba(11, 27, 51, .45); }
 .m-modale.is-open { display: flex; }
 .m-modale__boite { width: 100%; max-width: 520px; background: var(--m-blanc); border-radius: var(--m-r-lg); padding: 26px; box-shadow: var(--m-ombre); }

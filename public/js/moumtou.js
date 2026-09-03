@@ -346,6 +346,63 @@
     });
   }
 
+  /* ------------------------------------- Autocomplétion (cahier §23) -- */
+  function initRecherche() {
+    document.querySelectorAll('[data-recherche-globale]').forEach(function (formulaire) {
+      var champ = formulaire.querySelector('[data-recherche-champ]');
+      var boite = formulaire.querySelector('[data-recherche-suggestions]');
+      if (!champ || !boite) return;
+
+      var minuteur = null;
+      var requeteEnCours = null;
+
+      function fermer() { boite.hidden = true; boite.innerHTML = ''; }
+
+      function afficher(suggestions) {
+        boite.innerHTML = '';
+        if (!suggestions.length) { fermer(); return; }
+        // Construction via DOM (pas innerHTML) : les libellés viennent de
+        // données utilisateur (noms de talents, de projets…), il ne faut
+        // jamais les injecter comme HTML brut.
+        suggestions.forEach(function (s) {
+          var lien = document.createElement('a');
+          lien.href = s.url;
+          var libelle = document.createTextNode(s.label);
+          var type = document.createElement('span');
+          type.className = 'm-meta';
+          type.textContent = s.type;
+          lien.appendChild(libelle);
+          lien.appendChild(type);
+          boite.appendChild(lien);
+        });
+        boite.hidden = false;
+      }
+
+      champ.addEventListener('input', function () {
+        clearTimeout(minuteur);
+        var q = champ.value.trim();
+        if (q.length < 2) { fermer(); return; }
+        // Debounce : une seule requête au plus tous les 300ms.
+        minuteur = setTimeout(function () {
+          if (requeteEnCours) requeteEnCours.abort();
+          var controleur = new AbortController();
+          requeteEnCours = controleur;
+          fetch('/recherche/suggestions?q=' + encodeURIComponent(q), { signal: controleur.signal })
+            .then(function (reponse) { return reponse.ok ? reponse.json() : { suggestions: [] }; })
+            .then(function (donnees) { afficher(donnees.suggestions || []); })
+            .catch(function () {});
+        }, 300);
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!formulaire.contains(e.target)) fermer();
+      });
+      champ.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') fermer();
+      });
+    });
+  }
+
   /* ------------------------------------------------------------ Amorçage -- */
   document.addEventListener('DOMContentLoaded', function () {
     initNavigation();
@@ -357,6 +414,7 @@
     initMenus();
     initModales();
     initAutrePrecision();
+    initRecherche();
   });
 
   window.MOUMTOU = { ouvrirModale: ouvrirModale, fermerModales: fermerModales };

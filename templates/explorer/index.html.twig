@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'components/_filtres_actifs.html.twig' as filtresActifs %}
 
 {% block title %}Explorer les projets — MOUMTOU{% endblock %}
 
@@ -45,7 +46,7 @@
         </div>
       </div>
 
-      <div class="m-filtres__groupe" data-chip-groupe>
+      <div class="m-filtres__groupe">
         <p class="m-filtres__titre">Technologies</p>
         <div class="m-tags">
           {% for technology in technologies %}
@@ -55,6 +56,14 @@
             </label>
           {% endfor %}
         </div>
+        <div class="d-flex gap-2 mt-2" data-chip-groupe>
+          <label class="m-chip{{ criteria.techMode == 'any' ? ' is-active' : '' }}" data-chip data-chip-exclusif>
+            <input type="radio" class="visually-hidden" name="tech_mode" value="any" {{ criteria.techMode == 'any' ? 'checked' : '' }}>Au moins une
+          </label>
+          <label class="m-chip{{ criteria.techMode == 'all' ? ' is-active' : '' }}" data-chip data-chip-exclusif>
+            <input type="radio" class="visually-hidden" name="tech_mode" value="all" {{ criteria.techMode == 'all' ? 'checked' : '' }}>Toutes
+          </label>
+        </div>
       </div>
 
       <div class="m-filtres__groupe">
@@ -62,6 +71,7 @@
         <div class="d-grid gap-2">
           <label class="m-case"><input type="checkbox" data-filtre-case name="statuses[]" value="verifie" {{ 'verifie' in criteria.statuses ? 'checked' : '' }}><span>Vérifié par le jury</span></label>
           <label class="m-case"><input type="checkbox" data-filtre-case name="statuses[]" value="publie" {{ 'publie' in criteria.statuses ? 'checked' : '' }}><span>Publié</span></label>
+          <label class="m-case"><input type="checkbox" data-filtre-case name="defense_verified" value="1" {{ criteria.defenseVerified ? 'checked' : '' }}><span>Soutenance vérifiée uniquement</span></label>
         </div>
       </div>
 
@@ -91,10 +101,18 @@
       <div>
         <h1 style="font-size:24px">{{ total }} projet{{ total > 1 ? 's' : '' }}</h1>
       </div>
-      <div class="d-flex align-items-center gap-2" data-chip-groupe>
+      <div class="d-flex align-items-center gap-2 flex-wrap" data-chip-groupe>
         <span class="m-meta">Trier :</span>
+        {% if criteria.query %}
+          <label class="m-chip{{ criteria.sort == 'relevance' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-explorer">
+            <input type="radio" class="visually-hidden" name="sort" value="relevance" form="filtres-explorer" {{ criteria.sort == 'relevance' ? 'checked' : '' }}>Pertinence
+          </label>
+        {% endif %}
         <label class="m-chip{{ criteria.sort == 'recent' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-explorer">
           <input type="radio" class="visually-hidden" name="sort" value="recent" form="filtres-explorer" {{ criteria.sort == 'recent' ? 'checked' : '' }}>Plus récents
+        </label>
+        <label class="m-chip{{ criteria.sort == 'oldest' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-explorer">
+          <input type="radio" class="visually-hidden" name="sort" value="oldest" form="filtres-explorer" {{ criteria.sort == 'oldest' ? 'checked' : '' }}>Plus anciens
         </label>
         <label class="m-chip{{ criteria.sort == 'rating' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-explorer">
           <input type="radio" class="visually-hidden" name="sort" value="rating" form="filtres-explorer" {{ criteria.sort == 'rating' ? 'checked' : '' }}>Mieux notés
@@ -104,6 +122,24 @@
         </label>
       </div>
     </div>
+
+    {% set hasActiveFilters = criteria.query or criteria.types or criteria.domainId or criteria.mentionId or criteria.specialtyId or criteria.technologyIds or criteria.statuses or criteria.institutionId or criteria.country or criteria.city or criteria.defenseVerified %}
+    {% if hasActiveFilters %}
+      <div class="m-tags mt-3">
+        {% if criteria.query %}{{ filtresActifs.tag('app_explorer', 'q', null, '« ' ~ criteria.query ~ ' »') }}{% endif %}
+        {% for type in projectTypes %}{% if type.value in criteria.types %}{{ filtresActifs.tag('app_explorer', 'types', type.value, type.shortLabel) }}{% endif %}{% endfor %}
+        {% for domain in domains %}{% if domain.id == criteria.domainId %}{{ filtresActifs.tag('app_explorer', 'domain', null, domain.name) }}{% endif %}{% endfor %}
+        {% for mention in mentions %}{% if mention.id == criteria.mentionId %}{{ filtresActifs.tag('app_explorer', 'mention', null, mention.name) }}{% endif %}{% endfor %}
+        {% for specialty in specialties %}{% if specialty.id == criteria.specialtyId %}{{ filtresActifs.tag('app_explorer', 'specialty', null, specialty.name) }}{% endif %}{% endfor %}
+        {% for technology in technologies %}{% if technology.id in criteria.technologyIds %}{{ filtresActifs.tag('app_explorer', 'technologies', technology.id, technology.name) }}{% endif %}{% endfor %}
+        {% if 'verifie' in criteria.statuses %}{{ filtresActifs.tag('app_explorer', 'statuses', 'verifie', 'Vérifié') }}{% endif %}
+        {% if 'publie' in criteria.statuses %}{{ filtresActifs.tag('app_explorer', 'statuses', 'publie', 'Publié') }}{% endif %}
+        {% for institution in institutions %}{% if institution.id == criteria.institutionId %}{{ filtresActifs.tag('app_explorer', 'institution', null, institution.name) }}{% endif %}{% endfor %}
+        {% if criteria.country %}{{ filtresActifs.tag('app_explorer', 'country', null, criteria.country) }}{% endif %}
+        {% if criteria.city %}{{ filtresActifs.tag('app_explorer', 'city', null, criteria.city) }}{% endif %}
+        {% if criteria.defenseVerified %}{{ filtresActifs.tag('app_explorer', 'defense_verified', null, 'Soutenance vérifiée') }}{% endif %}
+      </div>
+    {% endif %}
 
     <div class="row g-3 mt-3">
       {% for project in projects %}

@@ -51,19 +51,24 @@ class ExplorerController extends AbstractController
             array_map(fn ($v) => ProjectStatus::tryFrom($v), $request->query->all('statuses')),
         ));
 
+        $techMode = ProjectSearchCriteria::TECH_MODE_ALL === $request->query->get('tech_mode') ? ProjectSearchCriteria::TECH_MODE_ALL : ProjectSearchCriteria::TECH_MODE_ANY;
+        $allowedSorts = [ProjectSearchCriteria::SORT_RATING, ProjectSearchCriteria::SORT_VIEWS, ProjectSearchCriteria::SORT_OLDEST, ProjectSearchCriteria::SORT_RELEVANCE];
+
         return new ProjectSearchCriteria(
             query: $request->query->get('q') ?: null,
             types: $types,
             domainId: $this->optionalInt($request, 'domain'),
             mentionId: $this->optionalInt($request, 'mention'),
             specialtyId: $this->optionalInt($request, 'specialty'),
-            technologyIds: array_map('intval', $request->query->all('technologies')),
+            technologyIds: array_slice(array_map('intval', $request->query->all('technologies')), 0, 20),
+            techMode: $techMode,
             statuses: $statuses,
             institutionId: $this->optionalInt($request, 'institution'),
             country: $request->query->get('country') ?: null,
             city: $request->query->get('city') ?: null,
             yearMin: $this->optionalInt($request, 'year_min'),
-            sort: \in_array($request->query->get('sort'), [ProjectSearchCriteria::SORT_RATING, ProjectSearchCriteria::SORT_VIEWS], true)
+            defenseVerified: $request->query->getBoolean('defense_verified'),
+            sort: \in_array($request->query->get('sort'), $allowedSorts, true)
                 ? $request->query->get('sort')
                 : ProjectSearchCriteria::SORT_RECENT,
             page: max(1, $this->optionalInt($request, 'page') ?? 1),

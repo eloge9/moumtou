@@ -1,0 +1,95 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_filtres_actifs.html.twig' as filtresActifs %}
+
+{% block title %}Talents{{ query ? ' — ' ~ query : '' }} — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'recherche'} %}{% endblock %}
+
+{% block body %}
+<div class="m-mise-en-page">
+  <aside class="m-filtres">
+    <form method="get" id="filtres-talents-publics" data-filtres-auto>
+      <input type="hidden" name="type" value="talents">
+      <input type="hidden" name="q" value="{{ query }}">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="m-surtitre" style="color:var(--m-encre)">Filtres</span>
+        <a href="{{ path('app_search', {type: 'talents', q: query}) }}" style="color:var(--m-bleu);font-size:13px">Réinitialiser</a>
+      </div>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Technologies</p>
+        <div class="m-tags">
+          {% for technology in technologies %}
+            <label class="m-chip{{ technology.id in criteria.technologyIds ? ' is-active' : '' }}" data-chip>
+              <input type="checkbox" class="visually-hidden" name="technologies[]" value="{{ technology.id }}" {{ technology.id in criteria.technologyIds ? 'checked' : '' }}>
+              {{ technology.name }}
+            </label>
+          {% endfor %}
+        </div>
+        <div class="d-flex gap-2 mt-2" data-chip-groupe>
+          <label class="m-chip{{ criteria.techMode == 'any' ? ' is-active' : '' }}" data-chip data-chip-exclusif>
+            <input type="radio" class="visually-hidden" name="tech_mode" value="any" {{ criteria.techMode == 'any' ? 'checked' : '' }}>Au moins une
+          </label>
+          <label class="m-chip{{ criteria.techMode == 'all' ? ' is-active' : '' }}" data-chip data-chip-exclusif>
+            <input type="radio" class="visually-hidden" name="tech_mode" value="all" {{ criteria.techMode == 'all' ? 'checked' : '' }}>Toutes
+          </label>
+        </div>
+      </div>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Pays / Ville</p>
+        <div class="d-flex gap-2">
+          <input class="m-select" type="text" name="country" value="{{ criteria.country }}" placeholder="Pays" aria-label="Pays">
+          <input class="m-select" type="text" name="city" value="{{ criteria.city }}" placeholder="Ville" aria-label="Ville">
+        </div>
+      </div>
+    </form>
+  </aside>
+
+  <main class="m-resultats">
+    <h1 style="font-size:24px">{{ total }} talent{{ total > 1 ? 's' : '' }}{{ query ? ' pour « ' ~ query ~ ' »' : '' }}</h1>
+
+    {% set hasActiveFilters = criteria.technologyIds or criteria.country or criteria.city %}
+    {% if hasActiveFilters %}
+      <div class="m-tags mt-3">
+        {% for technology in technologies %}{% if technology.id in criteria.technologyIds %}{{ filtresActifs.tag('app_search', 'technologies', technology.id, technology.name) }}{% endif %}{% endfor %}
+        {% if criteria.country %}{{ filtresActifs.tag('app_search', 'country', null, criteria.country) }}{% endif %}
+        {% if criteria.city %}{{ filtresActifs.tag('app_search', 'city', null, criteria.city) }}{% endif %}
+      </div>
+    {% endif %}
+
+    <div class="row g-3 mt-3">
+      {% for talent in talents %}
+        <div class="col-xl-4 col-md-6">
+          <article class="m-carte m-carte--plate p-3 h-100">
+            <div class="d-flex gap-3">
+              <span class="m-avatar" style="width:52px;height:52px;{% if talent.photo %}background-image:url('{{ asset(talent.photo) }}');background-size:cover{% endif %}"></span>
+              <div class="flex-fill">
+                <a class="fw-bold d-block" style="font-size:15.5px" href="{{ path('app_profile_show', {slug: talent.slug}) }}">{{ talent.fullName }}</a>
+                {% if talent.professionalTitle %}<p class="m-meta mb-1">{{ talent.professionalTitle }}</p>{% endif %}
+                <p class="m-meta mb-1">{{ talent.city }}{{ talent.city and talent.country ? ', ' : '' }}{{ talent.country }}</p>
+                <div class="m-tags mt-1">{% for tech in talent.technologies|slice(0, 5) %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
+              </div>
+            </div>
+            <a class="m-btn m-btn--secondaire m-btn--bloc mt-3" href="{{ path('app_profile_show', {slug: talent.slug}) }}">Voir le profil</a>
+          </article>
+        </div>
+      {% else %}
+        <div class="col-12">
+          <p class="m-meta">Aucun résultat trouvé.</p>
+          <p class="m-meta">Essayez : une autre technologie, moins de filtres, ou une autre localisation.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if pageCount > 1 %}
+      <nav class="m-pagination mt-4" aria-label="Pagination">
+        {% for p in 1..pageCount %}
+          <a class="{{ p == criteria.page ? 'is-active' : '' }}" href="{{ path('app_search', app.request.query.all|merge({page: p})) }}">{{ p }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}

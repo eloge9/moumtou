@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Project;
+use App\Enum\DefenseStatus;
 use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
 use App\Search\ProjectSearchCriteria;
@@ -36,11 +37,12 @@ class ProjectRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
 
+        $perPage = min(max(1, $criteria->perPage), ProjectSearchCriteria::MAX_PER_PAGE);
         $qb->select('p')->distinct()
-            ->setFirstResult(($criteria->page - 1) * $criteria->perPage)
-            ->setMaxResults($criteria->perPage);
+            ->setFirstResult((max(1, $criteria->page) - 1) * $perPage)
+            ->setMaxResults($perPage);
 
-        $this->applySort($qb, $criteria->sort);
+        $this->applySort($qb, $criteria->sort, $criteria->query);
 
         return [
             'items' => $qb->getQuery()->getResult(),
@@ -82,6 +84,8 @@ class ProjectRepository extends ServiceEntityRepository
         if ($criteria->query) {
             $qb->andWhere($qb->expr()->orX(
                 'p.name LIKE :recherche',
+                'p.shortDescription LIKE :recherche',
+                'p.detailedDescription LIKE :recherche',
                 'owner.firstName LIKE :recherche',
                 'owner.lastName LIKE :recherche',
                 $qb->expr()->in('p.id', $this->createQueryBuilder('p3')
@@ -119,23 +123,52 @@ class ProjectRepository extends ServiceEntityRepository
             $qb->andWhere('p.status IN (:narrowedStatuses)')->setParameter('narrowedStatuses', $criteria->statuses);
         }
         if ($criteria->technologyIds) {
-            // Sous-requête : le projet doit avoir AU MOINS une des technologies cochées.
-            $qb->andWhere($qb->expr()->in('p.id', $this->createQueryBuilder('p2')
-                ->select('p2.id')
-                ->join('p2.technologies', 't2')
-                ->where('t2.id IN (:technologyIds)')
-                ->getDQL()))
-                ->setParameter('technologyIds', $criteria->technologyIds);
+            if (ProjectSearchCriteria::TECH_MODE_ALL === $criteria->techMode) {
+                // Le projet doit avoir CHACUNE des technologies cochées : une
+                // sous-requête EXISTS par technologie, toutes combinées en ET.
+                foreach (array_values($criteria->technologyIds) as $index => $technologyId) {
+                    $alias = 'tAll'.$index;
+                    $qb->andWhere($qb->expr()->in('p.id', $this->createQueryBuilder($alias.'_p')
+                        ->select($alias.'_p.id')
+                        ->join($alias.'_p.technologies', $alias)
+                        ->where($alias.'.id = :'.$alias)
+                        ->getDQL()))
+                        ->setParameter($alias, $technologyId);
+                }
+            } else {
+                // Le projet doit avoir AU MOINS une des technologies cochées.
+                $qb->andWhere($qb->expr()->in('p.id', $this->createQueryBuilder('p2')
+                    ->select('p2.id')
+                    ->join('p2.technologies', 't2')
+                    ->where('t2.id IN (:technologyIds)')
+                    ->getDQL()))
+                    ->setParameter('technologyIds', $criteria->technologyIds);
+            }
+        }
+        if ($criteria->defenseVerified) {
+            $qb->join('p.defense', 'defense')
+                ->andWhere('defense.status = :defenseVerifiee')
+                ->setParameter('defenseVerifiee', DefenseStatus::VERIFIEE);
         }
 
         return $qb;
     }
 
-    private function applySort(QueryBuilder $qb, string $sort): void
+    private function applySort(QueryBuilder $qb, string $sort, ?string $query): void
     {
+        if (ProjectSearchCriteria::SORT_RELEVANCE === $sort && $query) {
+            // Colonne calculée HIDDEN : incluse dans le SQL (donc compatible
+            // avec SELECT DISTINCT + ORDER BY) mais absente du résultat hydraté.
+            $qb->addSelect('(CASE WHEN p.name LIKE :exactQ THEN 0 WHEN p.name LIKE :startQ THEN 1 ELSE 2 END) AS HIDDEN pertinence')
+                ->setParameter('exactQ', $query)
+                ->setParameter('startQ', $query.'%')
+                ->addOrderBy('pertinence', 'ASC');
+        }
+
         match ($sort) {
             ProjectSearchCriteria::SORT_RATING => $qb->addOrderBy('p.ratingAverage', 'DESC'),
             ProjectSearchCriteria::SORT_VIEWS => $qb->addOrderBy('p.viewsCount', 'DESC'),
+            ProjectSearchCriteria::SORT_OLDEST => $qb->addOrderBy('p.publishedAt', 'ASC'),
             default => $qb->addOrderBy('p.publishedAt', 'DESC'),
         };
         $qb->addOrderBy('p.id', 'DESC');

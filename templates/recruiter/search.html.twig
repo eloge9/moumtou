@@ -1,84 +1,187 @@
 {% extends 'base.html.twig' %}
+{% import 'components/_filtres_actifs.html.twig' as filtresActifs %}
 
 {% block title %}Rechercher un talent — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
 
 {% block header %}{% include 'components/_header.html.twig' with {active_nav: 'talents'} %}{% endblock %}
 
 {% block body %}
+<div class="m-mise-en-page">
 
-<section class="p-4" style="background:var(--m-fond);border-bottom:1px solid var(--m-bordure)">
-  <form method="get" class="d-flex flex-wrap gap-2">
-    <label class="m-recherche m-recherche--large flex-fill">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0A46E4" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
-      <input type="search" name="q" value="{{ query }}" placeholder="Nom ou mot-clé du profil" aria-label="Rechercher un talent">
-    </label>
-    <input class="m-input" style="max-width:220px" type="text" name="city" value="{{ city }}" placeholder="Ville">
-    <select class="m-select" style="max-width:240px" name="institution">
-      <option value="">Tous les établissements</option>
-      {% for institution in institutions %}
-        <option value="{{ institution.id }}" {{ institutionId == institution.id ? 'selected' }}>{{ institution.name }}</option>
-      {% endfor %}
-    </select>
-    <button class="m-btn m-btn--primaire m-btn--lg" type="submit">Rechercher</button>
-  </form>
+  <aside class="m-filtres">
+    <form method="get" id="filtres-talents" data-filtres-auto>
+      <input type="hidden" name="q" value="{{ criteria.query }}">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="m-surtitre" style="color:var(--m-encre)">Filtres</span>
+        <a href="{{ path('app_recruiter_search') }}" style="color:var(--m-bleu);font-size:13px">Réinitialiser</a>
+      </div>
 
-  <div class="m-tags mt-3">
-    {% for technology in technologies %}
-      <label class="m-chip{{ technology.id in technologyIds ? ' is-active' : '' }}" data-chip>
-        <input type="checkbox" class="visually-hidden" form="filtres-talents" name="technologies[]" value="{{ technology.id }}" {{ technology.id in technologyIds ? 'checked' : '' }}>
-        {{ technology.name }}
-      </label>
-    {% endfor %}
-  </div>
-  <form method="get" id="filtres-talents">
-    <input type="hidden" name="q" value="{{ query }}">
-    <input type="hidden" name="city" value="{{ city }}">
-    <input type="hidden" name="institution" value="{{ institutionId }}">
-  </form>
-</section>
-
-<main class="p-4">
-  <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
-    <div>
-      <h1 style="font-size:24px">{{ results|length }} talent{{ results|length > 1 ? 's' : '' }} correspondant{{ results|length > 1 ? 's' : '' }}</h1>
-      <p class="m-meta mt-1 mb-0">Chaque résultat a publié au moins un projet réalisé et vérifiable.</p>
-    </div>
-  </div>
-
-  <div class="d-grid gap-3 mt-4">
-    {% for result in results %}
-      {% set talent = result.user %}
-      <article class="m-carte m-carte--plate p-4">
-        <div class="d-flex gap-4 flex-wrap">
-          <span class="m-avatar m-avatar--lg" style="{% if talent.photo %}background-image:url('{{ asset(talent.photo) }}');background-size:cover{% endif %}"></span>
-          <div class="flex-fill" style="min-width:300px">
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <a class="fw-bold" style="font-size:19px;letter-spacing:-.02em" href="{{ path('app_profile_show', {slug: talent.slug}) }}">{{ talent.fullName }}</a>
-              {% if talent.availability %}<span class="m-tag">{{ talent.availability.label }}</span>{% endif %}
-            </div>
-            {% if talent.professionalTitle %}<p class="fw-semibold mb-1" style="font-size:14.5px;color:var(--m-bleu)">{{ talent.professionalTitle }}</p>{% endif %}
-            <p class="m-meta mt-1 mb-2">
-              {{ talent.city }}{{ talent.city and talent.country ? ', ' : '' }}{{ talent.country }}
-              {% if talent.institution %}{{ (talent.city or talent.country) ? ' · ' : '' }}🎓 {{ talent.institution.name }}{% endif %}
-            </p>
-            <div class="m-tags">
-              {% for tech in talent.technologies %}<span class="m-tag{{ tech.id in technologyIds ? ' m-tag--bleu' : '' }}">{{ tech.name }}</span>{% endfor %}
-            </div>
-          </div>
-          <div class="d-grid gap-2" style="width:190px">
-            {% if result.compatibility is not null %}
-              <div class="text-end"><span class="m-stat__valeur d-block" style="font-size:26px;color:var(--m-bleu)">{{ result.compatibility }}%</span><span class="m-stat__libelle">compatibilité</span></div>
-            {% endif %}
-            {% if talent.whatsappEnabled and talent.whatsapp %}
-              <a class="m-btn m-btn--primaire" href="https://wa.me/{{ talent.whatsapp }}" target="_blank" rel="noopener">Écrire sur WhatsApp</a>
-            {% endif %}
-            <a class="m-btn m-btn--secondaire" href="{{ path('app_profile_show', {slug: talent.slug}) }}">Voir le profil</a>
-          </div>
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Technologies</p>
+        <div class="m-tags">
+          {% for technology in technologies %}
+            <label class="m-chip{{ technology.id in criteria.technologyIds ? ' is-active' : '' }}" data-chip>
+              <input type="checkbox" class="visually-hidden" name="technologies[]" value="{{ technology.id }}" {{ technology.id in criteria.technologyIds ? 'checked' : '' }}>
+              {{ technology.name }}
+            </label>
+          {% endfor %}
         </div>
-      </article>
-    {% else %}
-      <p class="m-meta">Aucun talent ne correspond à ces critères pour le moment.</p>
-    {% endfor %}
-  </div>
-</main>
+        <div class="d-flex gap-2 mt-2" data-chip-groupe>
+          <label class="m-chip{{ criteria.techMode == 'any' ? ' is-active' : '' }}" data-chip data-chip-exclusif>
+            <input type="radio" class="visually-hidden" name="tech_mode" value="any" {{ criteria.techMode == 'any' ? 'checked' : '' }}>Au moins une
+          </label>
+          <label class="m-chip{{ criteria.techMode == 'all' ? ' is-active' : '' }}" data-chip data-chip-exclusif>
+            <input type="radio" class="visually-hidden" name="tech_mode" value="all" {{ criteria.techMode == 'all' ? 'checked' : '' }}>Toutes
+          </label>
+        </div>
+      </div>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Compétences</p>
+        <div class="m-tags">
+          {% for skill in skills %}
+            <label class="m-chip{{ skill.id in criteria.skillIds ? ' is-active' : '' }}" data-chip>
+              <input type="checkbox" class="visually-hidden" name="skills[]" value="{{ skill.id }}" {{ skill.id in criteria.skillIds ? 'checked' : '' }}>
+              {{ skill.name }}
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Classification</p>
+        <div class="d-grid gap-2">
+          <select class="m-select" name="domain" aria-label="Domaine">
+            <option value="">Tous les domaines</option>
+            {% for domain in domains %}<option value="{{ domain.id }}" {{ criteria.domainId == domain.id ? 'selected' : '' }}>{{ domain.name }}</option>{% endfor %}
+          </select>
+          <select class="m-select" name="mention" aria-label="Mention">
+            <option value="">Toutes les mentions</option>
+            {% for mention in mentions %}<option value="{{ mention.id }}" {{ criteria.mentionId == mention.id ? 'selected' : '' }}>{{ mention.name }}</option>{% endfor %}
+          </select>
+          <select class="m-select" name="specialty" aria-label="Spécialité">
+            <option value="">Toutes les spécialités</option>
+            {% for specialty in specialties %}<option value="{{ specialty.id }}" {{ criteria.specialtyId == specialty.id ? 'selected' : '' }}>{{ specialty.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Type de projet réalisé</p>
+        <div class="d-grid gap-2">
+          {% for type in projectTypes %}
+            <label class="m-case">
+              <input type="checkbox" data-filtre-case name="project_type[]" value="{{ type.value }}" {{ type.value in criteria.projectTypes ? 'checked' : '' }}>
+              <span>{{ type.shortLabel }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="m-filtres__groupe">
+        <p class="m-filtres__titre">Établissement</p>
+        <select class="m-select" name="institution" aria-label="Établissement">
+          <option value="">Tous les établissements</option>
+          {% for institution in institutions %}<option value="{{ institution.id }}" {{ criteria.institutionId == institution.id ? 'selected' : '' }}>{{ institution.name }}</option>{% endfor %}
+        </select>
+        <p class="m-filtres__titre mt-3">Pays / Ville</p>
+        <div class="d-flex gap-2">
+          <input class="m-select" type="text" name="country" value="{{ criteria.country }}" placeholder="Pays" aria-label="Pays">
+          <input class="m-select" type="text" name="city" value="{{ criteria.city }}" placeholder="Ville" aria-label="Ville">
+        </div>
+        <p class="m-filtres__titre mt-3">Disponibilité</p>
+        <select class="m-select" name="availability" aria-label="Disponibilité">
+          <option value="">Toutes</option>
+          {% for availability in availabilities %}<option value="{{ availability.value }}" {{ criteria.availability == availability.value ? 'selected' : '' }}>{{ availability.label }}</option>{% endfor %}
+        </select>
+        <p class="m-filtres__titre mt-3">Année de réalisation</p>
+        <input class="form-range" type="range" min="2018" max="2026" name="year_min" value="{{ criteria.yearMin|default(2018) }}" aria-label="Année minimale">
+        <div class="d-flex justify-content-between m-meta"><span>{{ criteria.yearMin|default(2018) }}</span><span>2026</span></div>
+      </div>
+    </form>
+  </aside>
+
+  <main class="m-resultats">
+    <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 style="font-size:24px">{{ total }} talent{{ total > 1 ? 's' : '' }} correspondant{{ total > 1 ? 's' : '' }}</h1>
+        <p class="m-meta mt-1 mb-0">Chaque résultat a publié au moins un projet réalisé et vérifiable.</p>
+      </div>
+      <div class="d-flex align-items-center gap-2" data-chip-groupe>
+        <span class="m-meta">Trier :</span>
+        <label class="m-chip{{ criteria.sort == 'relevance' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-talents">
+          <input type="radio" class="visually-hidden" name="sort" value="relevance" form="filtres-talents" {{ criteria.sort == 'relevance' ? 'checked' : '' }}>Pertinence
+        </label>
+        <label class="m-chip{{ criteria.sort == 'recent' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-talents">
+          <input type="radio" class="visually-hidden" name="sort" value="recent" form="filtres-talents" {{ criteria.sort == 'recent' ? 'checked' : '' }}>Plus récents
+        </label>
+        <label class="m-chip{{ criteria.sort == 'name' ? ' is-active' : '' }}" data-chip data-chip-exclusif form="filtres-talents">
+          <input type="radio" class="visually-hidden" name="sort" value="name" form="filtres-talents" {{ criteria.sort == 'name' ? 'checked' : '' }}>Nom
+        </label>
+      </div>
+    </div>
+
+    {% set hasActiveFilters = criteria.technologyIds or criteria.skillIds or criteria.domainId or criteria.mentionId or criteria.specialtyId or criteria.projectTypes or criteria.institutionId or criteria.country or criteria.city or criteria.availability %}
+    {% if hasActiveFilters %}
+      <div class="m-tags mt-3">
+        {% for technology in technologies %}{% if technology.id in criteria.technologyIds %}{{ filtresActifs.tag('app_recruiter_search', 'technologies', technology.id, technology.name) }}{% endif %}{% endfor %}
+        {% for skill in skills %}{% if skill.id in criteria.skillIds %}{{ filtresActifs.tag('app_recruiter_search', 'skills', skill.id, skill.name) }}{% endif %}{% endfor %}
+        {% for domain in domains %}{% if domain.id == criteria.domainId %}{{ filtresActifs.tag('app_recruiter_search', 'domain', null, domain.name) }}{% endif %}{% endfor %}
+        {% for mention in mentions %}{% if mention.id == criteria.mentionId %}{{ filtresActifs.tag('app_recruiter_search', 'mention', null, mention.name) }}{% endif %}{% endfor %}
+        {% for specialty in specialties %}{% if specialty.id == criteria.specialtyId %}{{ filtresActifs.tag('app_recruiter_search', 'specialty', null, specialty.name) }}{% endif %}{% endfor %}
+        {% for type in projectTypes %}{% if type.value in criteria.projectTypes %}{{ filtresActifs.tag('app_recruiter_search', 'project_type', type.value, type.shortLabel) }}{% endif %}{% endfor %}
+        {% for institution in institutions %}{% if institution.id == criteria.institutionId %}{{ filtresActifs.tag('app_recruiter_search', 'institution', null, institution.name) }}{% endif %}{% endfor %}
+        {% if criteria.country %}{{ filtresActifs.tag('app_recruiter_search', 'country', null, criteria.country) }}{% endif %}
+        {% if criteria.city %}{{ filtresActifs.tag('app_recruiter_search', 'city', null, criteria.city) }}{% endif %}
+        {% for availability in availabilities %}{% if availability.value == criteria.availability %}{{ filtresActifs.tag('app_recruiter_search', 'availability', null, availability.label) }}{% endif %}{% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="d-grid gap-3 mt-4">
+      {% for result in results %}
+        {% set talent = result.user %}
+        <article class="m-carte m-carte--plate p-4">
+          <div class="d-flex gap-4 flex-wrap">
+            <span class="m-avatar m-avatar--lg" style="{% if talent.photo %}background-image:url('{{ asset(talent.photo) }}');background-size:cover{% endif %}"></span>
+            <div class="flex-fill" style="min-width:300px">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a class="fw-bold" style="font-size:19px;letter-spacing:-.02em" href="{{ path('app_profile_show', {slug: talent.slug}) }}">{{ talent.fullName }}</a>
+                {% if talent.availability %}<span class="m-tag">{{ talent.availability.label }}</span>{% endif %}
+              </div>
+              {% if talent.professionalTitle %}<p class="fw-semibold mb-1" style="font-size:14.5px;color:var(--m-bleu)">{{ talent.professionalTitle }}</p>{% endif %}
+              <p class="m-meta mt-1 mb-2">
+                {{ talent.city }}{{ talent.city and talent.country ? ', ' : '' }}{{ talent.country }}
+                {% if talent.institution %}{{ (talent.city or talent.country) ? ' · ' : '' }}🎓 {{ talent.institution.name }}{% endif %}
+              </p>
+              <div class="m-tags">
+                {% for tech in talent.technologies %}<span class="m-tag{{ tech.id in criteria.technologyIds ? ' m-tag--bleu' : '' }}">{{ tech.name }}</span>{% endfor %}
+              </div>
+            </div>
+            <div class="d-grid gap-2" style="width:190px">
+              {% if result.compatibility is not null %}
+                <div class="text-end"><span class="m-stat__valeur d-block" style="font-size:26px;color:var(--m-bleu)">{{ result.compatibility }}%</span><span class="m-stat__libelle">compatibilité</span></div>
+              {% endif %}
+              {% if talent.whatsappEnabled and talent.whatsapp %}
+                <a class="m-btn m-btn--primaire" href="https://wa.me/{{ talent.whatsapp }}" target="_blank" rel="noopener">💬 Contacter sur WhatsApp</a>
+              {% endif %}
+              <a class="m-btn m-btn--secondaire" href="{{ path('app_profile_show', {slug: talent.slug}) }}">Voir le profil</a>
+            </div>
+          </div>
+        </article>
+      {% else %}
+        <p class="m-meta">Aucun résultat trouvé.</p>
+        <p class="m-meta">Essayez : une autre technologie, moins de filtres, ou une autre localisation.</p>
+      {% endfor %}
+    </div>
+
+    {% if pageCount > 1 %}
+      <nav class="m-pagination mt-4" aria-label="Pagination">
+        {% for p in 1..pageCount %}
+          <a class="{{ p == criteria.page ? 'is-active' : '' }}" href="{{ path('app_recruiter_search', app.request.query.all|merge({page: p})) }}">{{ p }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </main>
+</div>
 {% endblock %}

@@ -1,0 +1,17 @@
+{#
+  Filtres actifs sous forme de tags retirables (cahier des charges §31).
+  Usage : {{ _self.tag(route, 'technologies', technology.id, technology.name) }}
+  pour un filtre multi-valeurs (name[]), ou {{ _self.tag(route, 'city', null, criteria.city) }}
+  pour un filtre scalaire (la valeur à retirer est alors ignorée, la clé entière est vidée).
+#}
+{% macro tag(route, key, value, label) %}
+  {% set q = app.request.query.all %}
+  {% if value is not null and q[key] is iterable %}
+    {% set restants = q[key]|filter(v => v|trim != value|trim) %}
+    {% set q = q|merge({(key): restants}) %}
+  {% else %}
+    {% set q = q|merge({(key): null}) %}
+  {% endif %}
+  {% set q = q|filter(v => v is not null and v is not same as('') and v is not same as([]))|merge({page: 1}) %}
+  <a class="m-chip is-active" href="{{ path(route, q) }}">{{ label }} <span aria-hidden="true">×</span></a>
+{% endmacro %}

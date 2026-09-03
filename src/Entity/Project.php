@@ -11,6 +11,8 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ProjectRepository::class)]
 #[ORM\Table(name: 'project')]
+#[ORM\Index(columns: ['status', 'type'], name: 'project_status_type_idx')]
+#[ORM\Index(columns: ['published_at'], name: 'project_published_at_idx')]
 class Project
 {
     #[ORM\Id]

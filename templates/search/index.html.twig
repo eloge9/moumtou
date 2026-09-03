@@ -1,0 +1,162 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ query ? 'Résultats pour « ' ~ query ~ ' »' : 'Recherche' }} — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'recherche'} %}{% endblock %}
+
+{% block body %}
+<section class="p-4" style="background:var(--m-fond);border-bottom:1px solid var(--m-bordure)">
+  <form action="{{ path('app_search') }}" method="get" class="d-flex gap-2">
+    <label class="m-recherche m-recherche--large flex-fill">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0A46E4" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
+      <input type="search" name="q" value="{{ query }}" placeholder="Rechercher un talent, un projet, une technologie…" aria-label="Rechercher" autofocus>
+    </label>
+    <button class="m-btn m-btn--primaire m-btn--lg" type="submit">Rechercher</button>
+  </form>
+</section>
+
+<main class="p-4">
+  {% if empty %}
+    <h1 style="font-size:22px">Découvrez MOUMTOU</h1>
+    <p class="m-texte mt-1">Tapez un nom, un projet ou une technologie ci-dessus, ou explorez ce qui bouge en ce moment.</p>
+
+    {% if popularTechnologies|length %}
+      <h2 class="mt-4" style="font-size:17px">Technologies populaires</h2>
+      <div class="m-tags mt-2">
+        {% for row in popularTechnologies %}
+          <a class="m-chip" href="{{ path('app_explorer', {'technologies[]': row.id}) }}">{{ row.name }} <span class="m-meta">({{ row.total }})</span></a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if recentProjects|length %}
+      <h2 class="mt-5" style="font-size:17px">Projets récents</h2>
+      <div class="row g-3 mt-1">
+        {% for project in recentProjects %}
+          <div class="col-xl-4 col-md-6">
+            <article class="m-carte h-100">
+              <div class="m-media" style="height:110px">
+                {% if project.photos|length %}<img src="{{ asset(project.photos.first.thumbnailPath ?: project.photos.first.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy">{% endif %}
+              </div>
+              <div class="m-carte__corps">
+                <h3 class="m-carte__titre" style="font-size:15px"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a></h3>
+                <p class="m-meta mb-0">{{ project.owner.fullName }}</p>
+              </div>
+            </article>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if upcomingDefenses|length %}
+      <h2 class="mt-5" style="font-size:17px">Soutenances à venir</h2>
+      <div class="d-grid gap-2 mt-1">
+        {% for defense in upcomingDefenses %}
+          <a class="m-carte m-carte--plate p-3 d-flex justify-content-between align-items-center" href="{{ path('app_defense_show', {slug: defense.project.slug}) }}">
+            <span><span class="fw-bold" style="font-size:14.5px">{{ defense.project.name }}</span> <span class="m-meta">— {{ defense.project.owner.fullName }}</span></span>
+            <span class="m-meta">{{ defense.date|date('d M Y') }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% else %}
+    <h1 style="font-size:22px">Résultats pour « {{ query }} »</h1>
+
+    <section class="mt-4">
+      <div class="d-flex align-items-center justify-content-between">
+        <h2 style="font-size:17px">Talents <span class="m-meta">{{ talentsTotal }} résultat{{ talentsTotal > 1 ? 's' : '' }}</span></h2>
+        {% if talentsTotal > talents|length %}<a href="{{ path('app_search', {type: 'talents', q: query}) }}" style="color:var(--m-bleu);font-size:13.5px">Voir tout</a>{% endif %}
+      </div>
+      <div class="row g-3 mt-1">
+        {% for talent in talents %}
+          <div class="col-xl-4 col-md-6">
+            <article class="m-carte m-carte--plate p-3">
+              <div class="d-flex gap-3">
+                <span class="m-avatar" style="width:44px;height:44px;{% if talent.photo %}background-image:url('{{ asset(talent.photo) }}');background-size:cover{% endif %}"></span>
+                <div class="flex-fill">
+                  <a class="fw-bold d-block" style="font-size:15px" href="{{ path('app_profile_show', {slug: talent.slug}) }}">{{ talent.fullName }}</a>
+                  {% if talent.professionalTitle %}<p class="m-meta mb-1">{{ talent.professionalTitle }}</p>{% endif %}
+                  <div class="m-tags mt-1">{% for tech in talent.technologies|slice(0, 4) %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
+                </div>
+              </div>
+            </article>
+          </div>
+        {% else %}
+          <div class="col-12"><p class="m-meta">Aucun talent trouvé.</p></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mt-5">
+      <div class="d-flex align-items-center justify-content-between">
+        <h2 style="font-size:17px">Projets <span class="m-meta">{{ projectsTotal }} résultat{{ projectsTotal > 1 ? 's' : '' }}</span></h2>
+        {% if projectsTotal > projects|length %}<a href="{{ path('app_explorer', {q: query}) }}" style="color:var(--m-bleu);font-size:13.5px">Voir tout</a>{% endif %}
+      </div>
+      <div class="row g-3 mt-1">
+        {% for project in projects %}
+          <div class="col-xl-4 col-md-6">
+            <article class="m-carte h-100">
+              <div class="m-media" style="height:110px">
+                {% if project.photos|length %}<img src="{{ asset(project.photos.first.thumbnailPath ?: project.photos.first.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy">{% endif %}
+              </div>
+              <div class="m-carte__corps">
+                <span class="m-statut{{ project.status.value == 'publie' ? ' m-statut--publie' : '' }}">{{ project.status.value == 'verifie' ? 'Vérifié' : 'Publié' }}</span>
+                <h3 class="m-carte__titre mt-2" style="font-size:15px"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a></h3>
+                <p class="m-meta mb-0">{{ project.owner.fullName }}</p>
+                <div class="m-tags mt-2">{% for tech in project.technologies|slice(0, 3) %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
+              </div>
+            </article>
+          </div>
+        {% else %}
+          <div class="col-12"><p class="m-meta">Aucun projet trouvé.</p></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mt-5">
+      <div class="d-flex align-items-center justify-content-between">
+        <h2 style="font-size:17px">Soutenances <span class="m-meta">{{ defensesTotal }} résultat{{ defensesTotal > 1 ? 's' : '' }}</span></h2>
+        {% if defensesTotal > defenses|length %}<a href="{{ path('app_explorer', {q: query, 'types[]': 'soutenance'}) }}" style="color:var(--m-bleu);font-size:13.5px">Voir tout</a>{% endif %}
+      </div>
+      <div class="d-grid gap-2 mt-1">
+        {% for soutenance in defenses %}
+          <a class="m-carte m-carte--plate p-3 d-flex justify-content-between align-items-center" href="{{ path('app_project_show', {slug: soutenance.slug}) }}">
+            <span><span class="fw-bold" style="font-size:14.5px">{{ soutenance.name }}</span> <span class="m-meta">— {{ soutenance.owner.fullName }}</span></span>
+            {% if soutenance.status.value == 'verifie' %}<span class="m-tag m-tag--bleu">✓ Vérifié</span>{% endif %}
+          </a>
+        {% else %}
+          <p class="m-meta">Aucune soutenance trouvée.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if technologies|length %}
+      <section class="mt-5">
+        <h2 style="font-size:17px">Technologies</h2>
+        <div class="m-tags mt-2">
+          {% for technology in technologies %}
+            <a class="m-chip" href="{{ path('app_explorer', {'technologies[]': technology.id}) }}">{{ technology.name }}</a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if institutions|length %}
+      <section class="mt-5">
+        <h2 style="font-size:17px">Institutions</h2>
+        <div class="d-grid gap-2 mt-2">
+          {% for institution in institutions %}
+            <a class="m-carte m-carte--plate p-3" href="{{ path('app_explorer', {institution: institution.id}) }}">{{ institution.name }}{% if institution.city %} — {{ institution.city }}{% endif %}</a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if not talentsTotal and not projectsTotal and not defensesTotal and not technologies|length and not institutions|length %}
+      <p class="m-texte mt-4">Aucun résultat trouvé.</p>
+      <p class="m-meta">Essayez : une autre technologie, une autre compétence, moins de filtres, ou un autre domaine.</p>
+    {% endif %}
+  {% endif %}
+</main>
+{% endblock %}

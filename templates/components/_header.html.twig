@@ -18,11 +18,12 @@
     <a class="m-nav__link{{ active_nav|default('') == 'talents' ? ' is-active' : '' }}" href="{{ path('app_recruiter_search') }}">Talents</a>
   </nav>
   <div class="ms-auto d-flex align-items-center gap-3">
-    <form action="{{ path('app_explorer') }}" method="get">
+    <form action="{{ path('app_search') }}" method="get" data-recherche-globale style="position:relative">
       <label class="m-recherche">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8C97AB" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg>
-        <input type="search" name="q" placeholder="Rechercher un talent, une techno…" aria-label="Rechercher">
+        <input type="search" name="q" placeholder="Rechercher un talent, une techno…" aria-label="Rechercher" autocomplete="off" data-recherche-champ>
       </label>
+      <div class="m-suggestions" data-recherche-suggestions hidden></div>
     </form>
     {% if app.user %}
       <div class="m-menu" data-menu>
