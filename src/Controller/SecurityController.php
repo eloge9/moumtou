@@ -74,10 +74,11 @@ class SecurityController extends AbstractController
     ): Response {
         $id = (int) $request->query->get('id');
         $expires = (int) $request->query->get('expires');
+        $pwv = (string) $request->query->get('pwv');
         $user = $em->getRepository(User::class)->find($id);
 
-        if (!$user || !$mailer->isSignedUrlValid($request->getUri(), $expires)) {
-            throw $this->createNotFoundException('Ce lien de réinitialisation est invalide ou a expiré.');
+        if (!$user || !$mailer->isSignedUrlValid($request->getUri(), $expires, $user, $pwv)) {
+            throw $this->createNotFoundException('Ce lien de réinitialisation est invalide, a déjà été utilisé ou a expiré.');
         }
 
         $errors = [];

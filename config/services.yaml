@@ -61,6 +61,11 @@ services:
         arguments:
             $recruiterLogoUploadsDirectory: '%app.recruiter_logo_uploads_directory%'
 
+    App\Command\BackupDatabaseCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+            $environment: '%kernel.environment%'
+
     App\Security\OAuth\OAuthProviderRegistry:
         arguments:
             $googleClientId: '%env(GOOGLE_OAUTH_CLIENT_ID)%'

@@ -232,7 +232,7 @@ class ProjectController extends AbstractController
 
     #[Route('/commentaires/{id}/repondre', name: 'app_comment_reply', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function replyToComment(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
+    public function replyToComment(int $id, Request $request, EntityManagerInterface $em, RateLimiterFactory $commentLimiter, NotificationService $notificationService): Response
     {
         $parent = $em->getRepository(Comment::class)->find($id);
         if (!$parent) {
@@ -241,6 +241,15 @@ class ProjectController extends AbstractController
 
         $this->assertViewable($parent->getProject());
         $this->assertCsrf($request, 'repondre-commentaire-'.$id);
+
+        // Une réponse est un commentaire comme un autre du point de vue du
+        // risque de spam : même compteur que app_project_comment (cahier
+        // des charges — FONCTIONNALITÉ 15 §13).
+        if (!$commentLimiter->create('user-'.$this->getUser()->getId())->consume(1)->isAccepted()) {
+            $this->addFlash('erreur', 'Vous avez publié trop de commentaires récemment. Merci de patienter.');
+
+            return $this->redirectToRoute('app_project_show', ['slug' => $parent->getProject()->getSlug()]);
+        }
 
         $content = $this->validatedContent((string) $request->request->get('content'));
         if (null === $content) {
@@ -327,7 +336,7 @@ class ProjectController extends AbstractController
 
     #[Route('/commentaires/{id}/signaler', name: 'app_comment_report', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function reportComment(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
+    public function reportComment(int $id, Request $request, EntityManagerInterface $em, RateLimiterFactory $reportLimiter, NotificationService $notificationService): Response
     {
         $comment = $em->getRepository(Comment::class)->find($id);
         if (!$comment) {
@@ -337,6 +346,12 @@ class ProjectController extends AbstractController
         $this->assertViewable($comment->getProject());
         $this->assertCsrf($request, 'signalement-commentaire-'.$id);
         $slug = $comment->getProject()->getSlug();
+
+        if (!$reportLimiter->create('user-'.$this->getUser()->getId())->consume(1)->isAccepted()) {
+            $this->addFlash('erreur', 'Vous avez transmis trop de signalements récemment. Merci de patienter.');
+
+            return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+        }
 
         $reason = ReportReason::tryFrom((string) $request->request->get('reason'));
         if (!$reason) {
@@ -369,11 +384,17 @@ class ProjectController extends AbstractController
 
     #[Route('/projets/{slug}/signaler', name: 'app_project_report', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function report(string $slug, Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
+    public function report(string $slug, Request $request, EntityManagerInterface $em, RateLimiterFactory $reportLimiter, NotificationService $notificationService): Response
     {
         $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         $this->assertViewable($project);
         $this->assertCsrf($request, 'signalement');
+
+        if (!$reportLimiter->create('user-'.$this->getUser()->getId())->consume(1)->isAccepted()) {
+            $this->addFlash('erreur', 'Vous avez transmis trop de signalements récemment. Merci de patienter.');
+
+            return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+        }
 
         $reason = ReportReason::tryFrom((string) $request->request->get('reason'));
         if (!$reason) {
