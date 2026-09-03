@@ -41,7 +41,7 @@
 
 <div class="m-carte m-carte--plate p-3 mb-3">
   <p class="m-surtitre mb-2">Ajouter un établissement</p>
-  <form method="post" action="{{ path('admin_institutions_add') }}" class="row g-2 align-items-end">
+  <form method="post" action="{{ path('admin_institutions_add') }}" enctype="multipart/form-data" class="row g-2 align-items-end">
     <div class="col-md-3"><label class="m-label">Nom</label><input class="m-input" type="text" name="name" required></div>
     <div class="col-md-2">
       <label class="m-label">Type</label>
@@ -56,6 +56,10 @@
       <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-institution-ajouter') }}">
       <button class="m-btn m-btn--primaire m-btn--bloc" type="submit">Ajouter</button>
     </div>
+    <div class="col-md-4">
+      <label class="m-label">Logo (optionnel — JPG, PNG, WebP)</label>
+      <input class="m-input" type="file" name="logo" accept="image/jpeg,image/png,image/webp">
+    </div>
   </form>
 </div>
 
@@ -66,7 +70,10 @@
       <tbody>
         {% for institution in institutions %}
           <tr style="{{ not institution.active ? 'opacity:.55' }}">
-            <td class="fw-semibold">{{ institution.name }}{% if not institution.active %} <span class="m-tag">Désactivé</span>{% endif %}</td>
+            <td class="fw-semibold">
+              {% if institution.logo %}<img src="{{ asset(institution.logo) }}" alt="" width="24" height="24" style="border-radius:4px;object-fit:cover;vertical-align:middle;margin-right:6px">{% endif %}
+              {{ institution.name }}{% if not institution.active %} <span class="m-tag">Désactivé</span>{% endif %}
+            </td>
             <td class="m-texte">{{ institution.type.label }}</td>
             <td class="m-texte">{{ institution.country }}</td>
             <td class="m-texte">{{ institution.city }}</td>
@@ -92,9 +99,13 @@
 
           <div class="m-modale" id="modale-modifier-{{ institution.id }}" data-modale role="dialog" aria-modal="true">
             <div class="m-modale__boite">
-              <form method="post" action="{{ path('admin_institutions_edit', {id: institution.id}) }}">
+              <form method="post" action="{{ path('admin_institutions_edit', {id: institution.id}) }}" enctype="multipart/form-data">
                 <h2 class="m-modale__titre">Modifier {{ institution.name }}</h2>
                 <div class="row g-2 mt-2">
+                  {% if institution.logo %}
+                    <div class="col-12"><img src="{{ asset(institution.logo) }}" alt="" width="56" height="56" style="border-radius:6px;object-fit:cover"></div>
+                  {% endif %}
+                  <div class="col-12"><label class="m-label">{{ institution.logo ? 'Remplacer le logo' : 'Logo' }} (optionnel — JPG, PNG, WebP)</label><input class="m-input" type="file" name="logo" accept="image/jpeg,image/png,image/webp"></div>
                   <div class="col-md-6"><label class="m-label">Nom</label><input class="m-input" type="text" name="name" value="{{ institution.name }}" required></div>
                   <div class="col-md-6">
                     <label class="m-label">Type</label>

@@ -37,8 +37,11 @@
       {% if profileUser.bio %}<p class="m-texte mb-3" style="max-width:560px">{{ profileUser.bio }}</p>{% endif %}
       <p class="m-meta mb-2">{% if profileUser.city or profileUser.country %}{{ profileUser.city }}{{ profileUser.city and profileUser.country ? ', ' : '' }}{{ profileUser.country }}{% endif %}</p>
       {% if profileUser.institution or profileUser.specialty %}
-        <p class="m-meta mb-2">
-          {% if profileUser.institution %}🎓 {{ profileUser.institution.name }}{% endif %}
+        <p class="m-meta mb-2 d-flex align-items-center gap-1">
+          {% if profileUser.institution %}
+            {% if profileUser.institution.logo %}<img src="{{ asset(profileUser.institution.logo) }}" alt="" width="16" height="16" style="border-radius:3px;object-fit:cover">{% else %}🎓{% endif %}
+            {{ profileUser.institution.name }}
+          {% endif %}
           {% if profileUser.specialty %}{{ profileUser.institution ? ' — ' : '' }}{{ profileUser.specialty.name }}{% endif %}
         </p>
       {% endif %}

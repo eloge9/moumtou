@@ -31,7 +31,7 @@ class AccountManagementTest extends FunctionalTestCase
 
         $client->loginUser($user);
         $crawler = $client->request('GET', '/mon-profil/modifier');
-        $token = $crawler->filter('input[name="_csrf_token"]')->eq(0)->attr('value');
+        $token = $crawler->filter('form[action="/mon-compte/mot-de-passe"] input[name="_csrf_token"]')->attr('value');
 
         $client->request('POST', '/mon-compte/mot-de-passe', [
             'current_password' => 'AncienMotDePasse1',
@@ -65,7 +65,7 @@ class AccountManagementTest extends FunctionalTestCase
 
         $client->loginUser($user);
         $crawler = $client->request('GET', '/mon-profil/modifier');
-        $token = $crawler->filter('input[name="_csrf_token"]')->last()->attr('value');
+        $token = $crawler->filter('form[action="/mon-compte/supprimer"] input[name="_csrf_token"]')->attr('value');
 
         $client->request('POST', '/mon-compte/supprimer', [
             'password' => 'MotDePasse123',

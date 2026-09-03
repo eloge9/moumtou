@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Institution;
 use App\Entity\Project;
 use App\Entity\Technology;
 use App\Entity\User;
@@ -26,6 +27,7 @@ class RecruiterController extends AbstractController
         $query = trim((string) $request->query->get('q', ''));
         $technologyIds = array_map('intval', $request->query->all('technologies'));
         $city = trim((string) $request->query->get('city', ''));
+        $institutionId = (string) $request->query->get('institution', '');
 
         // Un talent = un compte ayant publié au moins un projet visible publiquement.
         $publicOwnerIdsDql = $em->getRepository(Project::class)->createQueryBuilder('p')
@@ -43,6 +45,9 @@ class RecruiterController extends AbstractController
         }
         if ($city) {
             $qb->andWhere('u.city LIKE :city')->setParameter('city', '%'.$city.'%');
+        }
+        if ($institutionId) {
+            $qb->andWhere('u.institution = :institutionId')->setParameter('institutionId', $institutionId);
         }
         if ($technologyIds) {
             $qb->join('u.technologies', 'tech')->andWhere('tech.id IN (:techIds)')->setParameter('techIds', $technologyIds);
@@ -67,8 +72,11 @@ class RecruiterController extends AbstractController
             'results' => $results,
             'query' => $query,
             'city' => $city,
+            'institutionId' => $institutionId,
             'technologyIds' => $technologyIds,
             'technologies' => $em->getRepository(Technology::class)->findBy([], ['name' => 'ASC']),
+            'institutions' => $em->getRepository(Institution::class)->createQueryBuilder('i')
+                ->andWhere('i.active = true')->orderBy('i.name', 'ASC')->getQuery()->getResult(),
         ]);
     }
 }

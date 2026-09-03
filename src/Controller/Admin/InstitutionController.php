@@ -4,13 +4,17 @@ namespace App\Controller\Admin;
 
 use App\Entity\Institution;
 use App\Enum\InstitutionType;
+use App\Service\InstitutionLogoUploader;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Validator\Constraints\File;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[IsGranted('ROLE_ADMIN')]
 #[Route('/admin/etablissements')]
@@ -50,7 +54,7 @@ class InstitutionController extends AbstractController
     }
 
     #[Route('/ajouter', name: 'admin_institutions_add', methods: ['POST'])]
-    public function add(Request $request, EntityManagerInterface $em): Response
+    public function add(Request $request, EntityManagerInterface $em, InstitutionLogoUploader $logoUploader, ValidatorInterface $validator): Response
     {
         if (!$this->isCsrfTokenValid('admin-institution-ajouter', $request->request->get('_csrf_token'))) {
             throw new InvalidCsrfTokenException();
@@ -77,6 +81,14 @@ class InstitutionController extends AbstractController
         $institution->setWebsite(trim((string) $request->request->get('website')) ?: null);
         $institution->setVerified(true);
         $em->persist($institution);
+
+        $logoError = $this->validateAndUploadLogo($request, $institution, $logoUploader, $validator);
+        if ($logoError) {
+            $this->addFlash('erreur', $logoError);
+
+            return $this->redirectToRoute('admin_institutions');
+        }
+
         $em->flush();
 
         $this->addFlash('succes', 'Établissement ajouté avec succès.');
@@ -85,7 +97,7 @@ class InstitutionController extends AbstractController
     }
 
     #[Route('/{id}/modifier', name: 'admin_institutions_edit', methods: ['POST'])]
-    public function edit(int $id, Request $request, EntityManagerInterface $em): Response
+    public function edit(int $id, Request $request, EntityManagerInterface $em, InstitutionLogoUploader $logoUploader, ValidatorInterface $validator): Response
     {
         $institution = $em->getRepository(Institution::class)->find($id);
         if (!$institution) {
@@ -110,6 +122,14 @@ class InstitutionController extends AbstractController
         $institution->setWebsite(trim((string) $request->request->get('website')) ?: null);
         $institution->setDescription(trim((string) $request->request->get('description')) ?: null);
         $institution->setUpdatedAt(new \DateTimeImmutable());
+
+        $logoError = $this->validateAndUploadLogo($request, $institution, $logoUploader, $validator);
+        if ($logoError) {
+            $this->addFlash('erreur', $logoError);
+
+            return $this->redirectToRoute('admin_institutions');
+        }
+
         $em->flush();
 
         $this->addFlash('succes', 'Établissement modifié avec succès.');
@@ -176,5 +196,34 @@ class InstitutionController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_institutions');
+    }
+
+    /**
+     * Valide réellement le fichier envoyé côté serveur (type MIME, taille) —
+     * l'attribut HTML `accept` n'est qu'un confort côté navigateur et ne
+     * protège de rien. Retourne un message d'erreur, ou null si tout est
+     * en ordre (fichier absent ou valide et téléversé).
+     */
+    private function validateAndUploadLogo(Request $request, Institution $institution, InstitutionLogoUploader $logoUploader, ValidatorInterface $validator): ?string
+    {
+        /** @var UploadedFile|null $logo */
+        $logo = $request->files->get('logo');
+        if (!$logo) {
+            return null;
+        }
+
+        $violations = $validator->validate($logo, new File(
+            maxSize: '3M',
+            mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+            mimeTypesMessage: 'Formats acceptés pour le logo : JPG, PNG, WebP.',
+        ));
+
+        if (\count($violations) > 0) {
+            return $violations[0]->getMessage();
+        }
+
+        $logoUploader->upload($institution, $logo);
+
+        return null;
     }
 }

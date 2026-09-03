@@ -13,6 +13,12 @@
       <input type="search" name="q" value="{{ query }}" placeholder="Nom ou mot-clé du profil" aria-label="Rechercher un talent">
     </label>
     <input class="m-input" style="max-width:220px" type="text" name="city" value="{{ city }}" placeholder="Ville">
+    <select class="m-select" style="max-width:240px" name="institution">
+      <option value="">Tous les établissements</option>
+      {% for institution in institutions %}
+        <option value="{{ institution.id }}" {{ institutionId == institution.id ? 'selected' }}>{{ institution.name }}</option>
+      {% endfor %}
+    </select>
     <button class="m-btn m-btn--primaire m-btn--lg" type="submit">Rechercher</button>
   </form>
 
@@ -27,6 +33,7 @@
   <form method="get" id="filtres-talents">
     <input type="hidden" name="q" value="{{ query }}">
     <input type="hidden" name="city" value="{{ city }}">
+    <input type="hidden" name="institution" value="{{ institutionId }}">
   </form>
 </section>
 
@@ -49,7 +56,10 @@
               <a class="fw-bold" style="font-size:19px;letter-spacing:-.02em" href="{{ path('app_profile_show', {slug: talent.slug}) }}">{{ talent.fullName }}</a>
               {% if talent.availability %}<span class="m-tag">{{ talent.availability.label }}</span>{% endif %}
             </div>
-            <p class="m-meta mt-1 mb-2">{{ talent.city }}{{ talent.city and talent.country ? ', ' : '' }}{{ talent.country }}</p>
+            <p class="m-meta mt-1 mb-2">
+              {{ talent.city }}{{ talent.city and talent.country ? ', ' : '' }}{{ talent.country }}
+              {% if talent.institution %}{{ (talent.city or talent.country) ? ' · ' : '' }}🎓 {{ talent.institution.name }}{% endif %}
+            </p>
             <div class="m-tags">
               {% for tech in talent.technologies %}<span class="m-tag{{ tech.id in technologyIds ? ' m-tag--bleu' : '' }}">{{ tech.name }}</span>{% endfor %}
             </div>
