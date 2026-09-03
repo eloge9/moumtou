@@ -3,6 +3,7 @@
 {% block title %}{{ profileUser.fullName }}{{ profileUser.professionalTitle ? ' — ' ~ profileUser.professionalTitle : ' — Profil talent' }} — MOUMTOU{% endblock %}
 {% block meta_description %}{{ (profileUser.bio ?: profileUser.fullName ~ ' présente ses projets et compétences sur MOUMTOU.')|striptags|slice(0, 160) }}{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ url('app_profile_show', {slug: profileUser.slug}) }}">{% endblock %}
+{% block og_url %}<meta property="og:url" content="{{ publicUrl }}">{% endblock %}
 {% block og_type %}profile{% endblock %}
 {% block og_title %}{{ profileUser.fullName }} — MOUMTOU{% endblock %}
 {% block og_description %}{{ block('meta_description') }}{% endblock %}

@@ -333,6 +333,30 @@
     document.querySelectorAll('[data-modale].is-open').forEach(function (m) { m.classList.remove('is-open'); });
   }
 
+  /* --- Partage natif du navigateur (cahier des charges — F11 §12) : ------ */
+  /* --- essaie navigator.share() en priorité, repli sur la modale de ------ */
+  /* --- partage (copier le lien / réseaux sociaux) si indisponible. ------- */
+  function initPartageNatif() {
+    document.querySelectorAll('[data-partage-natif]').forEach(function (bouton) {
+      bouton.addEventListener('click', function () {
+        var url = bouton.getAttribute('data-partage-url');
+        if (navigator.share) {
+          navigator.share({
+            title: bouton.getAttribute('data-partage-titre') || undefined,
+            text: bouton.getAttribute('data-partage-texte') || undefined,
+            url: url,
+          }).catch(function () {
+            // Annulation par l'utilisateur ou échec silencieux : pas de repli,
+            // la modale se rouvrirait sans que l'utilisateur l'ait demandé.
+          });
+          return;
+        }
+        var repliId = bouton.getAttribute('data-partage-repli');
+        if (repliId) ouvrirModale(repliId);
+      });
+    });
+  }
+
   /* --------------- Vidéo YouTube : miniature cliquable, pas de lecture --- */
   /* --------------- automatique (cahier des charges — F10 §5/§22) --------- */
   function initYoutubeFacade() {
@@ -444,6 +468,7 @@
     initOnglets();
     initMenus();
     initModales();
+    initPartageNatif();
     initYoutubeFacade();
     initRemplacerPhoto();
     initAutrePrecision();

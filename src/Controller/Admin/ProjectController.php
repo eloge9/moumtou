@@ -5,11 +5,13 @@ namespace App\Controller\Admin;
 use App\Entity\Project;
 use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
+use App\Service\QrCodeGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
@@ -65,16 +67,26 @@ class ProjectController extends AbstractController
     }
 
     #[Route('/{id}', name: 'admin_project_show', requirements: ['id' => '\d+'])]
-    public function show(int $id, EntityManagerInterface $em): Response
+    public function show(int $id, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, QrCodeGenerator $qrCodeGenerator): Response
     {
         $project = $em->getRepository(Project::class)->find($id);
         if (!$project) {
             throw $this->createNotFoundException();
         }
 
+        // URL publique et QR code (cahier des charges — FONCTIONNALITÉ 11
+        // §22) : uniquement si le projet a un slug, c'est-à-dire s'il a déjà
+        // été soumis au moins une fois (un projet jamais persisté via le
+        // formulaire de publication n'existe pas en base).
+        $publicUrl = $project->getSlug()
+            ? $urlGenerator->generate('app_project_show', ['slug' => $project->getSlug()], UrlGeneratorInterface::ABSOLUTE_URL)
+            : null;
+
         return $this->render('admin/project_show.html.twig', [
             'adminNav' => 'projects',
             'project' => $project,
+            'publicUrl' => $publicUrl,
+            'qrCodeDataUri' => $publicUrl ? $qrCodeGenerator->generateSvgDataUri($publicUrl) : null,
             'actionTypes' => \App\Enum\ModerationActionType::cases(),
             'history' => $em->getRepository(\App\Entity\ModerationAction::class)->createQueryBuilder('ma')
                 ->andWhere('ma.targetType = :type')->setParameter('type', \App\Enum\ReportTargetType::PROJECT)

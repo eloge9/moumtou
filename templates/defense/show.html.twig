@@ -3,6 +3,7 @@
 {% block title %}Soutenance — {{ project.name }} — MOUMTOU{% endblock %}
 {% block meta_description %}Soutenance de {{ project.owner.fullName }} : {{ project.name }}, le {{ defense.date|date('d F Y') }}{% if project.institution %} à {{ project.institution.name }}{% endif %}.{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ publicUrl }}">{% endblock %}
+{% block og_url %}<meta property="og:url" content="{{ publicUrl }}">{% endblock %}
 {% block og_type %}article{% endblock %}
 {% block og_title %}Soutenance — {{ project.name }} — MOUMTOU{% endblock %}
 {% block og_description %}{{ block('meta_description') }}{% endblock %}

@@ -68,6 +68,7 @@ class ProjectController extends AbstractController
             'myRating' => $myRating?->getValue(),
             'publicUrl' => $publicUrl,
             'qrCodeDataUri' => $qrCodeGenerator->generateSvgDataUri($publicUrl),
+            'qrCodePngDataUri' => $qrCodeGenerator->generatePngDataUri($publicUrl),
             'reportReasons' => ReportReason::cases(),
             'youtubeVideoId' => $youtubeUrlExtractor->extractVideoId($project),
         ]);

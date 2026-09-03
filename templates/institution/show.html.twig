@@ -3,6 +3,7 @@
 {% block title %}{{ institution.name }} — MOUMTOU{% endblock %}
 {% block meta_description %}{{ (institution.description ?: institution.name ~ ' sur MOUMTOU : projets, soutenances et talents.')|striptags|slice(0, 160) }}{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ publicUrl }}">{% endblock %}
+{% block og_url %}<meta property="og:url" content="{{ publicUrl }}">{% endblock %}
 {% block og_type %}website{% endblock %}
 {% block og_title %}{{ institution.name }} — MOUMTOU{% endblock %}
 {% block og_description %}{{ block('meta_description') }}{% endblock %}

@@ -3,6 +3,7 @@
 {% block title %}{{ project.name }} — MOUMTOU{% endblock %}
 {% block meta_description %}{{ (project.shortDescription ?: project.detailedDescription ?: 'Découvrez ' ~ project.name ~ ' par ' ~ project.owner.fullName ~ ' sur MOUMTOU.')|striptags|slice(0, 160) }}{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ publicUrl }}">{% endblock %}
+{% block og_url %}<meta property="og:url" content="{{ publicUrl }}">{% endblock %}
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ project.name }} — MOUMTOU{% endblock %}
 {% block og_description %}{{ block('meta_description') }}{% endblock %}
@@ -41,7 +42,7 @@
         <button class="m-btn m-btn--secondaire" type="submit" style="color:#B3261E">Supprimer</button>
       </form>
     {% endif %}
-    <button class="m-btn m-btn--secondaire" type="button" data-modale-ouvrir="modale-partage">Partager</button>
+    <button class="m-btn m-btn--secondaire" type="button" data-partage-natif data-partage-titre="{{ project.name }}" data-partage-texte="Découvrez {{ project.name }} sur MOUMTOU" data-partage-url="{{ publicUrl }}" data-partage-repli="modale-partage">Partager</button>
     {% if app.user %}
       <button class="m-btn m-btn--secondaire" type="button" data-modale-ouvrir="modale-signalement">Signaler</button>
     {% endif %}
@@ -374,11 +375,14 @@
       {% endif %}
     </div>
 
-    <div class="m-carte m-carte--plate p-3 text-center">
+    <div class="m-carte m-carte--plate p-3 text-center" id="qr-code-projet">
       <p class="m-surtitre mb-0">QR code du projet</p>
-      <img src="{{ qrCodeDataUri }}" alt="QR code vers ce projet" width="100" height="100" class="mt-2">
+      <img src="{{ qrCodeDataUri }}" alt="QR Code permettant d'accéder au projet {{ project.name }} sur MOUMTOU" width="100" height="100" class="mt-2">
       <p class="m-meta mt-2 mb-1">À imprimer sur un CV, un poster ou un badge de soutenance.</p>
-      <a href="{{ qrCodeDataUri }}" download="moumtou-{{ project.slug }}.svg">Télécharger le QR code</a>
+      <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <a href="{{ qrCodeDataUri }}" download="moumtou-{{ project.slug }}.svg">Télécharger (SVG)</a>
+        <a href="{{ qrCodePngDataUri }}" download="moumtou-{{ project.slug }}.png">Télécharger (PNG)</a>
+      </div>
     </div>
   </aside>
 </div>
@@ -406,11 +410,14 @@
   <div class="m-modale__boite">
     <h2 class="m-modale__titre">Partager ce projet</h2>
     <label class="m-label mt-3" for="lien-partage">Lien public</label>
-    <input class="m-input" id="lien-partage" type="text" value="{{ publicUrl }}" readonly>
+    <input class="m-input" id="lien-partage" type="text" value="{{ publicUrl }}" readonly aria-label="Lien public du projet {{ project.name }}">
     <div class="d-flex flex-wrap gap-2 mt-3">
-      <a class="m-btn m-btn--secondaire" href="https://wa.me/?text={{ publicUrl|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
+      <button class="m-btn m-btn--secondaire" type="button" onclick="navigator.clipboard.writeText('{{ publicUrl|e('js') }}')">Copier le lien</button>
+      <a class="m-btn m-btn--secondaire" href="https://wa.me/?text={{ ('Découvrez ' ~ project.name ~ ' sur MOUMTOU : ' ~ publicUrl)|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
       <a class="m-btn m-btn--secondaire" href="https://www.linkedin.com/sharing/share-offsite/?url={{ publicUrl|url_encode }}" target="_blank" rel="noopener">LinkedIn</a>
-      <button class="m-btn m-btn--secondaire" type="button" onclick="navigator.clipboard.writeText('{{ publicUrl }}')">Copier le lien</button>
+      <a class="m-btn m-btn--secondaire" href="https://www.facebook.com/sharer/sharer.php?u={{ publicUrl|url_encode }}" target="_blank" rel="noopener">Facebook</a>
+      <a class="m-btn m-btn--secondaire" href="https://twitter.com/intent/tweet?url={{ publicUrl|url_encode }}&amp;text={{ ('Découvrez ' ~ project.name ~ ' sur MOUMTOU')|url_encode }}" target="_blank" rel="noopener">X</a>
+      <a class="m-btn m-btn--secondaire" href="#qr-code-projet" data-modale-fermer>QR Code</a>
     </div>
     <div class="text-end mt-4"><button class="m-btn m-btn--primaire" type="button" data-modale-fermer>Fermer</button></div>
   </div>

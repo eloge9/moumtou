@@ -164,6 +164,22 @@
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-projet-' ~ project.id) }}">
       </form>
     </div>
+
+    {% if publicUrl %}
+      <div class="m-carte m-carte--plate p-3 mt-3 text-center">
+        <p class="m-surtitre mb-2">URL publique & QR code</p>
+        <div class="d-grid gap-1 text-start mb-2" style="font-size:13px">
+          <div class="d-flex justify-content-between"><span class="m-meta">Slug</span><span class="fw-semibold">{{ project.slug }}</span></div>
+          <div class="d-flex justify-content-between"><span class="m-meta">Statut</span><span class="fw-semibold">{{ project.status.label }}</span></div>
+        </div>
+        <input class="m-input m-input--sm mb-2" type="text" value="{{ publicUrl }}" readonly aria-label="URL publique du projet {{ project.name }}">
+        {% if project.status.value in ['publie', 'verifie'] %}
+          <img src="{{ qrCodeDataUri }}" alt="QR Code permettant d'accéder au projet {{ project.name }} sur MOUMTOU" width="90" height="90">
+        {% else %}
+          <p class="m-meta mb-0">Le QR code redirige vers une page qui affichera « projet indisponible » tant que ce projet n'est pas publié — il fonctionnera normalement dès la publication.</p>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
