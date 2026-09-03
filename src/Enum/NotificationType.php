@@ -42,6 +42,8 @@ enum NotificationType: string
 
     case REPORT_RECEIVED = 'report_received';
 
+    case BACKUP_FAILED = 'backup_failed';
+
     public function label(): string
     {
         return match ($this) {
@@ -71,6 +73,7 @@ enum NotificationType: string
             self::ACCOUNT_SUSPENDED => 'Compte suspendu',
             self::ACCOUNT_BANNED => 'Compte banni',
             self::REPORT_RECEIVED => 'Nouveau signalement',
+            self::BACKUP_FAILED => 'Échec d\'une sauvegarde',
         };
     }
 
@@ -92,6 +95,7 @@ enum NotificationType: string
             self::PROJECT_RATING_RECEIVED => '⭐',
             self::ACCOUNT_WARNED, self::ACCOUNT_SUSPENDED, self::ACCOUNT_BANNED => '🔒',
             self::REPORT_RECEIVED => '🚩',
+            self::BACKUP_FAILED => '🛑',
         };
     }
 
@@ -105,6 +109,10 @@ enum NotificationType: string
             self::COMMENT_RECEIVED, self::COMMENT_REPLY, self::PROJECT_RATING_RECEIVED => NotificationCategory::COMMUNAUTE,
             self::ACCOUNT_WARNED, self::ACCOUNT_SUSPENDED, self::ACCOUNT_BANNED => NotificationCategory::SECURITE,
             self::REPORT_RECEIVED => NotificationCategory::MODERATION,
+            // Catégorie SECURITE (cahier §15) : notification et e-mail
+            // toujours envoyés, jamais désactivables — un échec de
+            // sauvegarde ne doit jamais passer inaperçu.
+            self::BACKUP_FAILED => NotificationCategory::SECURITE,
         };
     }
 }

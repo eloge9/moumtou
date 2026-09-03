@@ -1,0 +1,67 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block title %}Administration — Sauvegardes — MOUMTOU{% endblock %}
+{% block admin_title %}Sauvegardes{% endblock %}
+
+{% block admin_body %}
+<p class="m-meta mb-3">Consultation seule : le déclenchement d'une sauvegarde ou d'une restauration reste une opération en ligne de commande, jamais accessible depuis le web (voir docs/backup-restore.md).</p>
+
+<div class="row g-3 mb-3">
+  {% for type, label in {'full': 'Sauvegarde complète', 'database': 'Base de données', 'media': 'Médias'} %}
+    {% set last = lastByType[type] ?? null %}
+    <div class="col-md-4">
+      <div class="m-carte m-carte--plate p-3 h-100">
+        <p class="m-surtitre mb-2">{{ label }}</p>
+        {% if last %}
+          {% if last.status == 'success' %}
+            <p class="m-statut mb-1">✓ Réussi</p>
+          {% else %}
+            <p class="m-statut mb-1" style="color:#B3261E">✖️ Échoué</p>
+          {% endif %}
+          <p class="m-meta mb-1">{{ last.startedAt|date('d/m/Y H:i') }} · palier {{ last.tier }}</p>
+          {% if last.sizeBytes %}<p class="m-meta mb-1">Taille : {{ (last.sizeBytes / 1024)|round(1) }} Ko</p>{% endif %}
+          {% if last.durationSeconds %}<p class="m-meta mb-0">Durée : {{ last.durationSeconds }} s</p>{% endif %}
+          {% if last.status != 'success' and last.error %}<p class="m-texte mt-2" style="color:#B3261E">{{ last.error }}</p>{% endif %}
+        {% else %}
+          <p class="m-meta mb-0">Aucune sauvegarde enregistrée pour le moment.</p>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <p class="m-surtitre mb-2">Dernier test de restauration</p>
+  {% if lastRestore %}
+    <p class="m-texte mb-0">{{ lastRestore.startedAt|date('d/m/Y H:i') }} — {{ lastRestore.type }} — {{ lastRestore.status == 'success' ? '✓ Réussi' : '✖️ Échoué' }}</p>
+  {% else %}
+    <p class="m-meta mb-0">Aucune restauration n'a encore été testée. Une restauration doit être testée périodiquement sur un environnement de test (jamais en production) — voir docs/backup-restore.md.</p>
+  {% endif %}
+</div>
+
+<div class="m-carte m-carte--plate">
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Date</th><th>Type</th><th>Opération</th><th>Palier</th><th>Statut</th><th>Taille</th><th>Durée</th></tr></thead>
+      <tbody>
+        {% for entry in entries %}
+          <tr>
+            <td class="m-meta">{{ entry.startedAt|date('d/m/Y H:i:s') }}</td>
+            <td class="m-texte">{{ entry.type }}</td>
+            <td class="m-texte">{{ entry.kind }}</td>
+            <td class="m-texte">{{ entry.tier }}</td>
+            <td>
+              {% if entry.status == 'success' %}<span class="m-tag m-tag--bleu">Réussi</span>
+              {% else %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Échoué</span>{% endif %}
+            </td>
+            <td class="m-meta">{{ entry.sizeBytes ? (entry.sizeBytes / 1024)|round(1) ~ ' Ko' : '—' }}</td>
+            <td class="m-meta">{{ entry.durationSeconds ? entry.durationSeconds ~ ' s' : '—' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="m-meta">Aucune sauvegarde enregistrée.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

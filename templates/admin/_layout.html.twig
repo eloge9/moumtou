@@ -29,6 +29,7 @@
 
     <p class="m-admin__groupe">Traçabilité</p>
     <a class="m-admin__lien{{ adminNav|default('') == 'journal' ? ' is-active' : '' }}" href="{{ path('admin_journal') }}">Journal d'administration</a>
+    <a class="m-admin__lien{{ adminNav|default('') == 'backups' ? ' is-active' : '' }}" href="{{ path('admin_backups') }}">Sauvegardes</a>
   </aside>
 
   <div class="m-admin__contenu">

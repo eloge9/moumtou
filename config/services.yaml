@@ -21,6 +21,14 @@ parameters:
     app.project_document_max_size: '10M'
     app.project_document_max_count: 5
 
+    # Sauvegarde/restauration (cahier des charges — FONCTIONNALITÉ 16 §6/§24) :
+    # uniquement des réglages de rétention/activation, jamais un secret.
+    app.backup_enabled: '%env(bool:BACKUP_ENABLED)%'
+    app.backup_path: '%kernel.project_dir%/var/backups'
+    app.backup_retention_daily: '%env(int:BACKUP_RETENTION_DAILY)%'
+    app.backup_retention_weekly: '%env(int:BACKUP_RETENTION_WEEKLY)%'
+    app.backup_retention_monthly: '%env(int:BACKUP_RETENTION_MONTHLY)%'
+
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -61,10 +69,50 @@ services:
         arguments:
             $recruiterLogoUploadsDirectory: '%app.recruiter_logo_uploads_directory%'
 
+    App\Service\Backup\DatabaseBackupService:
+        arguments:
+            $backupPath: '%app.backup_path%'
+            $environment: '%kernel.environment%'
+
+    App\Service\Backup\MediaBackupService:
+        arguments:
+            $backupPath: '%app.backup_path%'
+            $environment: '%kernel.environment%'
+            $projectUploadsDirectory: '%app.project_uploads_directory%'
+            $avatarUploadsDirectory: '%app.avatar_uploads_directory%'
+            $institutionLogoUploadsDirectory: '%app.institution_logo_uploads_directory%'
+            $recruiterLogoUploadsDirectory: '%app.recruiter_logo_uploads_directory%'
+
+    App\Service\Backup\BackupHistoryLogger:
+        arguments:
+            $backupPath: '%app.backup_path%'
+
     App\Command\BackupDatabaseCommand:
         arguments:
-            $projectDir: '%kernel.project_dir%'
+            $backupEnabled: '%app.backup_enabled%'
+            $retentionDaily: '%app.backup_retention_daily%'
+            $retentionWeekly: '%app.backup_retention_weekly%'
+            $retentionMonthly: '%app.backup_retention_monthly%'
+
+    App\Command\BackupMediaCommand:
+        arguments:
+            $backupEnabled: '%app.backup_enabled%'
+            $retentionDaily: '%app.backup_retention_daily%'
+            $retentionWeekly: '%app.backup_retention_weekly%'
+            $retentionMonthly: '%app.backup_retention_monthly%'
+
+    App\Command\BackupFullCommand:
+        arguments:
+            $backupPath: '%app.backup_path%'
             $environment: '%kernel.environment%'
+            $backupEnabled: '%app.backup_enabled%'
+            $retentionDaily: '%app.backup_retention_daily%'
+            $retentionWeekly: '%app.backup_retention_weekly%'
+            $retentionMonthly: '%app.backup_retention_monthly%'
+
+    App\Command\RestoreMediaCommand:
+        arguments:
+            $uploadsRootDirectory: '%kernel.project_dir%/public/uploads'
 
     App\Security\OAuth\OAuthProviderRegistry:
         arguments:

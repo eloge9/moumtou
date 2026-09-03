@@ -4,7 +4,7 @@ namespace App\Command;
 
 use App\Service\Backup\BackupAdminAlerter;
 use App\Service\Backup\BackupHistoryLogger;
-use App\Service\Backup\DatabaseBackupService;
+use App\Service\Backup\MediaBackupService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -13,26 +13,19 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Sauvegarde de la base MySQL (cahier des charges — FONCTIONNALITÉ 16 §3) :
- * dump `mysqldump` compressé, empreint et horodaté, avec rétention par
- * palier (quotidien/hebdomadaire/mensuel/manuel).
- *
- * Exemples de tâches planifiées (cron, à ajouter manuellement hors dépôt —
- * même principe que {@see SendDefenseRemindersCommand}) :
- *   0 2 * * *    php bin/console app:backup:database daily
- *   0 3 * * 0    php bin/console app:backup:database weekly
- *   0 4 1 * *    php bin/console app:backup:database monthly
- *
- * Restauration : voir `app:restore:database` et docs/backup-restore.md.
+ * Sauvegarde des fichiers utilisateurs réellement stockés par MOUMTOU
+ * (cahier des charges — FONCTIONNALITÉ 16 §4) : photos de projets, avatars,
+ * logos d'établissements et de recruteurs. Voir {@see MediaBackupService}
+ * pour ce qui est explicitement exclu (preuves externes GitHub/YouTube/etc.).
  */
 #[AsCommand(
-    name: 'app:backup:database',
-    description: 'Sauvegarde la base MySQL de MOUMTOU (compressée, avec empreinte et rétention par palier).',
+    name: 'app:backup:media',
+    description: 'Sauvegarde les fichiers utilisateurs de MOUMTOU (photos, avatars, logos) dans une archive compressée.',
 )]
-class BackupDatabaseCommand extends Command
+class BackupMediaCommand extends Command
 {
     public function __construct(
-        private readonly DatabaseBackupService $backupService,
+        private readonly MediaBackupService $backupService,
         private readonly BackupHistoryLogger $historyLogger,
         private readonly BackupAdminAlerter $alerter,
         private readonly bool $backupEnabled,
@@ -69,7 +62,7 @@ class BackupDatabaseCommand extends Command
         }
 
         if ($input->getOption('dry-run')) {
-            $io->note(sprintf('[dry-run] Créerait une sauvegarde MySQL (palier "%s", rétention %d) sans rien exécuter.', $tier, $this->retentionFor($tier)));
+            $io->note(sprintf('[dry-run] Archiverait les médias MOUMTOU (palier "%s", rétention %d) sans rien exécuter.', $tier, $this->retentionFor($tier)));
 
             return Command::SUCCESS;
         }
@@ -85,7 +78,7 @@ class BackupDatabaseCommand extends Command
         }
 
         $io->success(sprintf(
-            "BACKUP SUCCESS\nDatabase: OK\nIntegrity: OK\nSize: %s\nChecksum: %s\nFile: %s",
+            "BACKUP SUCCESS\nMedia: OK\nIntegrity: OK\nSize: %s\nChecksum: %s\nFile: %s",
             $this->humanSize($record->sizeBytes ?? 0),
             $record->checksumSha256,
             $record->path,
