@@ -145,10 +145,14 @@ class ProjectRepository extends ServiceEntityRepository
                     ->setParameter('technologyIds', $criteria->technologyIds);
             }
         }
+        if ($criteria->defenseVerified || $criteria->defenseStatuses) {
+            $qb->join('p.defense', 'defense');
+        }
         if ($criteria->defenseVerified) {
-            $qb->join('p.defense', 'defense')
-                ->andWhere('defense.status = :defenseVerifiee')
-                ->setParameter('defenseVerifiee', DefenseStatus::VERIFIEE);
+            $qb->andWhere('defense.status = :defenseVerifiee')->setParameter('defenseVerifiee', DefenseStatus::VERIFIEE);
+        }
+        if ($criteria->defenseStatuses) {
+            $qb->andWhere('defense.status IN (:defenseStatuses)')->setParameter('defenseStatuses', $criteria->defenseStatuses);
         }
 
         return $qb;

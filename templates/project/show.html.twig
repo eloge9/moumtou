@@ -77,7 +77,7 @@
       <span class="m-avatar" style="width:44px;height:44px"></span>
       <div>
         <p class="fw-bold mb-0" style="font-size:15.5px">{{ project.owner.fullName }}</p>
-        <p class="m-meta mb-0">{{ project.institution ? project.institution.name : project.type.label }}</p>
+        <p class="m-meta mb-0">{% if project.institution %}{% if project.institution.slug %}<a href="{{ path('app_institution_show', {slug: project.institution.slug}) }}">{{ project.institution.name }}</a>{% else %}{{ project.institution.name }}{% endif %}{% else %}{{ project.type.label }}{% endif %}</p>
       </div>
       <div class="ms-auto text-end">
         <p class="fw-bold mb-0" style="font-size:19px">★ {{ project.ratingAverage|number_format(1, ',') }} <span class="m-meta fw-semibold">/ 5</span></p>
@@ -288,7 +288,7 @@
       <div class="m-carte m-carte--plate p-3">
         <p class="m-surtitre mb-2">Soutenance</p>
         <p class="fw-bold mb-1" style="font-size:16px">{{ defense.date|date('d F Y') }} — {{ defense.time }}</p>
-        <p class="m-texte mb-3">{{ defense.place }}{% if project.institution %} — {{ project.institution.name }}{% endif %}</p>
+        <p class="m-texte mb-3">{{ defense.place }}{% if project.institution %} — {% if project.institution.slug %}<a href="{{ path('app_institution_show', {slug: project.institution.slug}) }}">{{ project.institution.name }}</a>{% else %}{{ project.institution.name }}{% endif %}{% endif %}</p>
         <div class="d-grid gap-2 pt-3" style="border-top:1px solid #EEF1F6;font-size:13.5px">
           {% if project.domain %}<div class="d-flex justify-content-between"><span class="m-meta">Domaine</span><span class="fw-semibold">{{ project.domain.name }}</span></div>{% endif %}
           {% if project.mention %}<div class="d-flex justify-content-between"><span class="m-meta">Mention</span><span class="fw-semibold">{{ project.mention.name }}</span></div>{% endif %}

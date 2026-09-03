@@ -43,7 +43,7 @@
         <p class="m-meta mb-2 d-flex align-items-center gap-1">
           {% if profileUser.institution %}
             {% if profileUser.institution.logo %}<img src="{{ asset(profileUser.institution.logo) }}" alt="" width="16" height="16" style="border-radius:3px;object-fit:cover">{% else %}🎓{% endif %}
-            {{ profileUser.institution.name }}
+            {% if profileUser.institution.slug %}<a href="{{ path('app_institution_show', {slug: profileUser.institution.slug}) }}">{{ profileUser.institution.name }}</a>{% else %}{{ profileUser.institution.name }}{% endif %}
           {% endif %}
           {% if profileUser.specialty %}{{ profileUser.institution ? ' — ' : '' }}{{ profileUser.specialty.name }}{% endif %}
         </p>

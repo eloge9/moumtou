@@ -18,6 +18,9 @@ class Institution
     #[ORM\Column(length: 180, unique: true)]
     private ?string $name = null;
 
+    #[ORM\Column(length: 200, nullable: true, unique: true)]
+    private ?string $slug = null;
+
     #[ORM\Column(enumType: InstitutionType::class)]
     private InstitutionType $type = InstitutionType::AUTRE;
 
@@ -74,6 +77,18 @@ class Institution
     public function setName(string $name): static
     {
         $this->name = $name;
+
+        return $this;
+    }
+
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(?string $slug): static
+    {
+        $this->slug = $slug;
 
         return $this;
     }

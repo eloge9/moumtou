@@ -19,7 +19,7 @@ final class ProjectSearchCriteria
 
     public const MAX_PER_PAGE = 50;
 
-    /** @param string[] $types @param string[] $statuses @param int[] $technologyIds */
+    /** @param string[] $types @param string[] $statuses @param int[] $technologyIds @param string[] $defenseStatuses */
     public function __construct(
         public readonly ?string $query = null,
         public readonly array $types = [],
@@ -34,6 +34,7 @@ final class ProjectSearchCriteria
         public readonly ?string $city = null,
         public readonly ?int $yearMin = null,
         public readonly bool $defenseVerified = false,
+        public readonly array $defenseStatuses = [],
         public readonly string $sort = self::SORT_RECENT,
         public readonly int $page = 1,
         public readonly int $perPage = 9,

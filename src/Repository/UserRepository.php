@@ -239,4 +239,26 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
 
         return $counts;
     }
+
+    /**
+     * Nombre de talents publiquement associés à un établissement (page
+     * établissement, onglet Talents) : mêmes règles que la recherche de
+     * talents — un compte ayant publié au moins un projet public,
+     * rattaché à cet établissement comme établissement principal.
+     */
+    public function countByInstitution(int $institutionId): int
+    {
+        $publicOwnerIdsDql = $this->getEntityManager()->getRepository(Project::class)->createQueryBuilder('pOwner')
+            ->select('IDENTITY(pOwner.owner)')
+            ->where('pOwner.status IN (:publicStatuses)')
+            ->getDQL();
+
+        return (int) $this->createQueryBuilder('u')
+            ->select('COUNT(DISTINCT u.id)')
+            ->andWhere($this->getEntityManager()->createQueryBuilder()->expr()->in('u.id', $publicOwnerIdsDql))
+            ->andWhere('u.institution = :institutionId')
+            ->setParameter('publicStatuses', ProjectRepository::PUBLIC_STATUSES)
+            ->setParameter('institutionId', $institutionId)
+            ->getQuery()->getSingleScalarResult();
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Entity\Institution;
 use App\Enum\InstitutionType;
 use App\Service\InstitutionLogoUploader;
+use App\Service\SlugGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -54,7 +55,7 @@ class InstitutionController extends AbstractController
     }
 
     #[Route('/ajouter', name: 'admin_institutions_add', methods: ['POST'])]
-    public function add(Request $request, EntityManagerInterface $em, InstitutionLogoUploader $logoUploader, ValidatorInterface $validator): Response
+    public function add(Request $request, EntityManagerInterface $em, InstitutionLogoUploader $logoUploader, ValidatorInterface $validator, SlugGenerator $slugGenerator): Response
     {
         if (!$this->isCsrfTokenValid('admin-institution-ajouter', $request->request->get('_csrf_token'))) {
             throw new InvalidCsrfTokenException();
@@ -75,6 +76,7 @@ class InstitutionController extends AbstractController
 
         $institution = new Institution();
         $institution->setName($name);
+        $institution->setSlug($slugGenerator->generateUnique($name, Institution::class));
         $institution->setType(InstitutionType::tryFrom((string) $request->request->get('type')) ?? InstitutionType::AUTRE);
         $institution->setCountry(trim((string) $request->request->get('country')) ?: null);
         $institution->setCity(trim((string) $request->request->get('city')) ?: null);

@@ -54,7 +54,7 @@
       <span class="m-avatar" style="width:44px;height:44px;{% if project.owner.photo %}background-image:url('{{ asset(project.owner.photo) }}');background-size:cover{% endif %}"></span>
       <div>
         <p class="fw-bold mb-0" style="font-size:15.5px"><a href="{{ path('app_profile_show', {slug: project.owner.slug}) }}">{{ project.owner.fullName }}</a></p>
-        <p class="m-meta mb-0">{{ project.institution ? project.institution.name : '' }}</p>
+        <p class="m-meta mb-0">{% if project.institution %}{% if project.institution.slug %}<a href="{{ path('app_institution_show', {slug: project.institution.slug}) }}">{{ project.institution.name }}</a>{% else %}{{ project.institution.name }}{% endif %}{% endif %}</p>
       </div>
     </div>
 

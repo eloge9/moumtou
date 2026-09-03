@@ -1,0 +1,316 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ institution.name }} — MOUMTOU{% endblock %}
+{% block meta_description %}{{ (institution.description ?: institution.name ~ ' sur MOUMTOU : projets, soutenances et talents.')|striptags|slice(0, 160) }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ publicUrl }}">{% endblock %}
+{% block og_type %}website{% endblock %}
+{% block og_title %}{{ institution.name }} — MOUMTOU{% endblock %}
+{% block og_description %}{{ block('meta_description') }}{% endblock %}
+{% block og_image %}{% if institution.logo %}<meta property="og:image" content="{{ absolute_url(asset(institution.logo)) }}">{% endif %}{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">
+{{ {
+  '@context': 'https://schema.org',
+  '@type': 'CollegeOrUniversity',
+  'name': institution.name,
+  'description': institution.description,
+  'url': publicUrl,
+  'logo': institution.logo ? absolute_url(asset(institution.logo)) : null,
+  'address': (institution.city or institution.country) ? {'@type': 'PostalAddress', 'addressLocality': institution.city, 'addressCountry': institution.country} : null,
+  'sameAs': [institution.website]|filter(v => v is not empty),
+}|filter(v => v is not null)|json_encode|raw }}
+</script>
+{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'institutions'} %}{% endblock %}
+
+{% block body %}
+
+<section class="px-4 py-4" style="border-bottom:1px solid var(--m-bordure)">
+  <div class="d-flex flex-wrap gap-4">
+    <div class="m-avatar m-avatar--xl" style="{% if institution.logo %}background-image:url('{{ asset(institution.logo) }}');background-size:cover;background-position:center{% endif %}"></div>
+    <div class="flex-fill" style="min-width:280px">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h1 style="font-size:30px">{{ institution.name }}</h1>
+        {% if institution.verified %}<span class="m-badge m-badge--verifie">✓ Établissement vérifié</span>{% endif %}
+      </div>
+      <p class="m-meta mt-1 mb-2">
+        {{ institution.type.label|default('') }}{% if institution.city or institution.country %} · {{ institution.city }}{{ institution.city and institution.country ? ', ' : '' }}{{ institution.country }}{% endif %}
+        {% if institution.address %} · {{ institution.address }}{% endif %}
+      </p>
+      {% if institution.description %}<p class="m-texte mb-3" style="max-width:640px">{{ institution.description }}</p>{% endif %}
+      <div class="d-flex flex-wrap gap-2">
+        {% if institution.website %}<a class="m-btn m-btn--secondaire" href="{{ institution.website }}" target="_blank" rel="noopener">Site officiel</a>{% endif %}
+        <button class="m-btn m-btn--secondaire" type="button" data-modale-ouvrir="modale-partage-etablissement">Partager</button>
+      </div>
+    </div>
+    <div class="d-grid gap-2" style="width:190px">
+      <div class="m-stat"><div class="m-stat__valeur" style="font-size:24px">{{ stats.projects }}</div><div class="m-stat__libelle">projets publiés</div></div>
+      <div class="m-stat m-stat--bleu"><div class="m-stat__valeur" style="font-size:24px;color:var(--m-bleu)">{{ stats.verifiedProjects }}</div><div class="m-stat__libelle">projets vérifiés</div></div>
+      <div class="m-stat"><div class="m-stat__valeur" style="font-size:24px">{{ stats.defenses }}</div><div class="m-stat__libelle">soutenances</div></div>
+      <div class="m-stat m-stat--bleu"><div class="m-stat__valeur" style="font-size:24px;color:var(--m-bleu)">{{ stats.verifiedDefenses }}</div><div class="m-stat__libelle">soutenances vérifiées</div></div>
+    </div>
+  </div>
+</section>
+
+<nav class="m-onglets" aria-label="Sections de l'établissement">
+  <a class="m-onglet{{ tab == 'apercu' ? ' is-active' : '' }}" href="{{ path('app_institution_show', {slug: institution.slug}) }}">Vue d'ensemble</a>
+  <a class="m-onglet{{ tab == 'projets' ? ' is-active' : '' }}" href="{{ path('app_institution_show', {slug: institution.slug, tab: 'projets'}) }}">Projets</a>
+  <a class="m-onglet{{ tab == 'soutenances' ? ' is-active' : '' }}" href="{{ path('app_institution_show', {slug: institution.slug, tab: 'soutenances'}) }}">Soutenances</a>
+  <a class="m-onglet{{ tab == 'talents' ? ' is-active' : '' }}" href="{{ path('app_institution_show', {slug: institution.slug, tab: 'talents'}) }}">Talents</a>
+</nav>
+
+<section class="px-4 py-4">
+  {% if tab == 'apercu' %}
+
+    <h2 style="font-size:19px">Projets récents</h2>
+    <div class="row g-3 mt-1">
+      {% for project in recentProjects %}
+        <div class="col-xl-4 col-md-6">
+          <article class="m-carte h-100">
+            <div class="m-media" style="height:132px">
+              {% if project.photos|length %}<img src="{{ asset(project.photos.first.thumbnailPath ?: project.photos.first.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy">{% endif %}
+            </div>
+            <div class="m-carte__corps">
+              <span class="m-statut{{ project.status.value == 'publie' ? ' m-statut--publie' : '' }}">{{ project.status.value == 'verifie' ? 'Vérifié' : 'Publié' }}</span>
+              <h3 class="m-carte__titre mt-2" style="font-size:16px"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a></h3>
+              <p class="m-meta mt-1 mb-0">{{ project.owner.fullName }}</p>
+              <div class="m-tags mt-2">{% for tech in project.technologies|slice(0, 4) %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
+            </div>
+          </article>
+        </div>
+      {% else %}
+        <div class="col-12"><p class="m-meta">Aucun projet publié pour l'instant.</p></div>
+      {% endfor %}
+    </div>
+    {% if recentProjects|length %}<a class="m-btn m-btn--secondaire mt-3" href="{{ path('app_institution_show', {slug: institution.slug, tab: 'projets'}) }}">Voir tous les projets</a>{% endif %}
+
+    <h2 class="mt-5" style="font-size:19px">Soutenances à venir</h2>
+    <div class="d-grid gap-2 mt-1">
+      {% for soutenanceProjet in upcomingDefenses %}
+        <a class="m-carte m-carte--plate p-3 d-flex justify-content-between align-items-center flex-wrap gap-2" href="{{ path('app_defense_show', {slug: soutenanceProjet.slug}) }}">
+          <span><span class="fw-bold" style="font-size:14.5px">{{ soutenanceProjet.name }}</span> <span class="m-meta">— {{ soutenanceProjet.owner.fullName }}</span></span>
+          <span class="m-meta">{{ soutenanceProjet.defense.date|date('d M Y') }}</span>
+        </a>
+      {% else %}
+        <p class="m-meta">Aucune soutenance à venir annoncée publiquement.</p>
+      {% endfor %}
+    </div>
+    {% if upcomingDefenses|length %}<a class="m-btn m-btn--secondaire mt-3" href="{{ path('app_institution_show', {slug: institution.slug, tab: 'soutenances'}) }}">Voir toutes les soutenances</a>{% endif %}
+
+  {% elseif tab == 'projets' %}
+
+    <div class="m-mise-en-page" style="margin:0 -24px">
+      <aside class="m-filtres" style="padding-top:0">
+        <form method="get" id="filtres-etablissement-projets" data-filtres-auto>
+          <input type="hidden" name="tab" value="projets">
+          <input type="hidden" name="q" value="{{ projectCriteria.query }}">
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="m-surtitre" style="color:var(--m-encre)">Filtres</span>
+            <a href="{{ path('app_institution_show', {slug: institution.slug, tab: 'projets'}) }}" style="color:var(--m-bleu);font-size:13px">Réinitialiser</a>
+          </div>
+          <div class="m-filtres__groupe">
+            <p class="m-filtres__titre">Type de projet</p>
+            <div class="d-grid gap-2">
+              {% for type in projectTypes %}
+                <label class="m-case"><input type="checkbox" data-filtre-case name="types[]" value="{{ type.value }}" {{ type.value in projectCriteria.types ? 'checked' : '' }}><span>{{ type.shortLabel }}</span></label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="m-filtres__groupe">
+            <p class="m-filtres__titre">Classification</p>
+            <div class="d-grid gap-2">
+              <select class="m-select" name="domain" aria-label="Domaine">
+                <option value="">Tous les domaines</option>
+                {% for domain in domains %}<option value="{{ domain.id }}" {{ projectCriteria.domainId == domain.id ? 'selected' : '' }}>{{ domain.name }}</option>{% endfor %}
+              </select>
+              <select class="m-select" name="mention" aria-label="Mention">
+                <option value="">Toutes les mentions</option>
+                {% for mention in mentions %}<option value="{{ mention.id }}" {{ projectCriteria.mentionId == mention.id ? 'selected' : '' }}>{{ mention.name }}</option>{% endfor %}
+              </select>
+              <select class="m-select" name="specialty" aria-label="Spécialité">
+                <option value="">Toutes les spécialités</option>
+                {% for specialty in specialties %}<option value="{{ specialty.id }}" {{ projectCriteria.specialtyId == specialty.id ? 'selected' : '' }}>{{ specialty.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="m-filtres__groupe" data-chip-groupe>
+            <p class="m-filtres__titre">Technologies</p>
+            <div class="m-tags">
+              {% for technology in technologies %}
+                <label class="m-chip{{ technology.id in projectCriteria.technologyIds ? ' is-active' : '' }}" data-chip>
+                  <input type="checkbox" class="visually-hidden" name="technologies[]" value="{{ technology.id }}" {{ technology.id in projectCriteria.technologyIds ? 'checked' : '' }}>
+                  {{ technology.name }}
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="m-filtres__groupe">
+            <p class="m-filtres__titre">Année de réalisation</p>
+            <input class="form-range" type="range" min="2018" max="2026" name="year_min" value="{{ projectCriteria.yearMin|default(2018) }}" aria-label="Année minimale">
+            <div class="d-flex justify-content-between m-meta"><span>{{ projectCriteria.yearMin|default(2018) }}</span><span>2026</span></div>
+            <label class="m-case mt-2"><input type="checkbox" data-filtre-case name="verified" value="1" {{ 'verifie' in projectCriteria.statuses ? 'checked' : '' }}><span>Projet vérifié uniquement</span></label>
+          </div>
+        </form>
+      </aside>
+
+      <main class="m-resultats">
+        <h2 style="font-size:19px">{{ projectsTotal }} projet{{ projectsTotal > 1 ? 's' : '' }}</h2>
+        <div class="row g-3 mt-2">
+          {% for project in projects %}
+            <div class="col-xl-4 col-md-6">
+              <article class="m-carte h-100">
+                <div class="m-media" style="height:132px">
+                  {% if project.photos|length %}<img src="{{ asset(project.photos.first.thumbnailPath ?: project.photos.first.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy">{% endif %}
+                </div>
+                <div class="m-carte__corps">
+                  <span class="m-statut{{ project.status.value == 'publie' ? ' m-statut--publie' : '' }}">{{ project.status.value == 'verifie' ? '✓ Vérifié' : 'Publié' }}</span>
+                  <h3 class="m-carte__titre mt-2" style="font-size:16px"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a></h3>
+                  <p class="m-meta mt-1 mb-0">{{ project.owner.fullName }}{% if project.domain %} · {{ project.domain.name }}{% endif %}</p>
+                  <div class="m-tags mt-2">{% for tech in project.technologies|slice(0, 4) %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
+                </div>
+              </article>
+            </div>
+          {% else %}
+            <div class="col-12">
+              <p class="m-meta">Aucun projet ne correspond à ces filtres.</p>
+              <p class="m-meta">Essayez : une autre technologie, un autre domaine, ou moins de filtres.</p>
+            </div>
+          {% endfor %}
+        </div>
+        {% if projectsPageCount > 1 %}
+          <nav class="m-pagination mt-4" aria-label="Pagination">
+            {% for p in 1..projectsPageCount %}
+              <a class="{{ p == projectCriteria.page ? 'is-active' : '' }}" href="{{ path('app_institution_show', app.request.query.all|merge({slug: institution.slug, tab: 'projets', page: p})) }}">{{ p }}</a>
+            {% endfor %}
+          </nav>
+        {% endif %}
+      </main>
+    </div>
+
+  {% elseif tab == 'soutenances' %}
+
+    <div class="m-mise-en-page" style="margin:0 -24px">
+      <aside class="m-filtres" style="padding-top:0">
+        <form method="get" id="filtres-etablissement-soutenances" data-filtres-auto>
+          <input type="hidden" name="tab" value="soutenances">
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="m-surtitre" style="color:var(--m-encre)">Filtres</span>
+            <a href="{{ path('app_institution_show', {slug: institution.slug, tab: 'soutenances'}) }}" style="color:var(--m-bleu);font-size:13px">Réinitialiser</a>
+          </div>
+          <div class="m-filtres__groupe">
+            <p class="m-filtres__titre">Période</p>
+            <div class="d-grid gap-2">
+              <label class="m-case"><input type="radio" data-filtre-case name="periode" value="" {{ periode == '' ? 'checked' : '' }}><span>Toutes</span></label>
+              <label class="m-case"><input type="radio" data-filtre-case name="periode" value="a_venir" {{ periode == 'a_venir' ? 'checked' : '' }}><span>À venir</span></label>
+              <label class="m-case"><input type="radio" data-filtre-case name="periode" value="realisees" {{ periode == 'realisees' ? 'checked' : '' }}><span>Réalisées</span></label>
+            </div>
+            <label class="m-case mt-2"><input type="checkbox" data-filtre-case name="defense_verified" value="1" {{ defenseCriteria.defenseVerified ? 'checked' : '' }}><span>Soutenance vérifiée uniquement</span></label>
+          </div>
+          <div class="m-filtres__groupe">
+            <p class="m-filtres__titre">Classification</p>
+            <div class="d-grid gap-2">
+              <select class="m-select" name="domain" aria-label="Domaine">
+                <option value="">Tous les domaines</option>
+                {% for domain in domains %}<option value="{{ domain.id }}" {{ defenseCriteria.domainId == domain.id ? 'selected' : '' }}>{{ domain.name }}</option>{% endfor %}
+              </select>
+              <select class="m-select" name="mention" aria-label="Mention">
+                <option value="">Toutes les mentions</option>
+                {% for mention in mentions %}<option value="{{ mention.id }}" {{ defenseCriteria.mentionId == mention.id ? 'selected' : '' }}>{{ mention.name }}</option>{% endfor %}
+              </select>
+              <select class="m-select" name="specialty" aria-label="Spécialité">
+                <option value="">Toutes les spécialités</option>
+                {% for specialty in specialties %}<option value="{{ specialty.id }}" {{ defenseCriteria.specialtyId == specialty.id ? 'selected' : '' }}>{{ specialty.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="m-filtres__groupe">
+            <p class="m-filtres__titre">Année</p>
+            <input class="form-range" type="range" min="2018" max="2026" name="year_min" value="{{ defenseCriteria.yearMin|default(2018) }}" aria-label="Année minimale">
+            <div class="d-flex justify-content-between m-meta"><span>{{ defenseCriteria.yearMin|default(2018) }}</span><span>2026</span></div>
+          </div>
+        </form>
+      </aside>
+
+      <main class="m-resultats">
+        <h2 style="font-size:19px">{{ defensesTotal }} soutenance{{ defensesTotal > 1 ? 's' : '' }}</h2>
+        <div class="d-grid gap-3 mt-2">
+          {% for project in defenses %}
+            {% set defense = project.defense %}
+            <a class="m-carte m-carte--plate p-3 d-flex justify-content-between align-items-center flex-wrap gap-2" href="{{ path('app_defense_show', {slug: project.slug}) }}">
+              <div>
+                <p class="fw-bold mb-1" style="font-size:15px">Soutenance de {{ project.name }}</p>
+                <p class="m-meta mb-0">Étudiant : {{ project.owner.fullName }}{% if project.domain %} · Domaine : {{ project.domain.name }}{% endif %}</p>
+                {% if defense %}<p class="m-meta mb-0">Date : {{ defense.date|date('d M Y') }}{% if defense.place %} · Lieu : {{ defense.place }}{% endif %}</p>{% endif %}
+              </div>
+              {% if defense and defense.status.value == 'verifiee' %}
+                <span class="m-tag m-tag--bleu">✓ Soutenance vérifiée</span>
+              {% elseif defense and defense.status.value == 'realisee' %}
+                <span class="m-tag">Soutenance réalisée</span>
+              {% elseif defense and defense.status.value == 'annoncee' %}
+                <span class="m-tag">📅 À venir</span>
+              {% endif %}
+            </a>
+          {% else %}
+            <p class="m-meta">Aucune soutenance ne correspond à ces filtres.</p>
+          {% endfor %}
+        </div>
+        {% if defensesPageCount > 1 %}
+          <nav class="m-pagination mt-4" aria-label="Pagination">
+            {% for p in 1..defensesPageCount %}
+              <a class="{{ p == defenseCriteria.page ? 'is-active' : '' }}" href="{{ path('app_institution_show', app.request.query.all|merge({slug: institution.slug, tab: 'soutenances', page: p})) }}">{{ p }}</a>
+            {% endfor %}
+          </nav>
+        {% endif %}
+      </main>
+    </div>
+
+  {% elseif tab == 'talents' %}
+
+    <h2 style="font-size:19px">{{ talentsTotal }} talent{{ talentsTotal > 1 ? 's' : '' }}</h2>
+    <div class="row g-3 mt-2">
+      {% for talent in talents %}
+        <div class="col-xl-4 col-md-6">
+          <article class="m-carte m-carte--plate p-3 h-100">
+            <div class="d-flex gap-3">
+              <span class="m-avatar" style="width:52px;height:52px;{% if talent.photo %}background-image:url('{{ asset(talent.photo) }}');background-size:cover{% endif %}"></span>
+              <div class="flex-fill">
+                <a class="fw-bold d-block" style="font-size:15.5px" href="{{ path('app_profile_show', {slug: talent.slug}) }}">{{ talent.fullName }}</a>
+                {% if talent.professionalTitle %}<p class="m-meta mb-1">{{ talent.professionalTitle }}</p>{% elseif talent.specialty %}<p class="m-meta mb-1">{{ talent.specialty.name }}</p>{% endif %}
+                <div class="m-tags mt-1">{% for tech in talent.technologies|slice(0, 4) %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
+              </div>
+            </div>
+            <a class="m-btn m-btn--secondaire m-btn--bloc mt-3" href="{{ path('app_profile_show', {slug: talent.slug}) }}">Voir le profil</a>
+          </article>
+        </div>
+      {% else %}
+        <div class="col-12"><p class="m-meta">Aucun talent publiquement associé pour l'instant.</p></div>
+      {% endfor %}
+    </div>
+    {% if talentsPageCount > 1 %}
+      <nav class="m-pagination mt-4" aria-label="Pagination">
+        {% for p in 1..talentsPageCount %}
+          <a class="{{ p == talentCriteria.page ? 'is-active' : '' }}" href="{{ path('app_institution_show', {slug: institution.slug, tab: 'talents', page: p}) }}">{{ p }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+
+  {% endif %}
+</section>
+
+{% block modals %}
+<div class="m-modale" id="modale-partage-etablissement" data-modale role="dialog" aria-modal="true">
+  <div class="m-modale__boite">
+    <h2 class="m-modale__titre">Partager {{ institution.name }}</h2>
+    <label class="m-label mt-3" for="lien-partage-etablissement">Lien public</label>
+    <input class="m-input" id="lien-partage-etablissement" type="text" value="{{ publicUrl }}" readonly>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <a class="m-btn m-btn--secondaire" href="https://wa.me/?text={{ publicUrl|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="m-btn m-btn--secondaire" href="https://www.linkedin.com/sharing/share-offsite/?url={{ publicUrl|url_encode }}" target="_blank" rel="noopener">LinkedIn</a>
+      <button class="m-btn m-btn--secondaire" type="button" onclick="navigator.clipboard.writeText('{{ publicUrl }}')">Copier le lien</button>
+    </div>
+    <div class="text-end mt-4"><button class="m-btn m-btn--primaire" type="button" data-modale-fermer>Fermer</button></div>
+  </div>
+</div>
+{% endblock %}
+{% endblock %}
