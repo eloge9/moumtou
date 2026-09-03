@@ -1,0 +1,58 @@
+# Symfony's default configuration for Apache (contrôleur frontal + réécriture) —
+# absent jusqu'ici (cahier des charges — FONCTIONNALITÉ 17 §22/§23) : sans
+# incidence sous un autre serveur (Nginx l'ignore), nécessaire pour Apache.
+<IfModule mod_negotiation.c>
+    Options -MultiViews
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Determine the RewriteBase automatically and set it as environment variable.
+    RewriteCond %{REQUEST_URI}::$1 ^(/.+)/(.*)::\2$
+    RewriteRule ^(.*) - [E=BASE:%1]
+
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Sets the HTTP_X_FORWARDED_PROTO header if HTTPS is enabled.
+    RewriteCond %{HTTPS} on
+    RewriteRule ^ - [E=HTTP_X_FORWARDED_PROTO:https]
+
+    # Redirect to URI without front controller to prevent duplicate content
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    RewriteRule ^index\.php(?:/(.*)|$) %{ENV:BASE}/$1 [R=301,L]
+
+    # If the requested filename exists, simply serve it.
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule .? - [L]
+
+    RewriteRule .? %{ENV:BASE}/index.php [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    <IfModule mod_alias.c>
+        RedirectMatch 307 ^/$ /index.php/
+    </IfModule>
+</IfModule>
+
+# Compression HTTP (cahier §22) : réduit la taille transférée pour le HTML
+# rendu par Symfony et pour les fichiers statiques texte (CSS/JS).
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml application/xml application/javascript text/javascript application/json image/svg+xml
+</IfModule>
+
+# Cache navigateur (cahier §23) : uniquement pour les ressources statiques
+# dont le contenu change rarement. Les pages PHP (rendu Symfony) ne
+# correspondent à aucune de ces extensions et ne sont donc jamais concernées.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 30 days"
+    ExpiresByType application/javascript "access plus 30 days"
+    ExpiresByType text/javascript "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>

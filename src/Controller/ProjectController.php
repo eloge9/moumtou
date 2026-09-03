@@ -67,11 +67,26 @@ class ProjectController extends AbstractController
             $analyticsTracker->trackProjectView($project, $viewer, $source);
         }
 
+        // Cahier des charges — FONCTIONNALITÉ 17 §4/§11 : la page projet
+        // affiche l'auteur de chaque commentaire et de chaque réponse ; sans
+        // ces jointures, Twig déclenchait un chargement paresseux par
+        // commentaire (auteur + collection des réponses), soit 2 requêtes
+        // supplémentaires par commentaire (mesuré : 27 requêtes pour 5
+        // commentaires avant correction, 17 après — voir rapport final).
         $comments = $em->getRepository(Comment::class)->createQueryBuilder('c')
+            ->leftJoin('c.author', 'author')->addSelect('author')
+            // Association OneToOne côté inverse (User::$recruiterProfile) :
+            // toujours chargée immédiatement par Doctrine, une requête par
+            // auteur distinct si elle n'est pas explicitement jointe ici.
+            ->leftJoin('author.recruiterProfile', 'authorRecruiterProfile')->addSelect('authorRecruiterProfile')
+            ->leftJoin('c.replies', 'replies')->addSelect('replies')
+            ->leftJoin('replies.author', 'replyAuthor')->addSelect('replyAuthor')
+            ->leftJoin('replyAuthor.recruiterProfile', 'replyAuthorRecruiterProfile')->addSelect('replyAuthorRecruiterProfile')
             ->andWhere('c.project = :project')->setParameter('project', $project)
             ->andWhere('c.parent IS NULL')
             ->andWhere('c.status = :visible')->setParameter('visible', CommentStatus::VISIBLE)
             ->orderBy('c.createdAt', 'DESC')
+            ->addOrderBy('replies.createdAt', 'ASC')
             ->getQuery()->getResult();
 
         $myRating = null;

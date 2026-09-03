@@ -38,7 +38,14 @@ class ProjectRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
 
         $perPage = min(max(1, $criteria->perPage), ProjectSearchCriteria::MAX_PER_PAGE);
-        $qb->select('p')->distinct()
+        // Cahier des charges — FONCTIONNALITÉ 17 §4 : ne PAS appeler
+        // select('p') ici, qui écraserait les addSelect(owner/institution/…)
+        // de baseQuery() et annulerait silencieusement leurs jointures pour
+        // l'hydratation (les relations étaient alors rechargées une par une
+        // malgré la jointure SQL déjà présente — N+1 mesuré sur /explorer,
+        // voir rapport final). distinct() seul suffit : 'p' est déjà
+        // sélectionné implicitement par createQueryBuilder('p').
+        $qb->distinct()
             ->setFirstResult((max(1, $criteria->page) - 1) * $perPage)
             ->setMaxResults($perPage);
 
@@ -77,7 +84,22 @@ class ProjectRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('p')
             ->leftJoin('p.owner', 'owner')->addSelect('owner')
+            // Doctrine charge toujours immédiatement une association OneToOne
+            // côté inverse (User::$recruiterProfile est mappedBy) — sans
+            // cette jointure explicite, chaque propriétaire distinct déclenche
+            // une requête séparée (cahier des charges — FONCTIONNALITÉ 17
+            // §4 : N+1 mesuré sur /explorer, voir rapport final).
+            ->leftJoin('owner.recruiterProfile', 'ownerRecruiterProfile')->addSelect('ownerRecruiterProfile')
             ->leftJoin('p.institution', 'institution')->addSelect('institution')
+            // Project::$defense est aussi une association OneToOne côté
+            // inverse (jamais paresseuse chez Doctrine) : sûre à joindre ici
+            // (relation *-à-un, ne duplique jamais de lignes, contrairement
+            // à project.technologies volontairement laissée paresseuse —
+            // une jointure *-à-plusieurs fausserait la pagination LIMIT/OFFSET).
+            // Alias "projectDefense" (pas "defense") : un filtre par statut
+            // de soutenance plus bas dans cette méthode joint déjà "p.defense
+            // AS defense" — deux jointures DQL sur le même alias échoueraient.
+            ->leftJoin('p.defense', 'projectDefense')->addSelect('projectDefense')
             ->where('p.status IN (:statuses)')
             ->setParameter('statuses', self::PUBLIC_STATUSES);
 

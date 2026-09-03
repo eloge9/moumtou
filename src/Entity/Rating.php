@@ -9,6 +9,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: RatingRepository::class)]
 #[ORM\Table(name: 'rating')]
 #[ORM\UniqueConstraint(name: 'rating_project_user_unique', columns: ['project_id', 'user_id'])]
+// Cahier des charges — FONCTIONNALITÉ 17 §5/§16 : filtré à chaque ouverture
+// du tableau de bord de modération (évaluations suspectes/signalées).
+#[ORM\Index(columns: ['status'], name: 'rating_status_idx')]
 class Rating
 {
     #[ORM\Id]

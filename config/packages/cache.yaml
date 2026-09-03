@@ -15,8 +15,11 @@ framework:
         #app: cache.adapter.apcu
 
         # Namespaced pools use the above "app" backend by default
-        #pools:
-            #my.dedicated.cache: null
+        pools:
+            # Données de référence publiques peu modifiées (cahier des
+            # charges — FONCTIONNALITÉ 17 §15) : domaines, mentions,
+            # spécialités, technologies, pays des établissements.
+            cache.reference_data: null
 
 when@test:
     framework:
@@ -24,7 +27,12 @@ when@test:
             # Le compteur de rate limiting (inscription/login/commentaires) doit
             # repartir de zéro à chaque exécution de la suite de tests, sinon des
             # exécutions répétées dans la même heure peuvent déclencher le
-            # plafond entre deux lancements distincts de PHPUnit.
+            # plafond entre deux lancements distincts de PHPUnit. Même
+            # raisonnement pour le cache de données de référence : sans
+            # cela, un test purgeant/recréant des domaines/technologies
+            # verrait une liste périmée provenant d'une exécution précédente.
             pools:
                 cache.rate_limiter:
+                    adapter: cache.adapter.array
+                cache.reference_data:
                     adapter: cache.adapter.array

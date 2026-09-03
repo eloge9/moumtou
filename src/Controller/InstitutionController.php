@@ -69,6 +69,7 @@ class InstitutionController extends AbstractController
         ProjectPhotoRepository $projectPhotoRepository,
         UserRepository $userRepository,
         UrlGeneratorInterface $urlGenerator,
+        \App\Service\ReferenceDataProvider $referenceData,
     ): Response {
         $institution = $em->getRepository(Institution::class)->findOneBy(['slug' => $slug, 'active' => true]);
         if (!$institution) {
@@ -105,10 +106,10 @@ class InstitutionController extends AbstractController
             $data['coverPhotos'] = $projectPhotoRepository->findCoversForProjects($result['items']);
             $data['projectsTotal'] = $result['total'];
             $data['projectsPageCount'] = (int) ceil($result['total'] / $criteria->perPage);
-            $data['domains'] = $em->getRepository(Domain::class)->findBy([], ['name' => 'ASC']);
-            $data['mentions'] = $em->getRepository(Mention::class)->findBy([], ['name' => 'ASC']);
-            $data['specialties'] = $em->getRepository(Specialty::class)->findBy([], ['name' => 'ASC']);
-            $data['technologies'] = $em->getRepository(Technology::class)->findBy([], ['name' => 'ASC']);
+            $data['domains'] = $referenceData->domains();
+            $data['mentions'] = $referenceData->mentions();
+            $data['specialties'] = $referenceData->specialties();
+            $data['technologies'] = $referenceData->technologies();
             $data['projectTypes'] = ProjectType::cases();
         } elseif ('soutenances' === $tab) {
             $criteria = $this->buildDefenseCriteria($request, $institution->getId());
@@ -118,9 +119,9 @@ class InstitutionController extends AbstractController
             $data['defenses'] = $result['items'];
             $data['defensesTotal'] = $result['total'];
             $data['defensesPageCount'] = (int) ceil($result['total'] / $criteria->perPage);
-            $data['domains'] = $em->getRepository(Domain::class)->findBy([], ['name' => 'ASC']);
-            $data['mentions'] = $em->getRepository(Mention::class)->findBy([], ['name' => 'ASC']);
-            $data['specialties'] = $em->getRepository(Specialty::class)->findBy([], ['name' => 'ASC']);
+            $data['domains'] = $referenceData->domains();
+            $data['mentions'] = $referenceData->mentions();
+            $data['specialties'] = $referenceData->specialties();
         } elseif ('talents' === $tab) {
             $talentCriteria = new TalentSearchCriteria(
                 institutionId: $institution->getId(),

@@ -38,6 +38,10 @@ class UserController extends AbstractController
         $page = max(1, (int) $request->query->get('page', 1));
 
         $qb = $em->getRepository(User::class)->createQueryBuilder('u')
+            // Association OneToOne côté inverse : toujours chargée par
+            // Doctrine, une requête par utilisateur sans cette jointure
+            // (cahier — FONCTIONNALITÉ 17 §4/§16, liste admin paginée).
+            ->leftJoin('u.recruiterProfile', 'recruiterProfile')->addSelect('recruiterProfile')
             ->orderBy('u.createdAt', 'DESC');
 
         if ($query) {

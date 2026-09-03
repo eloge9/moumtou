@@ -2,10 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\Domain;
 use App\Entity\Institution;
-use App\Entity\Mention;
-use App\Entity\Specialty;
 use App\Entity\Technology;
 use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
@@ -13,6 +10,7 @@ use App\Repository\ProjectPhotoRepository;
 use App\Repository\ProjectRepository;
 use App\Search\ProjectSearchCriteria;
 use App\Service\AnalyticsTracker;
+use App\Service\ReferenceDataProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +20,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class ExplorerController extends AbstractController
 {
     #[Route('/explorer', name: 'app_explorer')]
-    public function index(Request $request, ProjectRepository $projectRepository, ProjectPhotoRepository $projectPhotoRepository, EntityManagerInterface $em, AnalyticsTracker $analyticsTracker): Response
+    public function index(Request $request, ProjectRepository $projectRepository, ProjectPhotoRepository $projectPhotoRepository, EntityManagerInterface $em, AnalyticsTracker $analyticsTracker, ReferenceDataProvider $referenceData): Response
     {
         $criteria = $this->buildCriteria($request);
         $result = $projectRepository->search($criteria);
@@ -39,12 +37,12 @@ class ExplorerController extends AbstractController
             'criteria' => $criteria,
             'countByType' => $countByType,
             'projectTypes' => ProjectType::cases(),
-            'domains' => $em->getRepository(Domain::class)->findBy([], ['name' => 'ASC']),
-            'mentions' => $em->getRepository(Mention::class)->findBy([], ['name' => 'ASC']),
-            'specialties' => $em->getRepository(Specialty::class)->findBy([], ['name' => 'ASC']),
+            'domains' => $referenceData->domains(),
+            'mentions' => $referenceData->mentions(),
+            'specialties' => $referenceData->specialties(),
             'institutions' => $em->getRepository(Institution::class)->findBy([], ['name' => 'ASC']),
-            'technologies' => $em->getRepository(Technology::class)->findBy([], ['name' => 'ASC']),
-            'countries' => $this->distinctInstitutionCountries($em),
+            'technologies' => $referenceData->technologies(),
+            'countries' => $referenceData->institutionCountries(),
             'pageCount' => (int) ceil($result['total'] / $criteria->perPage),
         ]);
     }
@@ -109,20 +107,5 @@ class ExplorerController extends AbstractController
         foreach ($technologies as $technology) {
             $analyticsTracker->trackTechnologySearch($technology);
         }
-    }
-
-    /**
-     * @return string[]
-     */
-    private function distinctInstitutionCountries(EntityManagerInterface $em): array
-    {
-        $rows = $em->getRepository(Institution::class)->createQueryBuilder('i')
-            ->select('DISTINCT i.country')
-            ->where('i.country IS NOT NULL')
-            ->orderBy('i.country', 'ASC')
-            ->getQuery()
-            ->getScalarResult();
-
-        return array_column($rows, 'country');
     }
 }

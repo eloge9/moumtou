@@ -57,7 +57,11 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->getSingleScalarResult();
 
         $perPage = min(max(1, $criteria->perPage), TalentSearchCriteria::MAX_PER_PAGE);
-        $qb->select('u')->distinct()
+        // Cahier des charges — FONCTIONNALITÉ 17 §4 : ne pas appeler
+        // select('u') ici, qui écraserait les addSelect(institution/…) de
+        // baseQuery() et annulerait silencieusement leurs jointures pour
+        // l'hydratation (même défaut que ProjectRepository::search()).
+        $qb->distinct()
             ->setFirstResult((max(1, $criteria->page) - 1) * $perPage)
             ->setMaxResults($perPage);
 
@@ -78,6 +82,11 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
 
         $qb = $this->createQueryBuilder('u')
             ->leftJoin('u.institution', 'institution')->addSelect('institution')
+            // Doctrine charge toujours immédiatement une association OneToOne
+            // côté inverse (User::$recruiterProfile est mappedBy) — sans
+            // cette jointure explicite, chaque talent affiché déclenche une
+            // requête séparée (cahier — FONCTIONNALITÉ 17 §4, N+1 mesuré).
+            ->leftJoin('u.recruiterProfile', 'recruiterProfile')->addSelect('recruiterProfile')
             ->andWhere($this->getEntityManager()->createQueryBuilder()->expr()->in('u.id', $publicOwnerIdsDql))
             ->setParameter('publicStatuses', ProjectRepository::PUBLIC_STATUSES);
 

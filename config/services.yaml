@@ -87,6 +87,10 @@ services:
         arguments:
             $backupPath: '%app.backup_path%'
 
+    App\Service\ReferenceDataProvider:
+        arguments:
+            $cache: '@cache.reference_data'
+
     App\Command\BackupDatabaseCommand:
         arguments:
             $backupEnabled: '%app.backup_enabled%'

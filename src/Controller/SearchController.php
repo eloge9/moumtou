@@ -13,6 +13,7 @@ use App\Repository\TechnologyRepository;
 use App\Repository\UserRepository;
 use App\Search\ProjectSearchCriteria;
 use App\Search\TalentSearchCriteria;
+use App\Service\ReferenceDataProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -42,13 +43,14 @@ class SearchController extends AbstractController
         TechnologyRepository $technologyRepository,
         DefenseRepository $defenseRepository,
         EntityManagerInterface $em,
+        ReferenceDataProvider $referenceData,
     ): Response {
         $query = trim((string) $request->query->get('q', ''));
         $type = $request->query->get('type');
         $hasFilters = $this->hasAnyFilterParam($request);
 
         if ('talents' === $type) {
-            return $this->talentsView($request, $userRepository, $em, $query);
+            return $this->talentsView($request, $userRepository, $query, $referenceData);
         }
 
         if (!$query && !$hasFilters) {
@@ -103,7 +105,7 @@ class SearchController extends AbstractController
      * compatibilité — cahier §18/§33). L'outil recruteur enrichi reste sur
      * /recruteur, réservé à ROLE_RECRUITER.
      */
-    private function talentsView(Request $request, UserRepository $userRepository, EntityManagerInterface $em, string $query): Response
+    private function talentsView(Request $request, UserRepository $userRepository, string $query, ReferenceDataProvider $referenceData): Response
     {
         $technologyIds = array_slice(array_map('intval', $request->query->all('technologies')), 0, 20);
         $techMode = TalentSearchCriteria::TECH_MODE_ALL === $request->query->get('tech_mode') ? TalentSearchCriteria::TECH_MODE_ALL : TalentSearchCriteria::TECH_MODE_ANY;
@@ -126,7 +128,7 @@ class SearchController extends AbstractController
             'talents' => $result['items'],
             'total' => $result['total'],
             'pageCount' => (int) ceil($result['total'] / $criteria->perPage),
-            'technologies' => $em->getRepository(Technology::class)->findBy([], ['name' => 'ASC']),
+            'technologies' => $referenceData->technologies(),
         ]);
     }
 

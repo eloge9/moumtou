@@ -14,6 +14,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity(repositoryClass: ReportRepository::class)]
 #[ORM\Table(name: 'report')]
+// Cahier des charges — FONCTIONNALITÉ 17 §5/§16 : `status` est filtré à
+// chaque ouverture du tableau de bord de modération (3 comptages) ;
+// (target_type, target_id) est utilisé pour retrouver les signalements
+// existants sur une même cible (doublons, historique).
+#[ORM\Index(columns: ['status'], name: 'report_status_idx')]
+#[ORM\Index(columns: ['target_type', 'target_id'], name: 'report_target_idx')]
 class Report
 {
     #[ORM\Id]

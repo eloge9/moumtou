@@ -45,7 +45,7 @@ class RecruiterController extends AbstractController
     private const MAX_MESSAGE_LENGTH = 1000;
 
     #[Route('/recruteur', name: 'app_recruiter_search')]
-    public function search(Request $request, EntityManagerInterface $em, UserRepository $userRepository, RecruiterFavoriteRepository $favoriteRepository, ContactRequestRepository $contactRequestRepository): Response
+    public function search(Request $request, EntityManagerInterface $em, UserRepository $userRepository, RecruiterFavoriteRepository $favoriteRepository, ContactRequestRepository $contactRequestRepository, \App\Service\ReferenceDataProvider $referenceData): Response
     {
         $criteria = $this->buildCriteria($request);
         $result = $userRepository->search($criteria);
@@ -76,13 +76,13 @@ class RecruiterController extends AbstractController
             'total' => $result['total'],
             'criteria' => $criteria,
             'pageCount' => (int) ceil($result['total'] / $criteria->perPage),
-            'technologies' => $em->getRepository(Technology::class)->findBy([], ['name' => 'ASC']),
+            'technologies' => $referenceData->technologies(),
             'skills' => $em->getRepository(Skill::class)->findBy([], ['name' => 'ASC']),
             'institutions' => $em->getRepository(Institution::class)->createQueryBuilder('i')
                 ->andWhere('i.active = true')->orderBy('i.name', 'ASC')->getQuery()->getResult(),
-            'domains' => $em->getRepository(Domain::class)->findBy([], ['name' => 'ASC']),
-            'mentions' => $em->getRepository(Mention::class)->findBy([], ['name' => 'ASC']),
-            'specialties' => $em->getRepository(Specialty::class)->findBy([], ['name' => 'ASC']),
+            'domains' => $referenceData->domains(),
+            'mentions' => $referenceData->mentions(),
+            'specialties' => $referenceData->specialties(),
             'projectTypes' => ProjectType::cases(),
             'availabilities' => Availability::cases(),
         ]);
@@ -130,6 +130,10 @@ class RecruiterController extends AbstractController
 
         $favorites = $em->getRepository(RecruiterFavorite::class)->createQueryBuilder('f')
             ->join('f.talent', 't')->addSelect('t')
+            // Association OneToOne côté inverse : sans cette jointure,
+            // Doctrine déclenche une requête par talent favori (cahier —
+            // FONCTIONNALITÉ 17 §4/§19).
+            ->leftJoin('t.recruiterProfile', 'talentRecruiterProfile')->addSelect('talentRecruiterProfile')
             ->andWhere('f.recruiter = :recruiter')->setParameter('recruiter', $recruiter)
             ->orderBy('f.createdAt', 'DESC')
             ->getQuery()->getResult();

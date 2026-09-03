@@ -19,6 +19,15 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\UniqueConstraint(name: 'user_email_unique', columns: ['email'])]
 #[ORM\UniqueConstraint(name: 'user_slug_unique', columns: ['slug'])]
 #[ORM\Index(columns: ['created_at'], name: 'user_created_at_idx')]
+// Cahier des charges — FONCTIONNALITÉ 17 §5 : `status` filtré sur la liste
+// admin des utilisateurs (paginée) ; `country` filtré par la recherche de
+// talents (correspondance exacte) ; `first_name`/`last_name` en index
+// séparés (pas composite) pour que MySQL puisse fusionner les deux côtés
+// du "OR" déjà utilisé par la recherche/l'autocomplétion (préfixe LIKE).
+#[ORM\Index(columns: ['status'], name: 'user_status_idx')]
+#[ORM\Index(columns: ['country'], name: 'user_country_idx')]
+#[ORM\Index(columns: ['first_name'], name: 'user_first_name_idx')]
+#[ORM\Index(columns: ['last_name'], name: 'user_last_name_idx')]
 #[UniqueEntity(fields: ['email'], message: 'Un compte existe déjà avec cette adresse e-mail.')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {

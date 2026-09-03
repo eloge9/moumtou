@@ -10,6 +10,11 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: CommentRepository::class)]
 #[ORM\Table(name: 'comment')]
+// Cahier des charges — FONCTIONNALITÉ 17 §5 : chaque affichage de la page
+// projet filtre exactement sur ces deux colonnes ensemble (WHERE project_id
+// = ? AND status = ?) — mesuré comme la requête la plus fréquente de toute
+// l'application (une par visite de page projet).
+#[ORM\Index(columns: ['project_id', 'status'], name: 'comment_project_status_idx')]
 class Comment
 {
     #[ORM\Id]

@@ -13,6 +13,10 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'project')]
 #[ORM\Index(columns: ['status', 'type'], name: 'project_status_type_idx')]
 #[ORM\Index(columns: ['published_at'], name: 'project_published_at_idx')]
+// Cahier des charges — FONCTIONNALITÉ 17 §5/§10 : préfixe LIKE 'query%' de
+// l'autocomplétion publique (déjà "sargable", donc réellement exploitable
+// par un index — contrairement à la recherche principale en '%query%').
+#[ORM\Index(columns: ['name'], name: 'project_name_idx')]
 class Project
 {
     #[ORM\Id]
