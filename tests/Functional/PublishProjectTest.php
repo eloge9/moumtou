@@ -11,6 +11,7 @@ use App\Entity\Technology;
 use App\Entity\User;
 use App\Enum\UserStatus;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class PublishProjectTest extends FunctionalTestCase
@@ -224,5 +225,51 @@ class PublishProjectTest extends FunctionalTestCase
         self::assertSame($project->getMention(), $project->getSpecialty()->getMention());
         self::assertSame('Institut Libre de Droit', $project->getInstitution()->getName());
         self::assertFalse($project->getInstitution()->isVerified(), 'Un établissement ajouté par un utilisateur doit être non vérifié.');
+    }
+
+    #[DataProvider('forbiddenContentProvider')]
+    public function testProjectRequestingFundingIsRejected(string $field, string $value): void
+    {
+        $client = $this->createLoggedInClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $crawler = $client->request('GET', '/publier');
+        $form = $crawler->selectButton('Envoyer pour publication')->form(array_merge([
+            'publish_project[type]' => 'entrepreneurial',
+            'publish_project[name]' => 'Projet de financement',
+            'publish_project[githubUrl]' => 'https://github.com/test/financement',
+        ], [$field => $value]));
+        $client->submit($form);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'plateforme de financement participatif');
+        self::assertCount(0, $em->getRepository(Project::class)->findAll());
+    }
+
+    public static function forbiddenContentProvider(): iterable
+    {
+        yield 'recherche de financement' => ['publish_project[detailedDescription]', 'Nous recherchons un financement pour terminer ce projet.'];
+        yield 'crowdfunding' => ['publish_project[shortDescription]', 'Lancement d\'une campagne de crowdfunding cette semaine.'];
+        yield 'appel aux investisseurs' => ['publish_project[detailedDescription]', 'Ceci est un appel aux investisseurs pour financer la suite.'];
+        yield 'demande de don' => ['publish_project[detailedDescription]', 'Vous pouvez faire un don pour soutenir ce projet.'];
+    }
+
+    public function testLegitimateDescriptionMentioningPastFundingIsNotFlagged(): void
+    {
+        $client = $this->createLoggedInClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $crawler = $client->request('GET', '/publier');
+        $form = $crawler->selectButton('Envoyer pour publication')->form([
+            'publish_project[type]' => 'entrepreneurial',
+            'publish_project[name]' => 'Startup déjà lancée',
+            'publish_project[detailedDescription]' => 'Application mobile de gestion de stock, déployée en production et utilisée par 40 commerces.',
+            'publish_project[githubUrl]' => 'https://github.com/test/startup',
+        ]);
+        $client->submit($form);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Startup déjà lancée');
+        self::assertNotNull($em->getRepository(Project::class)->findOneBy(['name' => 'Startup déjà lancée']));
     }
 }

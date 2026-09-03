@@ -63,7 +63,10 @@
     <div class="d-flex flex-wrap gap-2">
       <span class="m-badge m-badge--type">{{ project.type.label }}</span>
       {% if project.status.value == 'verifie' %}
-        <span class="m-badge m-badge--verifie">{{ project.type.value == 'soutenance' ? 'Soutenance vérifiée par le jury' : 'Projet vérifié' }}</span>
+        <span class="m-badge m-badge--verifie">✅ {{ project.type.value == 'soutenance' ? 'Soutenance vérifiée par le jury' : 'Projet vérifié' }}</span>
+      {% elseif project.status.value == 'publie' %}
+        <span class="m-badge">🌐 Projet publié</span>
+        <span class="m-badge" style="color:#B36B00;background:#FFF4E5">⚠️ Pas encore vérifié</span>
       {% endif %}
     </div>
 
@@ -90,7 +93,7 @@
     {% if photos|length > 1 %}
       <div class="row g-2 mt-2">
         {% for photo in photos|slice(1, 3) %}
-          <div class="col-3"><div class="m-media m-media--vignette"><img src="{{ asset(photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover"></div></div>
+          <div class="col-3"><div class="m-media m-media--vignette"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div></div>
         {% endfor %}
         {% if photos|length > 4 %}
           <div class="col-3"><div class="m-media m-media--vignette justify-content-center fw-bold" style="color:var(--m-bleu)">+{{ photos|length - 4 }}</div></div>

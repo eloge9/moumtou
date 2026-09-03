@@ -1,0 +1,67 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block title %}Administration — Projets — MOUMTOU{% endblock %}
+{% block admin_title %}Projets{% endblock %}
+
+{% block admin_body %}
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="m-label">Recherche</label>
+      <input class="m-input" type="text" name="q" value="{{ query }}" placeholder="Nom du projet ou de l'auteur">
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Statut</label>
+      <select class="m-select" name="status">
+        <option value="">Tous</option>
+        {% for s in statuses %}<option value="{{ s.value }}" {{ status is not null and status.value == s.value ? 'selected' }}>{{ s.label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Type</label>
+      <select class="m-select" name="type">
+        <option value="">Tous</option>
+        {% for t in types %}<option value="{{ t.value }}" {{ type is not null and type.value == t.value ? 'selected' }}>{{ t.label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="m-btn m-btn--primaire m-btn--bloc" type="submit">Filtrer</button>
+    </div>
+  </form>
+</div>
+
+<div class="m-carte m-carte--plate">
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Projet</th><th>Type</th><th>Auteur</th><th>Preuves</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for project in projects %}
+          <tr>
+            <td class="fw-semibold">{{ project.name }}</td>
+            <td class="m-texte">{{ project.type.shortLabel }}</td>
+            <td class="m-texte">{{ project.owner.fullName }}</td>
+            <td><span class="m-nb-preuves{{ project.proofs|length == 0 ? ' m-nb-preuves--zero' : '' }}">{{ project.proofs|length }}</span></td>
+            <td>
+              {% if project.status.value == 'verifie' %}<span class="m-tag m-tag--bleu">Vérifié</span>
+              {% elseif project.status.value == 'publie' %}<span class="m-tag">Publié</span>
+              {% elseif project.status.value == 'rejete' %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Rejeté/masqué</span>
+              {% else %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">{{ project.status.label }}</span>{% endif %}
+            </td>
+            <td><a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('admin_project_show', {id: project.id}) }}">Examiner</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="m-meta">Aucun projet ne correspond à ces filtres.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pageCount > 1 %}
+  <nav class="d-flex justify-content-center gap-2 mt-3">
+    {% for p in 1..pageCount %}
+      <a class="m-btn m-btn--sm {{ p == page ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_projects', {q: query, status: status ? status.value : '', type: type ? type.value : '', page: p}) }}">{{ p }}</a>
+    {% endfor %}
+  </nav>
+{% endif %}
+{% endblock %}

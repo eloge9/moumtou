@@ -162,6 +162,21 @@
             {{ form_widget(form.memoireUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://github.com/…/memoire.pdf'}}) }}
             {{ form_errors(form.memoireUrl) }}
           </div>
+          {% if editingProject is defined and editingProject and editingProject.photos|length %}
+            <div class="col-12">
+              <label class="m-label">Photos actuelles</label>
+              <div class="row g-2">
+                {% for photo in editingProject.photos %}
+                  <div class="col-3">
+                    <div class="m-media m-media--vignette"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover"></div>
+                    <label class="m-meta d-flex align-items-center gap-1 mt-1" style="font-size:12.5px">
+                      <input type="checkbox" name="remove_photos[]" value="{{ photo.id }}"> Supprimer
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
           <div class="col-12">
             {{ form_label(form.photos, null, {label_attr: {class: 'm-label'}}) }}
             <label class="m-depot" for="{{ form.photos.vars.id }}"><span style="font-size:18px;color:var(--m-bleu)">⇪</span>Glisser des images ici ou cliquer pour choisir</label>

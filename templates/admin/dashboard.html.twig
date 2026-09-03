@@ -69,7 +69,7 @@
                   <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-projet-' ~ project.id) }}">
                   <button class="m-btn m-btn--primaire m-btn--sm" type="submit">Publier</button>
                 </form>
-                <a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('app_project_show', {slug: project.slug}) }}">Examiner</a>
+                <a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('admin_project_show', {id: project.id}) }}">Examiner</a>
               </div>
             </td>
           </tr>

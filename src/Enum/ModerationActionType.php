@@ -10,6 +10,7 @@ enum ModerationActionType: string
     case SUPPRIMER = 'supprimer';
     case DEMANDER_CORRECTION = 'demander_correction';
     case MARQUER_VERIFIE = 'marquer_verifie';
+    case RETIRER_VERIFICATION = 'retirer_verification';
     case AVERTIR = 'avertir';
     case SUSPENDRE = 'suspendre';
     case BANNIR = 'bannir';
@@ -23,6 +24,7 @@ enum ModerationActionType: string
             self::SUPPRIMER => 'Supprimer le projet',
             self::DEMANDER_CORRECTION => 'Demander des corrections',
             self::MARQUER_VERIFIE => 'Marquer comme vérifié',
+            self::RETIRER_VERIFICATION => 'Retirer la vérification',
             self::AVERTIR => 'Avertir l\'auteur',
             self::SUSPENDRE => 'Suspendre l\'auteur',
             self::BANNIR => 'Bannir l\'auteur',

@@ -159,6 +159,13 @@ class ModerationController extends AbstractController
             throw $this->createNotFoundException();
         }
 
+        $reason = trim((string) $request->request->get('reason'));
+        if (ModerationActionType::DEMANDER_CORRECTION === $action && !$reason) {
+            $this->addFlash('erreur', 'Précisez le motif et l\'action attendue pour que le talent puisse corriger son projet.');
+
+            return $this->redirectToRoute('admin_project_show', ['id' => $project->getId()]);
+        }
+
         $this->applyContentAction($action, $project, $em);
 
         /** @var User $admin */
@@ -168,13 +175,13 @@ class ModerationController extends AbstractController
         $moderationAction->setTargetType(ReportTargetType::PROJECT);
         $moderationAction->setTargetId($project->getId());
         $moderationAction->setActionType($action);
-        $moderationAction->setReason(sprintf('Décision directe depuis le tableau de bord : %s.', $action->label()));
+        $moderationAction->setReason($reason ?: sprintf('Décision directe depuis le tableau de bord : %s.', $action->label()));
         $em->persist($moderationAction);
         $em->flush();
 
         $this->addFlash('succes', 'Le projet a été mis à jour.');
 
-        return $this->redirectToRoute('admin_moderation');
+        return $this->redirectToRoute('admin_project_show', ['id' => $project->getId()]);
     }
 
     private function applyContentAction(ModerationActionType $action, object $target, EntityManagerInterface $em): void
@@ -186,6 +193,10 @@ class ModerationController extends AbstractController
         match ($action) {
             ModerationActionType::PUBLIER => $target->setStatus(ProjectStatus::PUBLIE),
             ModerationActionType::MARQUER_VERIFIE => $target->setStatus(ProjectStatus::VERIFIE),
+            // Retirer la vérification ramène le projet à "publié" : il reste
+            // visible publiquement (cahier §6/§31 : publication ≠ vérification),
+            // seul le badge "vérifié" disparaît.
+            ModerationActionType::RETIRER_VERIFICATION => $target->setStatus(ProjectStatus::PUBLIE),
             ModerationActionType::DEPUBLIER => $target->setStatus(ProjectStatus::EN_ATTENTE),
             ModerationActionType::DEMANDER_CORRECTION => $target->setStatus(ProjectStatus::VERIFICATION_DEMANDEE),
             ModerationActionType::MASQUER, ModerationActionType::SUPPRIMER => $target->setStatus(ProjectStatus::REJETE),

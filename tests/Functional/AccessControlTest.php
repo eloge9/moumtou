@@ -12,6 +12,7 @@ use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
 use App\Enum\UserStatus;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -54,9 +55,7 @@ class AccessControlTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
     }
 
-    /**
-     * @dataProvider protectedRoutesProvider
-     */
+    #[DataProvider('protectedRoutesProvider')]
     public function testVisitorIsRedirectedToLoginOnProtectedRoutes(string $path): void
     {
         $client = static::createClient();

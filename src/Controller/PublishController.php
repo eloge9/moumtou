@@ -13,6 +13,7 @@ use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
 use App\Enum\ProofType;
 use App\Form\PublishProjectType;
+use App\Service\ForbiddenContentDetector;
 use App\Service\ProjectPhotoUploader;
 use App\Service\SlugGenerator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -40,6 +41,7 @@ class PublishController extends AbstractController
         EntityManagerInterface $entityManager,
         SlugGenerator $slugGenerator,
         ProjectPhotoUploader $photoUploader,
+        ForbiddenContentDetector $forbiddenContentDetector,
     ): Response {
         $project = new Project();
         $form = $this->createForm(PublishProjectType::class, $project);
@@ -53,7 +55,7 @@ class PublishController extends AbstractController
             $specialty = $this->resolveSpecialty($form, $entityManager, $mention, $errors);
             $institution = $this->resolveInstitution($form, $entityManager, $errors);
 
-            $errors = array_merge($errors, $this->validateBusinessRules($form, $project, $domain, $mention, $specialty, $institution));
+            $errors = array_merge($errors, $this->validateBusinessRules($form, $project, $domain, $mention, $specialty, $institution, $forbiddenContentDetector));
 
             if (empty($errors)) {
                 /** @var \App\Entity\User $user */
@@ -106,6 +108,7 @@ class PublishController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         ProjectPhotoUploader $photoUploader,
+        ForbiddenContentDetector $forbiddenContentDetector,
     ): Response {
         $project = $entityManager->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         if (!$project) {
@@ -129,7 +132,7 @@ class PublishController extends AbstractController
             $specialty = $this->resolveSpecialty($form, $entityManager, $mention, $errors);
             $institution = $this->resolveInstitution($form, $entityManager, $errors);
 
-            $errors = array_merge($errors, $this->validateBusinessRules($form, $project, $domain, $mention, $specialty, $institution));
+            $errors = array_merge($errors, $this->validateBusinessRules($form, $project, $domain, $mention, $specialty, $institution, $forbiddenContentDetector));
 
             if (empty($errors)) {
                 $project->setDomain($domain);
@@ -159,11 +162,25 @@ class PublishController extends AbstractController
                     }
                 }
 
+                $this->removeSelectedPhotos($project, $request, $entityManager);
                 $photoUploader->upload($project, $form->get('photos')->getData() ?? []);
+
+                // Un projet vérifié doit repasser par une nouvelle vérification
+                // après une modification substantielle (cahier des charges §15) :
+                // la vérification est une preuve d'authenticité du contenu
+                // précis qui a été contrôlé, pas un statut acquis définitivement.
+                // Le projet reste visible (repasse à "publié"), il n'est jamais
+                // masqué par cette réouverture.
+                $wasVerified = ProjectStatus::VERIFIE === $project->getStatus();
+                if ($wasVerified) {
+                    $project->setStatus(ProjectStatus::PUBLIE);
+                }
 
                 $entityManager->flush();
 
-                $this->addFlash('succes', 'Votre projet a été mis à jour.');
+                $this->addFlash('succes', $wasVerified
+                    ? 'Votre projet a été mis à jour. Le contenu ayant changé, il redevient « publié, non vérifié » en attendant une nouvelle vérification.'
+                    : 'Votre projet a été mis à jour.');
 
                 return $this->redirectToRoute('app_project_show', ['slug' => $project->getSlug()]);
             }
@@ -198,6 +215,37 @@ class PublishController extends AbstractController
         $this->addFlash('succes', 'Le projet a été supprimé.');
 
         return $this->redirectToRoute('app_profile_show', ['slug' => $owner->getSlug()]);
+    }
+
+    /**
+     * Supprime les photos existantes cochées pour suppression (cahier des
+     * charges §11/§15), fichier physique et miniature compris.
+     */
+    private function removeSelectedPhotos(Project $project, Request $request, EntityManagerInterface $entityManager): void
+    {
+        $idsToRemove = array_map('intval', $request->request->all('remove_photos'));
+        if (!$idsToRemove) {
+            return;
+        }
+
+        foreach ($project->getPhotos()->toArray() as $photo) {
+            if (!\in_array($photo->getId(), $idsToRemove, true)) {
+                continue;
+            }
+
+            foreach ([$photo->getPath(), $photo->getThumbnailPath()] as $relativePath) {
+                if (!$relativePath) {
+                    continue;
+                }
+                $absolutePath = $this->getParameter('kernel.project_dir').'/public/'.$relativePath;
+                if (is_file($absolutePath)) {
+                    @unlink($absolutePath);
+                }
+            }
+
+            $project->removePhoto($photo);
+            $entityManager->remove($photo);
+        }
     }
 
     /**
@@ -382,6 +430,7 @@ class PublishController extends AbstractController
         ?Mention $mention,
         ?Specialty $specialty,
         ?Institution $institution,
+        ForbiddenContentDetector $forbiddenContentDetector,
     ): array {
         $errors = [];
 
@@ -389,6 +438,18 @@ class PublishController extends AbstractController
             if (!$domain || !$mention || !$specialty || !$institution) {
                 $errors[] = 'Un projet de soutenance doit être classé : domaine, mention, spécialité et établissement sont obligatoires.';
             }
+        }
+
+        // MOUMTOU n'est pas une plateforme de financement participatif
+        // (cahier des charges §4/§32) : recherche de financement,
+        // d'investisseurs ou de dons interdite en V1.
+        if ($forbiddenContentDetector->detect([
+            $project->getName(),
+            $project->getTheme(),
+            $project->getShortDescription(),
+            $project->getDetailedDescription(),
+        ])) {
+            $errors[] = 'Ce projet ne peut pas être publié : MOUMTOU n\'est pas une plateforme de financement participatif. Retirez toute mention de recherche de financement, d\'investisseurs, de dons ou de crowdfunding.';
         }
 
         $hasProof = false;

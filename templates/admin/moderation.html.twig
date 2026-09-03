@@ -22,7 +22,7 @@
       <p class="m-surtitre mt-4 mb-2">Projets en attente</p>
       <div class="d-grid gap-2">
         {% for project in pendingProjects %}
-          <a class="m-carte m-carte--plate p-3 text-start d-block" href="{{ path('app_project_show', {slug: project.slug}) }}">
+          <a class="m-carte m-carte--plate p-3 text-start d-block" href="{{ path('admin_project_show', {id: project.id}) }}">
             <span class="fw-bold" style="font-size:14px">{{ project.name }}</span>
             <p class="m-meta mb-0">{{ project.owner.fullName }} · {{ project.type.shortLabel }}</p>
           </a>

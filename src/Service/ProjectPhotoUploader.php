@@ -16,6 +16,7 @@ class ProjectPhotoUploader
 {
     private const MAX_PHOTOS = 8;
     private const MAX_DIMENSION = 1600;
+    private const THUMBNAIL_DIMENSION = 320;
 
     public function __construct(
         private readonly SluggerInterface $slugger,
@@ -47,6 +48,13 @@ class ProjectPhotoUploader
 
             $photo = new ProjectPhoto();
             $photo->setPath(sprintf('uploads/projects/%d/%s', $project->getId(), $filename));
+
+            $thumbnailFilename = 'thumb-'.$filename;
+            $created = $this->imageResizer->createThumbnail($directory.'/'.$filename, $directory.'/'.$thumbnailFilename, self::THUMBNAIL_DIMENSION);
+            if ($created) {
+                $photo->setThumbnailPath(sprintf('uploads/projects/%d/%s', $project->getId(), $thumbnailFilename));
+            }
+
             $photo->setPosition($position++);
             $project->addPhoto($photo);
         }

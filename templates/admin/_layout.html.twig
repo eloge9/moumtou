@@ -14,6 +14,7 @@
     <a class="m-admin__lien{{ adminNav|default('') == 'dashboard' ? ' is-active' : '' }}" href="{{ path('admin_dashboard') }}">Tableau de bord</a>
 
     <p class="m-admin__groupe">Contenus</p>
+    <a class="m-admin__lien{{ adminNav|default('') == 'projects' ? ' is-active' : '' }}" href="{{ path('admin_projects') }}">Projets</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'moderation' ? ' is-active' : '' }}" href="{{ path('admin_moderation') }}">Modération {% if stats is defined and stats.openReportsCount is defined and stats.openReportsCount > 0 %}<span class="m-admin__compteur m-admin__compteur--alerte">{{ stats.openReportsCount }}</span>{% endif %}</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'users' ? ' is-active' : '' }}" href="{{ path('admin_users') }}">Utilisateurs</a>
 

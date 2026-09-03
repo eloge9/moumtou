@@ -57,7 +57,7 @@ class ModerationTest extends FunctionalTestCase
         $crawler = $client->request('GET', '/admin');
         $form = $crawler->filter('form[action="/admin/moderation/projets/'.$projectId.'/decider"]')->selectButton('Publier')->form();
         $client->submit($form);
-        self::assertResponseRedirects('/admin/moderation');
+        self::assertResponseRedirects('/admin/projets/'.$projectId);
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $project = $em->getRepository(Project::class)->find($projectId);

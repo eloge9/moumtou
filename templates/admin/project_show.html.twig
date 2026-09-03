@@ -1,0 +1,104 @@
+{% extends 'admin/_layout.html.twig' %}
+{% set adminNav = 'projects' %}
+
+{% block title %}Administration — {{ project.name }} — MOUMTOU{% endblock %}
+{% block admin_title %}Examiner un projet{% endblock %}
+
+{% block admin_body %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1 style="font-size:22px" class="mb-1">{{ project.name }}</h1>
+    <p class="m-meta mb-0">
+      {{ project.type.label }} · Par <a href="{{ path('app_profile_show', {slug: project.owner.slug}) }}">{{ project.owner.fullName }}</a> ·
+      {% if project.status.value == 'verifie' %}<span class="m-tag m-tag--bleu">Vérifié</span>
+      {% elseif project.status.value == 'publie' %}<span class="m-tag">Publié — non vérifié</span>
+      {% elseif project.status.value == 'rejete' %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Rejeté/masqué</span>
+      {% else %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">{{ project.status.label }}</span>{% endif %}
+    </p>
+  </div>
+  <a class="m-btn m-btn--secondaire" href="{{ path('app_project_show', {slug: project.slug}) }}" target="_blank" rel="noopener">Voir la page publique</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="m-carte m-carte--plate p-3">
+      <p class="m-surtitre mb-2">Description</p>
+      {% if project.shortDescription %}<p class="m-texte fw-semibold">{{ project.shortDescription }}</p>{% endif %}
+      <p class="m-texte mb-0">{{ project.detailedDescription|default('Aucune description détaillée.')|nl2br }}</p>
+    </div>
+
+    <div class="m-carte m-carte--plate p-3 mt-3">
+      <p class="m-surtitre mb-2">Classification</p>
+      <div class="d-grid gap-1" style="font-size:13.5px">
+        <div class="d-flex justify-content-between"><span class="m-meta">Domaine</span><span class="fw-semibold">{{ project.domain ? project.domain.name : '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Mention</span><span class="fw-semibold">{{ project.mention ? project.mention.name : '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Spécialité</span><span class="fw-semibold">{{ project.specialty ? project.specialty.name : '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Établissement</span><span class="fw-semibold">{{ project.institution ? project.institution.name : '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Date de réalisation</span><span class="fw-semibold">{{ project.realizationDate ? project.realizationDate|date('d/m/Y') : '—' }}</span></div>
+      </div>
+      {% if project.technologies|length %}
+        <div class="m-tags mt-2">{% for tech in project.technologies %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
+      {% endif %}
+    </div>
+
+    <div class="m-carte m-carte--plate p-3 mt-3">
+      <p class="m-surtitre mb-2">Preuves de réalisation ({{ project.proofs|length }})</p>
+      {% for proof in project.proofs %}
+        <a class="m-preuve d-block mb-2" href="{{ proof.url }}" target="_blank" rel="noopener">
+          <span class="fw-bold d-block" style="font-size:14px">{{ proof.type.label }}</span>
+          <span class="m-meta">{{ proof.url }}</span>
+        </a>
+      {% else %}
+        <p class="m-meta mb-0">Aucune preuve fournie.</p>
+      {% endfor %}
+    </div>
+
+    {% if project.photos|length %}
+      <div class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Photos ({{ project.photos|length }})</p>
+        <div class="row g-2">
+          {% for photo in project.photos %}
+            <div class="col-3"><div class="m-media m-media--vignette"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover"></div></div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if history|length %}
+      <div class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Historique de modération</p>
+        <div class="m-journal">
+          {% for h in history %}
+            <div class="m-journal__ligne">
+              <span class="m-journal__date">{{ h.createdAt|date('d/m/Y H:i') }}</span>
+              <span class="flex-fill m-texte">{{ h.actionType.label }} par {{ h.admin.fullName }}{% if h.reason %} — {{ h.reason }}{% endif %}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="m-carte m-carte--plate m-carte--bleue p-3">
+      <p class="m-surtitre m-surtitre--bleu mb-2">Décision</p>
+      <form method="post" action="{{ path('admin_moderation_project_decide', {id: project.id}) }}">
+        <div class="d-grid gap-2">
+          <button class="m-btn m-btn--primaire m-btn--sm" type="submit" name="action" value="publier">Publier</button>
+          <button class="m-btn m-btn--primaire m-btn--sm" type="submit" name="action" value="marquer_verifie">✅ Marquer comme vérifié</button>
+          {% if project.status.value == 'verifie' %}
+            <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" name="action" value="retirer_verification">Retirer la vérification</button>
+          {% endif %}
+          <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" name="action" value="demander_correction">Demander une correction</button>
+          <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" name="action" value="depublier">Dépublier</button>
+          <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" name="action" value="masquer" style="color:#B3261E">Masquer</button>
+          <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" name="action" value="supprimer" style="color:#B3261E" onclick="return confirm('Confirmer le retrait de ce projet ?');">Supprimer</button>
+        </div>
+        <label class="m-label mt-3" for="motif-projet">Motif (obligatoire pour « Demander une correction »)</label>
+        <textarea class="m-textarea" id="motif-projet" name="reason" placeholder="Ex. : la preuve de réalisation est insuffisante. Ajoutez une démonstration ou un lien vers le projet."></textarea>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-projet-' ~ project.id) }}">
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
