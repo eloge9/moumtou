@@ -13,6 +13,7 @@ use App\Entity\Technology;
 use App\Entity\User;
 use App\Enum\Availability;
 use App\Enum\ContactRequestStatus;
+use App\Enum\NotificationType;
 use App\Enum\ProjectType;
 use App\Repository\ContactRequestRepository;
 use App\Repository\RecruiterFavoriteRepository;
@@ -20,6 +21,7 @@ use App\Repository\TalentViewRepository;
 use App\Repository\UserRepository;
 use App\Search\TalentSearchCriteria;
 use App\Security\ContactRequestMailer;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -206,6 +208,7 @@ class RecruiterController extends AbstractController
         ContactRequestRepository $contactRequestRepository,
         ContactRequestMailer $mailer,
         RateLimiterFactory $contactRequestLimiter,
+        NotificationService $notificationService,
     ): Response {
         $talent = $em->getRepository(User::class)->find($talentId);
         if (!$talent || !\in_array('ROLE_TALENT', $talent->getRoles(), true)) {
@@ -259,6 +262,16 @@ class RecruiterController extends AbstractController
         $em->flush();
 
         $mailer->notifyTalentOfNewRequest($contactRequest);
+        // sendEmail: false — le mailer dédié ci-dessus vient déjà d'envoyer
+        // l'e-mail, la notification interne ne doit pas en envoyer un second.
+        $notificationService->notify(
+            $talent,
+            NotificationType::CONTACT_REQUEST_RECEIVED,
+            'Nouvelle demande de contact',
+            \sprintf('%s souhaite entrer en contact avec vous.', $recruiter->getFullName()),
+            $this->generateUrl('app_talent_contact_requests'),
+            sendEmail: false,
+        );
 
         $this->addFlash('succes', 'Votre demande de contact a été envoyée.');
 

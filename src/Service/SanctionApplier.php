@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Sanction;
 use App\Entity\User;
+use App\Enum\NotificationType;
 use App\Enum\SanctionType;
 use App\Enum\UserStatus;
 use App\Security\SanctionMailer;
@@ -20,6 +21,7 @@ class SanctionApplier
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly SanctionMailer $mailer,
+        private readonly NotificationService $notificationService,
     ) {
     }
 
@@ -65,6 +67,26 @@ class SanctionApplier
         $this->em->flush();
 
         $this->mailer->notify($sanction);
+        // sendEmail: false — SanctionMailer vient d'envoyer l'e-mail détaillé
+        // (motif, durée…) ci-dessus ; la sécurité reste toujours notifiée en
+        // interne (catégorie obligatoire, cahier §24), sans e-mail en double.
+        $notificationType = match ($sanctionType) {
+            SanctionType::AVERTISSEMENT => NotificationType::ACCOUNT_WARNED,
+            SanctionType::SUSPENSION => NotificationType::ACCOUNT_SUSPENDED,
+            SanctionType::BANNISSEMENT => NotificationType::ACCOUNT_BANNED,
+        };
+        $notificationMessage = \sprintf('Motif : %s', $reason);
+        if ($sanction->getEndAt()) {
+            $notificationMessage .= \sprintf(' Suspension jusqu\'au %s.', $sanction->getEndAt()->format('d/m/Y'));
+        }
+        $this->notificationService->notify(
+            $target,
+            $notificationType,
+            $notificationType->label(),
+            $notificationMessage,
+            null,
+            sendEmail: false,
+        );
 
         return $sanction;
     }

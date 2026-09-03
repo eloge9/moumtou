@@ -6,8 +6,10 @@ use App\Entity\Defense;
 use App\Entity\DefenseValidation;
 use App\Entity\JuryMember;
 use App\Enum\DefenseStatus;
+use App\Enum\NotificationType;
 use App\Enum\ProjectStatus;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Point central de la règle "au moins 2 membres du jury doivent valider"
@@ -20,8 +22,11 @@ class DefenseValidator
 {
     public const MIN_VALIDATIONS = 2;
 
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly NotificationService $notificationService,
+        private readonly UrlGeneratorInterface $urlGenerator,
+    ) {
     }
 
     /**
@@ -68,7 +73,16 @@ class DefenseValidator
         }
 
         $defense->setStatus(DefenseStatus::VERIFIEE);
-        $defense->getProject()->setStatus(ProjectStatus::VERIFIE);
+        $project = $defense->getProject();
+        $project->setStatus(ProjectStatus::VERIFIE);
         $this->em->flush();
+
+        $this->notificationService->notify(
+            $project->getOwner(),
+            NotificationType::DEFENSE_VERIFIED,
+            'Soutenance vérifiée',
+            \sprintf('Votre soutenance pour "%s" a été vérifiée par le jury.', $project->getName()),
+            $this->urlGenerator->generate('app_defense_manage'),
+        );
     }
 }

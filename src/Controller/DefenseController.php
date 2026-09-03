@@ -7,11 +7,13 @@ use App\Entity\JuryMember;
 use App\Entity\Project;
 use App\Enum\DefenseStatus;
 use App\Enum\JuryStatus;
+use App\Enum\NotificationType;
 use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
 use App\Form\DefenseAnnounceType;
 use App\Form\JuryInviteType;
 use App\Security\JuryInvitationMailer;
+use App\Service\NotificationService;
 use App\Service\ProjectPhotoUploader;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -92,7 +94,7 @@ class DefenseController extends AbstractController
 
     #[Route('/ma-soutenance/{id}/jury/inviter', name: 'app_defense_invite_jury', methods: ['POST'])]
     #[IsGranted('ROLE_TALENT')]
-    public function inviteJury(int $id, Request $request, EntityManagerInterface $em, JuryInvitationMailer $mailer): Response
+    public function inviteJury(int $id, Request $request, EntityManagerInterface $em, JuryInvitationMailer $mailer, NotificationService $notificationService): Response
     {
         $project = $this->findOwnedProject($id, $em);
         $defense = $project->getDefense();
@@ -127,6 +129,20 @@ class DefenseController extends AbstractController
             $em->flush();
 
             $signedUrl = $mailer->sendInvitation($juryMember);
+
+            if ($matchingUser) {
+                // sendEmail: false — l'invitation ci-dessus contient déjà le
+                // lien signé, indispensable pour répondre ; un second e-mail
+                // générique n'apporterait rien.
+                $notificationService->notify(
+                    $matchingUser,
+                    NotificationType::JURY_INVITATION,
+                    'Invitation à un jury de soutenance',
+                    \sprintf('Vous avez été invité(e) à participer au jury de la soutenance de "%s".', $project->getName()),
+                    $this->generateUrl('app_teacher_dashboard'),
+                    sendEmail: false,
+                );
+            }
 
             $message = sprintf('Invitation envoyée à %s %s.', $juryMember->getFirstName(), $juryMember->getLastName());
             if ($this->getParameter('kernel.environment') === 'dev') {
@@ -340,6 +356,7 @@ class DefenseController extends AbstractController
         EntityManagerInterface $em,
         JuryInvitationMailer $mailer,
         \App\Service\DefenseValidator $defenseValidator,
+        NotificationService $notificationService,
     ): Response {
         $id = (int) $request->query->get('id');
         $expires = (int) $request->query->get('expires');
@@ -361,6 +378,20 @@ class DefenseController extends AbstractController
                 $juryMember->setConfirmedAt(new \DateTimeImmutable());
             }
             $em->flush();
+
+            $owner = $defense->getProject()->getOwner();
+            $notificationService->notify(
+                $owner,
+                'confirmer' === $decision ? NotificationType::JURY_ACCEPTED : NotificationType::JURY_REFUSED,
+                'confirmer' === $decision ? 'Participation au jury confirmée' : 'Invitation au jury déclinée',
+                \sprintf(
+                    '%s %s %s participer au jury de votre soutenance.',
+                    $juryMember->getFirstName(),
+                    $juryMember->getLastName(),
+                    'confirmer' === $decision ? 'a confirmé' : 'a décliné l\'invitation à'
+                ),
+                $this->generateUrl('app_defense_manage'),
+            );
         }
 
         // Étape 2 (après la soutenance) : certifier qu'elle a réellement eu

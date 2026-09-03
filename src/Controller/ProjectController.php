@@ -7,11 +7,13 @@ use App\Entity\Project;
 use App\Entity\Rating;
 use App\Entity\Report;
 use App\Enum\CommentStatus;
+use App\Enum\NotificationType;
 use App\Enum\ReportReason;
 use App\Enum\ReportStatus;
 use App\Enum\ReportTargetType;
 use App\Repository\ProjectRepository;
 use App\Security\Voter\CommentVoter;
+use App\Service\NotificationService;
 use App\Service\QrCodeGenerator;
 use App\Service\RatingIntegrityChecker;
 use Doctrine\ORM\EntityManagerInterface;
@@ -84,7 +86,7 @@ class ProjectController extends AbstractController
 
     #[Route('/projets/{slug}/noter', name: 'app_project_rate', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function rate(string $slug, Request $request, EntityManagerInterface $em, RatingIntegrityChecker $integrityChecker): Response
+    public function rate(string $slug, Request $request, EntityManagerInterface $em, RatingIntegrityChecker $integrityChecker, NotificationService $notificationService): Response
     {
         $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         $this->assertViewable($project);
@@ -106,6 +108,7 @@ class ProjectController extends AbstractController
         }
 
         $rating = $em->getRepository(Rating::class)->findOneBy(['project' => $project, 'user' => $user]);
+        $isNewRating = !$rating;
         if (!$rating) {
             $rating = new Rating();
             $rating->setProject($project);
@@ -120,6 +123,18 @@ class ProjectController extends AbstractController
         $em->flush();
 
         $this->recomputeRatingAggregate($project, $em);
+
+        // Notifié seulement à la création (§26 : pas de doublon à chaque
+        // modification d'une note déjà existante).
+        if ($isNewRating) {
+            $notificationService->notify(
+                $project->getOwner(),
+                NotificationType::PROJECT_RATING_RECEIVED,
+                'Nouvelle évaluation',
+                \sprintf('Votre projet "%s" a reçu une nouvelle évaluation.', $project->getName()),
+                $this->generateUrl('app_project_show', ['slug' => $slug]),
+            );
+        }
 
         $this->addFlash('succes', 'Votre évaluation a été enregistrée.');
 
@@ -147,7 +162,7 @@ class ProjectController extends AbstractController
 
     #[Route('/projets/{slug}/commenter', name: 'app_project_comment', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function comment(string $slug, Request $request, EntityManagerInterface $em, RateLimiterFactory $commentLimiter): Response
+    public function comment(string $slug, Request $request, EntityManagerInterface $em, RateLimiterFactory $commentLimiter, NotificationService $notificationService): Response
     {
         $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         $this->assertViewable($project);
@@ -173,6 +188,17 @@ class ProjectController extends AbstractController
         $em->persist($comment);
         $em->flush();
 
+        // Jamais de notification à soi-même (§19).
+        if ($project->getOwner() !== $user) {
+            $notificationService->notify(
+                $project->getOwner(),
+                NotificationType::COMMENT_RECEIVED,
+                'Nouveau commentaire',
+                \sprintf('%s a commenté votre projet "%s".', $user->getFullName(), $project->getName()),
+                $this->generateUrl('app_project_show', ['slug' => $slug]),
+            );
+        }
+
         $this->addFlash('succes', 'Votre commentaire a été publié.');
 
         return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
@@ -180,7 +206,7 @@ class ProjectController extends AbstractController
 
     #[Route('/commentaires/{id}/repondre', name: 'app_comment_reply', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function replyToComment(int $id, Request $request, EntityManagerInterface $em): Response
+    public function replyToComment(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
     {
         $parent = $em->getRepository(Comment::class)->find($id);
         if (!$parent) {
@@ -195,13 +221,27 @@ class ProjectController extends AbstractController
             return $this->redirectToRoute('app_project_show', ['slug' => $parent->getProject()->getSlug()]);
         }
 
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+
         $reply = new Comment();
         $reply->setProject($parent->getProject());
-        $reply->setAuthor($this->getUser());
+        $reply->setAuthor($user);
         $reply->setContent($content);
         $reply->setParent($parent);
         $em->persist($reply);
         $em->flush();
+
+        // Jamais de notification lorsqu'on répond à son propre commentaire (§19).
+        if ($parent->getAuthor() !== $user) {
+            $notificationService->notify(
+                $parent->getAuthor(),
+                NotificationType::COMMENT_REPLY,
+                'Réponse à votre commentaire',
+                \sprintf('%s a répondu à votre commentaire sur "%s".', $user->getFullName(), $parent->getProject()->getName()),
+                $this->generateUrl('app_project_show', ['slug' => $parent->getProject()->getSlug()]),
+            );
+        }
 
         $this->addFlash('succes', 'Votre réponse a été publiée.');
 

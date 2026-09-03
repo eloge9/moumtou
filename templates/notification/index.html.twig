@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Notifications — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'notifications'} %}{% endblock %}
+
+{% block body %}
+<section class="p-4" style="max-width:720px;margin:0 auto">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <h1 style="font-size:24px">Notifications</h1>
+    <div class="d-flex gap-2">
+      <a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('app_notification_preferences') }}">Préférences</a>
+      {% if total > 0 %}
+        <form method="post" action="{{ path('app_notification_mark_all_read') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('notification-tout-lire') }}">
+          <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Tout marquer comme lu</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="d-grid gap-2 mt-3">
+    {% for notification in notifications %}
+      <article class="m-carte m-carte--plate p-3 d-flex align-items-start gap-3" style="{{ not notification.read ? 'border-color:var(--m-bleu-bordure);background:var(--m-bleu-pale)' : '' }}">
+        <span style="font-size:20px;line-height:1">{{ notification.type.icon }}</span>
+        <div class="flex-fill">
+          <div class="d-flex align-items-center gap-2">
+            {% if not notification.read %}<span style="width:8px;height:8px;border-radius:50%;background:var(--m-bleu);display:inline-block;flex:none"></span>{% endif %}
+            <p class="fw-bold mb-0" style="font-size:14.5px">{{ notification.title }}</p>
+          </div>
+          <p class="m-texte mt-1 mb-1" style="font-size:14px">{{ notification.message }}</p>
+          <p class="m-meta mb-0">{{ notification.createdAt|date('d/m/Y à H:i') }}</p>
+          <div class="d-flex gap-2 mt-2">
+            {% if notification.actionUrl %}
+              <a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('app_notification_open', {id: notification.id}) }}">Voir</a>
+            {% elseif not notification.read %}
+              <form method="post" action="{{ path('app_notification_mark_read', {id: notification.id}) }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('notification-lire-' ~ notification.id) }}">
+                <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Marquer comme lue</button>
+              </form>
+            {% endif %}
+            <form method="post" action="{{ path('app_notification_delete', {id: notification.id}) }}" onsubmit="return confirm('Supprimer cette notification ?');">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token('notification-supprimer-' ~ notification.id) }}">
+              <button class="m-btn m-btn--lien m-btn--sm" type="submit" style="color:#8C97AB">Supprimer</button>
+            </form>
+          </div>
+        </div>
+      </article>
+    {% else %}
+      <div class="text-center py-5">
+        <p style="font-size:32px;margin-bottom:8px">🔔</p>
+        <p class="fw-bold mb-1">Aucune notification</p>
+        <p class="m-meta mb-0">Vous êtes à jour.</p>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if pageCount > 1 %}
+    <nav class="m-pagination mt-4" aria-label="Pagination">
+      {% for p in 1..pageCount %}
+        <a class="{{ p == page ? 'is-active' : '' }}" href="{{ path('app_notifications', {page: p}) }}">{{ p }}</a>
+      {% endfor %}
+    </nav>
+  {% endif %}
+</section>
+{% endblock %}

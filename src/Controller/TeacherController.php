@@ -8,6 +8,8 @@ use App\Entity\User;
 use App\Entity\UserInstitution;
 use App\Enum\InstitutionContext;
 use App\Enum\JuryStatus;
+use App\Enum\NotificationType;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -132,7 +134,7 @@ class TeacherController extends AbstractController
     }
 
     #[Route('/mon-espace-enseignant/jury/{id}/repondre', name: 'app_teacher_respond_jury', methods: ['POST'])]
-    public function respond(int $id, Request $request, EntityManagerInterface $em): Response
+    public function respond(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
     {
         $juryMember = $em->getRepository(JuryMember::class)->find($id);
         if (!$juryMember) {
@@ -158,6 +160,20 @@ class TeacherController extends AbstractController
             $juryMember->setConfirmedAt(new \DateTimeImmutable());
         }
         $em->flush();
+
+        $owner = $juryMember->getDefense()->getProject()->getOwner();
+        $notificationService->notify(
+            $owner,
+            'confirmer' === $decision ? NotificationType::JURY_ACCEPTED : NotificationType::JURY_REFUSED,
+            'confirmer' === $decision ? 'Participation au jury confirmée' : 'Invitation au jury déclinée',
+            \sprintf(
+                '%s %s %s participer au jury de votre soutenance.',
+                $juryMember->getFirstName(),
+                $juryMember->getLastName(),
+                'confirmer' === $decision ? 'a confirmé' : 'a décliné l\'invitation à'
+            ),
+            $this->generateUrl('app_defense_manage'),
+        );
 
         $this->addFlash('succes', 'confirmer' === $decision ? 'Votre participation est confirmée.' : 'Invitation déclinée.');
 

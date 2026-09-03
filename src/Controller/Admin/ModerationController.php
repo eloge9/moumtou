@@ -10,10 +10,12 @@ use App\Entity\Report;
 use App\Entity\User;
 use App\Enum\CommentStatus;
 use App\Enum\ModerationActionType;
+use App\Enum\NotificationType;
 use App\Enum\ProjectStatus;
 use App\Enum\RatingStatus;
 use App\Enum\ReportStatus;
 use App\Enum\ReportTargetType;
+use App\Service\NotificationService;
 use App\Service\SanctionApplier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -137,7 +139,7 @@ class ModerationController extends AbstractController
     }
 
     #[Route('/admin/moderation/signalements/{id}/decider', name: 'admin_moderation_report_decide', methods: ['POST'])]
-    public function decideReport(int $id, Request $request, EntityManagerInterface $em, SanctionApplier $sanctionApplier): Response
+    public function decideReport(int $id, Request $request, EntityManagerInterface $em, SanctionApplier $sanctionApplier, NotificationService $notificationService): Response
     {
         $report = $em->getRepository(Report::class)->find($id);
         if (!$report) {
@@ -168,7 +170,7 @@ class ModerationController extends AbstractController
         // le contenu est conservé tel quel.
         $effectiveAction = $contentAction ?? ModerationActionType::AUCUNE_ACTION;
         if ($target['entity']) {
-            $this->applyContentAction($effectiveAction, $target['entity'], $em);
+            $this->applyContentAction($effectiveAction, $target['entity'], $em, $notificationService);
         }
 
         $moderationAction = new ModerationAction();
@@ -196,7 +198,7 @@ class ModerationController extends AbstractController
     }
 
     #[Route('/admin/moderation/projets/{id}/decider', name: 'admin_moderation_project_decide', methods: ['POST'])]
-    public function decideProject(int $id, Request $request, EntityManagerInterface $em): Response
+    public function decideProject(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
     {
         $project = $em->getRepository(Project::class)->find($id);
         if (!$project) {
@@ -219,7 +221,7 @@ class ModerationController extends AbstractController
             return $this->redirectToRoute('admin_project_show', ['id' => $project->getId()]);
         }
 
-        $this->applyContentAction($action, $project, $em);
+        $this->applyContentAction($action, $project, $em, $notificationService);
 
         /** @var User $admin */
         $admin = $this->getUser();
@@ -237,7 +239,7 @@ class ModerationController extends AbstractController
         return $this->redirectToRoute('admin_project_show', ['id' => $project->getId()]);
     }
 
-    private function applyContentAction(ModerationActionType $action, ?object $target, EntityManagerInterface $em): void
+    private function applyContentAction(ModerationActionType $action, ?object $target, EntityManagerInterface $em, NotificationService $notificationService): void
     {
         if ($target instanceof Comment) {
             match ($action) {
@@ -273,6 +275,25 @@ class ModerationController extends AbstractController
         }
 
         $em->flush();
+
+        $projectUrl = $this->generateUrl('app_project_show', ['slug' => $target->getSlug()]);
+        if (ModerationActionType::MARQUER_VERIFIE === $action) {
+            $notificationService->notify(
+                $target->getOwner(),
+                NotificationType::PROJECT_VERIFIED,
+                'Projet vérifié',
+                \sprintf('Votre projet "%s" a été vérifié par l\'administration.', $target->getName()),
+                $projectUrl,
+            );
+        } elseif (ModerationActionType::DEMANDER_CORRECTION === $action) {
+            $notificationService->notify(
+                $target->getOwner(),
+                NotificationType::PROJECT_CORRECTION_REQUESTED,
+                'Correction demandée sur votre projet',
+                \sprintf('Des corrections sont nécessaires sur votre projet "%s".', $target->getName()),
+                $projectUrl,
+            );
+        }
     }
 
     /**

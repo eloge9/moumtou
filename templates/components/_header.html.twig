@@ -27,6 +27,24 @@
       <div class="m-suggestions" data-recherche-suggestions hidden></div>
     </form>
     {% if app.user %}
+      {% set unreadNotifications = unread_notifications_count() %}
+      <div class="m-menu" data-menu>
+        <button class="m-btn m-btn--lien" type="button" data-menu-bouton aria-label="Notifications">
+          🔔{% if unreadNotifications > 0 %} <span class="m-admin__compteur m-admin__compteur--alerte">{{ unreadNotifications }}</span>{% endif %}
+        </button>
+        <div class="m-menu__liste" style="min-width:320px">
+          <p class="fw-bold px-2 pt-1 pb-2 mb-0" style="font-size:13.5px;border-bottom:1px solid var(--m-bordure)">Notifications</p>
+          {% for notification in recent_notifications(5) %}
+            <a class="m-menu__item d-block" href="{{ notification.actionUrl ? path('app_notification_open', {id: notification.id}) : path('app_notifications') }}" style="white-space:normal;{{ not notification.read ? 'background:var(--m-bleu-pale)' : '' }}">
+              <span class="fw-semibold d-block" style="font-size:13.5px">{{ notification.type.icon }} {{ notification.title }}</span>
+              <span class="m-meta d-block mt-1">{{ notification.createdAt|date('d/m/Y à H:i') }}</span>
+            </a>
+          {% else %}
+            <p class="m-meta px-2 py-3 mb-0 text-center">Aucune notification pour l'instant.</p>
+          {% endfor %}
+          <a class="m-menu__item text-center fw-semibold" style="color:var(--m-bleu);border-top:1px solid var(--m-bordure)" href="{{ path('app_notifications') }}">Voir toutes les notifications →</a>
+        </div>
+      </div>
       <div class="m-menu" data-menu>
         <button class="m-btn m-btn--lien" type="button" data-menu-bouton>{{ app.user.firstName }} ▾</button>
         <div class="m-menu__liste">

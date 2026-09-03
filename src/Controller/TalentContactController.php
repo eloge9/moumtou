@@ -4,7 +4,9 @@ namespace App\Controller;
 
 use App\Entity\ContactRequest;
 use App\Enum\ContactRequestStatus;
+use App\Enum\NotificationType;
 use App\Security\ContactRequestMailer;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,18 +38,18 @@ class TalentContactController extends AbstractController
     }
 
     #[Route('/mon-espace-talent/demandes/{id}/accepter', name: 'app_talent_contact_request_accept', methods: ['POST'])]
-    public function accept(int $id, Request $request, EntityManagerInterface $em, ContactRequestMailer $mailer): Response
+    public function accept(int $id, Request $request, EntityManagerInterface $em, ContactRequestMailer $mailer, NotificationService $notificationService): Response
     {
-        return $this->decide($id, $request, $em, $mailer, ContactRequestStatus::ACCEPTED, 'accepter-demande-');
+        return $this->decide($id, $request, $em, $mailer, $notificationService, ContactRequestStatus::ACCEPTED, 'accepter-demande-');
     }
 
     #[Route('/mon-espace-talent/demandes/{id}/refuser', name: 'app_talent_contact_request_refuse', methods: ['POST'])]
-    public function refuse(int $id, Request $request, EntityManagerInterface $em, ContactRequestMailer $mailer): Response
+    public function refuse(int $id, Request $request, EntityManagerInterface $em, ContactRequestMailer $mailer, NotificationService $notificationService): Response
     {
-        return $this->decide($id, $request, $em, $mailer, ContactRequestStatus::REFUSED, 'refuser-demande-');
+        return $this->decide($id, $request, $em, $mailer, $notificationService, ContactRequestStatus::REFUSED, 'refuser-demande-');
     }
 
-    private function decide(int $id, Request $request, EntityManagerInterface $em, ContactRequestMailer $mailer, ContactRequestStatus $decision, string $tokenPrefix): Response
+    private function decide(int $id, Request $request, EntityManagerInterface $em, ContactRequestMailer $mailer, NotificationService $notificationService, ContactRequestStatus $decision, string $tokenPrefix): Response
     {
         $contactRequest = $em->getRepository(ContactRequest::class)->find($id);
         if (!$contactRequest || $contactRequest->getTalent() !== $this->getUser()) {
@@ -69,6 +71,14 @@ class TalentContactController extends AbstractController
         $em->flush();
 
         $mailer->notifyRecruiterOfDecision($contactRequest);
+        $notificationService->notify(
+            $contactRequest->getRecruiter(),
+            ContactRequestStatus::ACCEPTED === $decision ? NotificationType::CONTACT_REQUEST_ACCEPTED : NotificationType::CONTACT_REQUEST_REFUSED,
+            ContactRequestStatus::ACCEPTED === $decision ? 'Demande de contact acceptée' : 'Demande de contact refusée',
+            \sprintf('%s a %s votre demande de contact.', $contactRequest->getTalent()->getFullName(), ContactRequestStatus::ACCEPTED === $decision ? 'accepté' : 'refusé'),
+            $this->generateUrl('app_recruiter_contact_requests'),
+            sendEmail: false,
+        );
 
         $this->addFlash('succes', ContactRequestStatus::ACCEPTED === $decision ? 'Demande acceptée.' : 'Demande refusée.');
 
