@@ -3,7 +3,10 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Institution;
+use App\Entity\User;
+use App\Enum\AdminAuditAction;
 use App\Enum\InstitutionType;
+use App\Service\AdminAuditLogger;
 use App\Service\InstitutionLogoUploader;
 use App\Service\SlugGenerator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -55,7 +58,7 @@ class InstitutionController extends AbstractController
     }
 
     #[Route('/ajouter', name: 'admin_institutions_add', methods: ['POST'])]
-    public function add(Request $request, EntityManagerInterface $em, InstitutionLogoUploader $logoUploader, ValidatorInterface $validator, SlugGenerator $slugGenerator): Response
+    public function add(Request $request, EntityManagerInterface $em, InstitutionLogoUploader $logoUploader, ValidatorInterface $validator, SlugGenerator $slugGenerator, AdminAuditLogger $auditLogger): Response
     {
         if (!$this->isCsrfTokenValid('admin-institution-ajouter', $request->request->get('_csrf_token'))) {
             throw new InvalidCsrfTokenException();
@@ -93,13 +96,17 @@ class InstitutionController extends AbstractController
 
         $em->flush();
 
+        /** @var User $admin */
+        $admin = $this->getUser();
+        $auditLogger->log($admin, AdminAuditAction::INSTITUTION_CREATED, 'Institution', $institution->getId(), $institution->getName());
+
         $this->addFlash('succes', 'Établissement ajouté avec succès.');
 
         return $this->redirectToRoute('admin_institutions');
     }
 
     #[Route('/{id}/modifier', name: 'admin_institutions_edit', methods: ['POST'])]
-    public function edit(int $id, Request $request, EntityManagerInterface $em, InstitutionLogoUploader $logoUploader, ValidatorInterface $validator): Response
+    public function edit(int $id, Request $request, EntityManagerInterface $em, InstitutionLogoUploader $logoUploader, ValidatorInterface $validator, AdminAuditLogger $auditLogger): Response
     {
         $institution = $em->getRepository(Institution::class)->find($id);
         if (!$institution) {
@@ -134,13 +141,17 @@ class InstitutionController extends AbstractController
 
         $em->flush();
 
+        /** @var User $admin */
+        $admin = $this->getUser();
+        $auditLogger->log($admin, AdminAuditAction::INSTITUTION_UPDATED, 'Institution', $institution->getId(), $institution->getName());
+
         $this->addFlash('succes', 'Établissement modifié avec succès.');
 
         return $this->redirectToRoute('admin_institutions');
     }
 
     #[Route('/{id}/verifier', name: 'admin_institutions_toggle_verified', methods: ['POST'])]
-    public function toggleVerified(int $id, Request $request, EntityManagerInterface $em): Response
+    public function toggleVerified(int $id, Request $request, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         $institution = $em->getRepository(Institution::class)->find($id);
         if (!$institution) {
@@ -154,11 +165,15 @@ class InstitutionController extends AbstractController
         $institution->setUpdatedAt(new \DateTimeImmutable());
         $em->flush();
 
+        /** @var User $admin */
+        $admin = $this->getUser();
+        $auditLogger->log($admin, $institution->isVerified() ? AdminAuditAction::INSTITUTION_VERIFIED : AdminAuditAction::INSTITUTION_UNVERIFIED, 'Institution', $institution->getId(), $institution->getName());
+
         return $this->redirectToRoute('admin_institutions');
     }
 
     #[Route('/{id}/desactiver', name: 'admin_institutions_toggle_active', methods: ['POST'])]
-    public function toggleActive(int $id, Request $request, EntityManagerInterface $em): Response
+    public function toggleActive(int $id, Request $request, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         $institution = $em->getRepository(Institution::class)->find($id);
         if (!$institution) {
@@ -172,13 +187,17 @@ class InstitutionController extends AbstractController
         $institution->setUpdatedAt(new \DateTimeImmutable());
         $em->flush();
 
+        /** @var User $admin */
+        $admin = $this->getUser();
+        $auditLogger->log($admin, $institution->isActive() ? AdminAuditAction::INSTITUTION_REACTIVATED : AdminAuditAction::INSTITUTION_DEACTIVATED, 'Institution', $institution->getId(), $institution->getName());
+
         $this->addFlash('succes', $institution->isActive() ? 'Établissement réactivé.' : 'Établissement désactivé : il n\'apparaîtra plus dans les listes de sélection.');
 
         return $this->redirectToRoute('admin_institutions');
     }
 
     #[Route('/{id}/supprimer', name: 'admin_institutions_delete', methods: ['POST'])]
-    public function delete(int $id, Request $request, EntityManagerInterface $em): Response
+    public function delete(int $id, Request $request, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         $institution = $em->getRepository(Institution::class)->find($id);
         if (!$institution) {
@@ -188,9 +207,15 @@ class InstitutionController extends AbstractController
             throw new InvalidCsrfTokenException();
         }
 
+        $institutionName = $institution->getName();
+        $institutionId = $institution->getId();
+
         try {
             $em->remove($institution);
             $em->flush();
+            /** @var User $admin */
+            $admin = $this->getUser();
+            $auditLogger->log($admin, AdminAuditAction::INSTITUTION_DELETED, 'Institution', $institutionId, $institutionName);
             $this->addFlash('succes', 'Établissement supprimé.');
         } catch (\Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException) {
             $em->clear();

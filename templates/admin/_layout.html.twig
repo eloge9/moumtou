@@ -17,6 +17,7 @@
     <a class="m-admin__lien{{ adminNav|default('') == 'projects' ? ' is-active' : '' }}" href="{{ path('admin_projects') }}">Projets</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'defenses' ? ' is-active' : '' }}" href="{{ path('admin_defenses') }}">Soutenances</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'moderation' ? ' is-active' : '' }}" href="{{ path('admin_moderation') }}">Modération {% if stats is defined and stats.openReportsCount is defined and stats.openReportsCount > 0 %}<span class="m-admin__compteur m-admin__compteur--alerte">{{ stats.openReportsCount }}</span>{% endif %}</a>
+    <a class="m-admin__lien{{ adminNav|default('') == 'comments' ? ' is-active' : '' }}" href="{{ path('admin_comments') }}">Commentaires</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'users' ? ' is-active' : '' }}" href="{{ path('admin_users') }}">Utilisateurs</a>
 
     <p class="m-admin__groupe">Référentiels</p>
@@ -24,6 +25,9 @@
     <a class="m-admin__lien{{ adminNav|default('') == 'institution_requests' ? ' is-active' : '' }}" href="{{ path('admin_institution_requests') }}">Demandes d'établissements</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'domains' ? ' is-active' : '' }}" href="{{ path('admin_domains') }}">Domaines · Mentions · Spécialités</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'technologies' ? ' is-active' : '' }}" href="{{ path('admin_technologies') }}">Technologies</a>
+
+    <p class="m-admin__groupe">Traçabilité</p>
+    <a class="m-admin__lien{{ adminNav|default('') == 'journal' ? ' is-active' : '' }}" href="{{ path('admin_journal') }}">Journal d'administration</a>
   </aside>
 
   <div class="m-admin__contenu">

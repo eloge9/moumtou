@@ -2,8 +2,11 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\Sanction;
 use App\Entity\User;
+use App\Enum\AdminAuditAction;
 use App\Enum\UserStatus;
+use App\Service\AdminAuditLogger;
 use App\Service\SanctionApplier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -64,6 +67,27 @@ class UserController extends AbstractController
         ]);
     }
 
+    #[Route('/admin/utilisateurs/{id}', name: 'admin_user_show')]
+    public function show(int $id, EntityManagerInterface $em): Response
+    {
+        $user = $em->getRepository(User::class)->find($id);
+        if (!$user) {
+            throw $this->createNotFoundException();
+        }
+
+        $sanctions = $em->getRepository(Sanction::class)->createQueryBuilder('s')
+            ->join('s.admin', 'a')->addSelect('a')
+            ->andWhere('s.user = :user')->setParameter('user', $user)
+            ->orderBy('s.startAt', 'DESC')
+            ->getQuery()->getResult();
+
+        return $this->render('admin/user_show.html.twig', [
+            'adminNav' => 'users',
+            'user' => $user,
+            'sanctions' => $sanctions,
+        ]);
+    }
+
     #[Route('/admin/utilisateurs/{id}/sanctionner', name: 'admin_users_sanction', methods: ['POST'])]
     public function sanction(int $id, Request $request, EntityManagerInterface $em, SanctionApplier $sanctionApplier): Response
     {
@@ -76,10 +100,13 @@ class UserController extends AbstractController
             throw new InvalidCsrfTokenException();
         }
 
+        $redirectRoute = 'admin_user_show' === $request->request->get('redirect_to') ? 'admin_user_show' : 'admin_users';
+        $redirectParams = 'admin_user_show' === $redirectRoute ? ['id' => $id] : [];
+
         if ($this->getUser() === $user) {
             $this->addFlash('erreur', 'Vous ne pouvez pas sanctionner votre propre compte.');
 
-            return $this->redirectToRoute('admin_users');
+            return $this->redirectToRoute($redirectRoute, $redirectParams);
         }
 
         $action = (string) $request->request->get('action');
@@ -88,7 +115,7 @@ class UserController extends AbstractController
         if ('reactiver' !== $action && !$reason) {
             $this->addFlash('erreur', 'Le motif est obligatoire.');
 
-            return $this->redirectToRoute('admin_users');
+            return $this->redirectToRoute($redirectRoute, $redirectParams);
         }
 
         /** @var User $admin */
@@ -97,6 +124,63 @@ class UserController extends AbstractController
 
         $this->addFlash('succes', 'Le compte a été mis à jour.');
 
-        return $this->redirectToRoute('admin_users');
+        return $this->redirectToRoute($redirectRoute, $redirectParams);
+    }
+
+    /**
+     * Attribution/retrait du rôle ROLE_ADMIN (cahier des charges — FONCTIONNALITÉ 9 §37) :
+     * volontairement limité à ce seul rôle, purement additif dans le
+     * système de sécurité actuel (un compte ADMIN ne porte aucun autre
+     * rôle métier — voir AppFixtures). Changer le rôle métier principal
+     * (Talent/Enseignant/Recruteur) impliquerait de créer/retirer des
+     * données dédiées (profil recruteur, rattachements d'établissement…)
+     * qui n'existent pas pour ce parcours et sortent du cadre de cette
+     * fonctionnalité. Action protégée (auto-modification interdite) et
+     * systématiquement journalisée.
+     */
+    #[Route('/admin/utilisateurs/{id}/role', name: 'admin_users_toggle_admin_role', methods: ['POST'])]
+    public function toggleAdminRole(int $id, Request $request, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
+    {
+        $user = $em->getRepository(User::class)->find($id);
+        if (!$user) {
+            throw $this->createNotFoundException();
+        }
+
+        if (!$this->isCsrfTokenValid('role-utilisateur-'.$id, $request->request->get('_csrf_token'))) {
+            throw new InvalidCsrfTokenException();
+        }
+
+        if ($this->getUser() === $user) {
+            $this->addFlash('erreur', 'Vous ne pouvez pas modifier vos propres droits d\'administration.');
+
+            return $this->redirectToRoute('admin_user_show', ['id' => $id]);
+        }
+
+        $roles = $user->getRoles();
+        $isAdmin = \in_array('ROLE_ADMIN', $roles, true);
+        $newRoles = array_values(array_diff($roles, ['ROLE_USER']));
+
+        if ($isAdmin) {
+            $newRoles = array_values(array_diff($newRoles, ['ROLE_ADMIN']));
+        } else {
+            $newRoles[] = 'ROLE_ADMIN';
+        }
+        $user->setRoles($newRoles);
+        $em->flush();
+
+        /** @var User $admin */
+        $admin = $this->getUser();
+        $auditLogger->log(
+            $admin,
+            AdminAuditAction::USER_ROLE_CHANGED,
+            'User',
+            $user->getId(),
+            $user->getFullName(),
+            $isAdmin ? 'Retrait du rôle administrateur.' : 'Attribution du rôle administrateur.',
+        );
+
+        $this->addFlash('succes', $isAdmin ? 'Les droits d\'administration ont été retirés.' : 'Les droits d\'administration ont été accordés.');
+
+        return $this->redirectToRoute('admin_user_show', ['id' => $id]);
     }
 }

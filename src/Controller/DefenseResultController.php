@@ -8,8 +8,10 @@ use App\Entity\JuryMember;
 use App\Entity\User;
 use App\Enum\DefenseDecision;
 use App\Enum\DefenseResultStatus;
+use App\Enum\AdminAuditAction;
 use App\Enum\JuryRole;
 use App\Enum\JuryStatus;
+use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -97,7 +99,7 @@ class DefenseResultController extends AbstractController
     }
 
     #[Route('/soutenances/{id}/resultat/valider', name: 'app_defense_result_validate', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function validate(int $id, Request $request, EntityManagerInterface $em): Response
+    public function validate(int $id, Request $request, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         $defense = $em->getRepository(Defense::class)->find($id);
         if (!$defense || !$defense->getAcademicResult()) {
@@ -123,6 +125,21 @@ class DefenseResultController extends AbstractController
         $result->setValidatedBy($user);
         $result->setValidatedAt(new \DateTimeImmutable());
         $em->flush();
+
+        // Journalisation uniquement lorsque la validation provient d'un
+        // administrateur agissant hors de son rôle de juré (cahier des
+        // charges — FONCTIONNALITÉ 9 §36) : le président du jury validant
+        // dans le cadre normal du processus n'a pas besoin d'être tracé ici.
+        if ($isAdmin && !$isPresident) {
+            $auditLogger->log(
+                $user,
+                AdminAuditAction::DEFENSE_RESULT_VALIDATED,
+                'Defense',
+                $defense->getId(),
+                $defense->getProject()?->getName(),
+                'Validation du résultat par un administrateur (hors président du jury).',
+            );
+        }
 
         $this->addFlash('succes', 'Le résultat de la soutenance a été validé.');
 

@@ -1,0 +1,117 @@
+{% extends 'admin/_layout.html.twig' %}
+{% set adminNav = 'users' %}
+
+{% block title %}Administration — {{ user.fullName }} — MOUMTOU{% endblock %}
+{% block admin_title %}Compte utilisateur{% endblock %}
+
+{% block admin_body %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1 style="font-size:22px" class="mb-1">{{ user.fullName }}</h1>
+    <p class="m-meta mb-0">
+      {{ user.email }} ·
+      {% for r in user.roles %}
+        {% if r != 'ROLE_USER' %}<span class="m-tag">{{ r|replace({'ROLE_': ''})|lower }}</span>{% endif %}
+      {% endfor %}
+      {% if user.status.value == 'actif' %}<span class="m-tag m-tag--bleu">Actif</span>
+      {% elseif user.status.value == 'suspendu' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">Suspendu</span>
+      {% elseif user.status.value == 'banni' %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Banni</span>
+      {% else %}<span class="m-tag">Supprimé</span>{% endif %}
+    </p>
+  </div>
+  <a class="m-btn m-btn--secondaire" href="{{ path('app_profile_show', {slug: user.slug}) }}" target="_blank" rel="noopener">Voir le profil public</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="m-carte m-carte--plate p-3">
+      <p class="m-surtitre mb-2">Informations</p>
+      <div class="d-grid gap-1" style="font-size:13.5px">
+        <div class="d-flex justify-content-between"><span class="m-meta">Titre</span><span class="fw-semibold">{{ user.professionalTitle ?: '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Établissement</span><span class="fw-semibold">{{ user.institution ? user.institution.name : '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Domaine</span><span class="fw-semibold">{{ user.domain ? user.domain.name : '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Mention</span><span class="fw-semibold">{{ user.mention ? user.mention.name : '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Spécialité</span><span class="fw-semibold">{{ user.specialty ? user.specialty.name : '—' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">E-mail vérifié</span><span class="fw-semibold">{{ user.emailVerified ? 'Oui' : 'Non' }}</span></div>
+        <div class="d-flex justify-content-between"><span class="m-meta">Inscrit le</span><span class="fw-semibold">{{ user.createdAt|date('d/m/Y') }}</span></div>
+      </div>
+    </div>
+
+    <div class="m-carte m-carte--plate p-3 mt-3">
+      <p class="m-surtitre mb-2">Projets ({{ user.projects|length }})</p>
+      {% for project in user.projects %}
+        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:13.5px">
+          <a href="{{ path('admin_project_show', {id: project.id}) }}">{{ project.name }}</a>
+          {% if project.status.value == 'verifie' %}<span class="m-tag m-tag--bleu">Vérifié</span>
+          {% elseif project.status.value == 'publie' %}<span class="m-tag">Publié</span>
+          {% else %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">{{ project.status.label }}</span>{% endif %}
+        </div>
+      {% else %}
+        <p class="m-meta mb-0">Aucun projet.</p>
+      {% endfor %}
+    </div>
+
+    <div class="m-carte m-carte--plate p-3 mt-3">
+      <p class="m-surtitre mb-2">Historique des sanctions ({{ sanctions|length }})</p>
+      {% for sanction in sanctions %}
+        <div class="m-journal__ligne">
+          <span class="m-journal__date">{{ sanction.startAt|date('d/m/Y H:i') }}</span>
+          <span class="flex-fill m-texte">
+            <span class="fw-semibold">{{ sanction.type.label }}</span> par {{ sanction.admin.fullName }} — {{ sanction.reason }}
+            {% if sanction.endAt %}<br><span class="m-meta">Jusqu'au {{ sanction.endAt|date('d/m/Y') }}</span>{% endif %}
+          </span>
+        </div>
+      {% else %}
+        <p class="m-meta mb-0">Aucune sanction enregistrée.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    {% if user.status.value != 'supprime' and app.user != user %}
+      <div class="m-carte m-carte--plate m-carte--bleue p-3">
+        <p class="m-surtitre m-surtitre--bleu mb-2">Sanctionner ce compte</p>
+        <form method="post" action="{{ path('admin_users_sanction', {id: user.id}) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('sanctionner-utilisateur-' ~ user.id) }}">
+          <input type="hidden" name="redirect_to" value="admin_user_show">
+          <input type="hidden" name="action" value="">
+          <label class="m-label" for="motif-sanction">Motif</label>
+          <textarea class="m-textarea mb-2" id="motif-sanction" name="reason" placeholder="Motif de la sanction"></textarea>
+          <div class="d-grid gap-2">
+            {% if user.status.value == 'actif' %}
+              <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='avertir'">Avertir</button>
+              <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="if(!confirm('Suspendre ce compte pour 7 jours ?')) return false; this.form['action'].value='suspendre_7'">Suspendre 7j</button>
+              <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="if(!confirm('Suspendre ce compte pour 30 jours ?')) return false; this.form['action'].value='suspendre_30'">Suspendre 30j</button>
+              <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" style="color:#B3261E" onclick="if(!confirm('Bannir définitivement ce compte ?')) return false; this.form['action'].value='bannir'">Bannir</button>
+            {% else %}
+              <button class="m-btn m-btn--primaire m-btn--sm" type="submit" onclick="this.form['action'].value='reactiver'">Réactiver le compte</button>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    {% elseif app.user == user %}
+      <div class="m-carte m-carte--plate p-3">
+        <p class="m-meta mb-0">Vous ne pouvez pas sanctionner votre propre compte.</p>
+      </div>
+    {% endif %}
+
+    {% if app.user != user %}
+      <div class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Droits d'administration</p>
+        {% set isAdmin = 'ROLE_ADMIN' in user.roles %}
+        {% set confirmMessage = isAdmin ? 'Retirer les droits d administration de ce compte ?' : 'Accorder les droits d administration a ce compte ?' %}
+        <p class="m-meta mb-2">{{ isAdmin ? 'Ce compte fait partie des administrateurs.' : 'Ce compte n\'a pas accès au back-office.' }}</p>
+        <form method="post" action="{{ path('admin_users_toggle_admin_role', {id: user.id}) }}" onsubmit="return confirm('{{ confirmMessage|e('js') }}');">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('role-utilisateur-' ~ user.id) }}">
+          <button class="m-btn m-btn--secondaire m-btn--sm" type="submit"{% if isAdmin %} style="color:#B3261E"{% endif %}>{{ isAdmin ? 'Retirer les droits admin' : 'Accorder les droits admin' }}</button>
+        </form>
+      </div>
+    {% else %}
+      <div class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Droits d'administration</p>
+        <p class="m-meta mb-0">Vous ne pouvez pas modifier vos propres droits d'administration.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

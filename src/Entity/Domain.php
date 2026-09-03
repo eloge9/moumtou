@@ -19,6 +19,15 @@ class Domain
     #[ORM\Column(length: 120, unique: true)]
     private ?string $name = null;
 
+    /**
+     * Désactivation (cahier des charges §29) : un domaine désactivé
+     * n'apparaît plus dans les listes de sélection pour un nouveau
+     * projet/profil, mais reste affiché tel quel partout où il est déjà
+     * utilisé (projets publiés, profils existants).
+     */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $active = true;
+
     /** @var Collection<int, Mention> */
     #[ORM\OneToMany(targetEntity: Mention::class, mappedBy: 'domain', orphanRemoval: true)]
     private Collection $mentions;
@@ -49,6 +58,18 @@ class Domain
     public function getMentions(): Collection
     {
         return $this->mentions;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+
+    public function setActive(bool $active): static
+    {
+        $this->active = $active;
+
+        return $this;
     }
 
     public function __toString(): string

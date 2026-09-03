@@ -12,6 +12,7 @@ use App\Entity\User;
 use App\Enum\DefenseStatus;
 use App\Enum\ProjectStatus;
 use App\Enum\ReportStatus;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,12 +28,19 @@ class DashboardController extends AbstractController
         $userRepo = $em->getRepository(User::class);
         $projectRepo = $em->getRepository(Project::class);
 
+        $defenseRepo = $em->getRepository(Defense::class);
+
         $stats = [
             'usersCount' => $userRepo->count([]),
+            'talentsCount' => $this->countByRole($userRepo, 'ROLE_TALENT'),
+            'teachersCount' => $this->countByRole($userRepo, 'ROLE_TEACHER'),
+            'recruitersCount' => $this->countByRole($userRepo, 'ROLE_RECRUITER'),
             'projectsCount' => $projectRepo->count([]),
             'verifiedProjectsCount' => $projectRepo->count(['status' => ProjectStatus::VERIFIE]),
-            'defensesCount' => $em->getRepository(Defense::class)->count([]),
-            'defensesRealizedCount' => $em->getRepository(Defense::class)->count(['status' => [DefenseStatus::REALISEE, DefenseStatus::VERIFIEE]]),
+            'defensesCount' => $defenseRepo->count([]),
+            'defensesAnnouncedCount' => $defenseRepo->count(['status' => DefenseStatus::ANNONCEE]),
+            'defensesRealizedCount' => $defenseRepo->count(['status' => [DefenseStatus::REALISEE, DefenseStatus::VERIFIEE]]),
+            'defensesVerifiedCount' => $defenseRepo->count(['status' => DefenseStatus::VERIFIEE]),
             'institutionsCount' => $em->getRepository(Institution::class)->count([]),
             'technologiesCount' => $em->getRepository(Technology::class)->count([]),
             'commentsCount' => $em->getRepository(Comment::class)->count([]),
@@ -58,5 +66,14 @@ class DashboardController extends AbstractController
             'pendingProjects' => $pendingProjects,
             'technologyDemand' => $technologyDemand,
         ]);
+    }
+
+    private function countByRole(UserRepository $userRepo, string $role): int
+    {
+        return (int) $userRepo->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->andWhere('u.roles LIKE :role')
+            ->setParameter('role', '%"'.$role.'"%')
+            ->getQuery()->getSingleScalarResult();
     }
 }

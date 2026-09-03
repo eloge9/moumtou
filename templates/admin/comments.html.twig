@@ -1,0 +1,80 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block title %}Administration — Commentaires — MOUMTOU{% endblock %}
+{% block admin_title %}Commentaires{% endblock %}
+
+{% block admin_body %}
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-6">
+      <label class="m-label">Recherche</label>
+      <input class="m-input" type="text" name="q" value="{{ query }}" placeholder="Contenu, auteur ou projet">
+    </div>
+    <div class="col-md-4">
+      <label class="m-label">Statut</label>
+      <select class="m-select" name="status">
+        <option value="">Tous</option>
+        <option value="visible" {{ status is not null and status.value == 'visible' ? 'selected' }}>Visible</option>
+        <option value="masque" {{ status is not null and status.value == 'masque' ? 'selected' }}>Masqué</option>
+        <option value="supprime" {{ status is not null and status.value == 'supprime' ? 'selected' }}>Supprimé</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="m-btn m-btn--primaire m-btn--bloc" type="submit">Filtrer</button>
+    </div>
+  </form>
+</div>
+
+<div class="m-carte m-carte--plate">
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Commentaire</th><th>Auteur</th><th>Projet</th><th>Statut</th><th>Publié le</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for comment in comments %}
+          <tr>
+            <td style="max-width:320px">{{ comment.content|length > 140 ? comment.content|slice(0, 140) ~ '…' : comment.content }}</td>
+            <td class="m-texte">{{ comment.author.fullName }}</td>
+            <td class="m-texte"><a href="{{ path('admin_project_show', {id: comment.project.id}) }}">{{ comment.project.name }}</a></td>
+            <td>
+              {% if comment.status.value == 'visible' %}<span class="m-tag m-tag--bleu">Visible</span>
+              {% elseif comment.status.value == 'masque' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">Masqué</span>
+              {% else %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Supprimé</span>{% endif %}
+            </td>
+            <td class="m-meta">{{ comment.createdAt|date('d/m/Y H:i') }}</td>
+            <td>
+              <div class="m-table__actions">
+                <form method="post" action="{{ path('admin_comments_action', {id: comment.id}) }}">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-commentaire-' ~ comment.id) }}">
+                  <input type="hidden" name="action" value="">
+                  {% if comment.status.value != 'supprime' %}
+                    <input type="text" name="reason" placeholder="Motif" class="m-input m-input--sm" style="width:130px;display:inline-block">
+                  {% endif %}
+                  {% if comment.status.value == 'visible' %}
+                    <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="if(!confirm('Masquer ce commentaire ?')) return false; this.form['action'].value='masquer'">Masquer</button>
+                    <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" style="color:#B3261E" onclick="if(!confirm('Supprimer ce commentaire ?')) return false; this.form['action'].value='supprimer'">Supprimer</button>
+                  {% elseif comment.status.value == 'masque' %}
+                    <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='restaurer'">Restaurer</button>
+                    <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" style="color:#B3261E" onclick="if(!confirm('Supprimer ce commentaire ?')) return false; this.form['action'].value='supprimer'">Supprimer</button>
+                  {% else %}
+                    <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='restaurer'">Restaurer</button>
+                  {% endif %}
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="m-meta">Aucun commentaire ne correspond à ces filtres.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pageCount > 1 %}
+  <nav class="d-flex justify-content-center gap-2 mt-3">
+    {% for p in 1..pageCount %}
+      <a class="m-btn m-btn--sm {{ p == page ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_comments', {q: query, status: status ? status.value : '', page: p}) }}">{{ p }}</a>
+    {% endfor %}
+  </nav>
+{% endif %}
+{% endblock %}

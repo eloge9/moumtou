@@ -6,6 +6,7 @@ use App\Entity\Comment;
 use App\Entity\Project;
 use App\Entity\Rating;
 use App\Entity\Report;
+use App\Entity\User;
 use App\Enum\CommentStatus;
 use App\Enum\NotificationType;
 use App\Enum\ReportReason;
@@ -301,7 +302,7 @@ class ProjectController extends AbstractController
 
     #[Route('/commentaires/{id}/signaler', name: 'app_comment_report', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function reportComment(int $id, Request $request, EntityManagerInterface $em): Response
+    public function reportComment(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
     {
         $comment = $em->getRepository(Comment::class)->find($id);
         if (!$comment) {
@@ -334,6 +335,8 @@ class ProjectController extends AbstractController
         $em->persist($report);
         $em->flush();
 
+        $this->notifyAdminsOfNewReport($em, $notificationService, $report, sprintf('Un commentaire du projet « %s » a été signalé.', $comment->getProject()->getName()));
+
         $this->addFlash('succes', 'Votre signalement a été transmis à l\'équipe de modération.');
 
         return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
@@ -341,7 +344,7 @@ class ProjectController extends AbstractController
 
     #[Route('/projets/{slug}/signaler', name: 'app_project_report', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function report(string $slug, Request $request, EntityManagerInterface $em): Response
+    public function report(string $slug, Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
     {
         $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         $this->assertViewable($project);
@@ -369,9 +372,36 @@ class ProjectController extends AbstractController
         $em->persist($report);
         $em->flush();
 
+        $this->notifyAdminsOfNewReport($em, $notificationService, $report, sprintf('Le projet « %s » a été signalé.', $project->getName()));
+
         $this->addFlash('succes', 'Votre signalement a été transmis à l\'équipe de modération.');
 
         return $this->redirectToRoute('app_project_show', ['slug' => $slug]);
+    }
+
+    /**
+     * Notifie l'ensemble des administrateurs qu'un nouveau signalement
+     * attend un traitement (cahier des charges — FONCTIONNALITÉ 9 §44) :
+     * réutilise le NotificationService de la FONCTIONNALITÉ 8, sans créer
+     * de second système de notification.
+     */
+    private function notifyAdminsOfNewReport(EntityManagerInterface $em, NotificationService $notificationService, Report $report, string $message): void
+    {
+        $admins = $em->getRepository(User::class)->createQueryBuilder('u')
+            ->andWhere('u.roles LIKE :role')
+            ->setParameter('role', '%"ROLE_ADMIN"%')
+            ->getQuery()
+            ->getResult();
+
+        foreach ($admins as $admin) {
+            $notificationService->notify(
+                $admin,
+                NotificationType::REPORT_RECEIVED,
+                NotificationType::REPORT_RECEIVED->label(),
+                $message,
+                $this->generateUrl('admin_moderation_report_show', ['id' => $report->getId()]),
+            );
+        }
     }
 
     private function assertCsrf(Request $request, string $tokenId): void

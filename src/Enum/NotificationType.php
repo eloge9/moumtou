@@ -29,6 +29,8 @@ enum NotificationType: string
     case ACCOUNT_SUSPENDED = 'account_suspended';
     case ACCOUNT_BANNED = 'account_banned';
 
+    case REPORT_RECEIVED = 'report_received';
+
     public function label(): string
     {
         return match ($this) {
@@ -47,6 +49,7 @@ enum NotificationType: string
             self::ACCOUNT_WARNED => 'Avertissement',
             self::ACCOUNT_SUSPENDED => 'Compte suspendu',
             self::ACCOUNT_BANNED => 'Compte banni',
+            self::REPORT_RECEIVED => 'Nouveau signalement',
         };
     }
 
@@ -61,6 +64,7 @@ enum NotificationType: string
             self::COMMENT_RECEIVED, self::COMMENT_REPLY => '💬',
             self::PROJECT_RATING_RECEIVED => '⭐',
             self::ACCOUNT_WARNED, self::ACCOUNT_SUSPENDED, self::ACCOUNT_BANNED => '🔒',
+            self::REPORT_RECEIVED => '🚩',
         };
     }
 
@@ -72,6 +76,7 @@ enum NotificationType: string
             self::PROJECT_VERIFIED, self::PROJECT_CORRECTION_REQUESTED => NotificationCategory::PROJET,
             self::COMMENT_RECEIVED, self::COMMENT_REPLY, self::PROJECT_RATING_RECEIVED => NotificationCategory::COMMUNAUTE,
             self::ACCOUNT_WARNED, self::ACCOUNT_SUSPENDED, self::ACCOUNT_BANNED => NotificationCategory::SECURITE,
+            self::REPORT_RECEIVED => NotificationCategory::MODERATION,
         };
     }
 }

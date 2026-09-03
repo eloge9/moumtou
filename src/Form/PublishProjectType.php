@@ -102,10 +102,12 @@ class PublishProjectType extends AbstractType
             ])
         ;
 
-        $this->addReferentialField($builder, 'domain', Domain::class, 'Domaine', 'Sélectionnez un domaine', 'Ex. : Sciences Juridiques');
-        $this->addReferentialField($builder, 'mention', Mention::class, 'Mention', 'Sélectionnez une mention', 'Ex. : Droit privé');
-        $this->addReferentialField($builder, 'specialty', Specialty::class, 'Spécialité', 'Sélectionnez une spécialité', 'Ex. : Droit des affaires');
-        $this->addReferentialField($builder, 'institution', Institution::class, 'Établissement', 'Sélectionnez un établissement', 'Ex. : Université catholique de l\'Afrique de l\'Ouest');
+        /** @var Project|null $project */
+        $project = $builder->getData();
+        $this->addReferentialField($builder, 'domain', Domain::class, 'Domaine', 'Sélectionnez un domaine', 'Ex. : Sciences Juridiques', $project?->getDomain());
+        $this->addReferentialField($builder, 'mention', Mention::class, 'Mention', 'Sélectionnez une mention', 'Ex. : Droit privé', $project?->getMention());
+        $this->addReferentialField($builder, 'specialty', Specialty::class, 'Spécialité', 'Sélectionnez une spécialité', 'Ex. : Droit des affaires', $project?->getSpecialty());
+        $this->addReferentialField($builder, 'institution', Institution::class, 'Établissement', 'Sélectionnez un établissement', 'Ex. : Université catholique de l\'Afrique de l\'Ouest', $project?->getInstitution());
     }
 
     /**
@@ -113,6 +115,11 @@ class PublishProjectType extends AbstractType
      * avec une option « Autre (à préciser) » : si le référentiel ne contient pas
      * la bonne valeur, l'utilisateur peut la saisir librement plutôt que d'être
      * bloqué (l'administrateur pourra ensuite la nettoyer/fusionner).
+     *
+     * Un domaine/mention/spécialité désactivé (cahier §29) n'apparaît plus
+     * dans la liste pour un nouveau choix, mais reste proposé si le projet
+     * en cours d'édition l'utilise déjà — pour ne jamais faire disparaître
+     * silencieusement la classification d'un projet existant.
      *
      * @param class-string $entityClass
      */
@@ -123,8 +130,15 @@ class PublishProjectType extends AbstractType
         string $label,
         string $placeholder,
         string $otherPlaceholder,
+        ?object $currentValue = null,
     ): void {
-        $entities = $this->entityManager->getRepository($entityClass)->findBy([], ['name' => 'ASC']);
+        $activeOnly = \in_array($entityClass, [Domain::class, Mention::class, Specialty::class], true);
+        $criteria = $activeOnly ? ['active' => true] : [];
+        $entities = $this->entityManager->getRepository($entityClass)->findBy($criteria, ['name' => 'ASC']);
+
+        if ($currentValue && !\in_array($currentValue, $entities, true)) {
+            $entities[] = $currentValue;
+        }
 
         $choices = [];
         foreach ($entities as $entity) {

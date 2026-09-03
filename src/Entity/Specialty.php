@@ -18,6 +18,9 @@ class Specialty
     #[ORM\Column(length: 120)]
     private ?string $name = null;
 
+    #[ORM\Column(options: ['default' => true])]
+    private bool $active = true;
+
     #[ORM\ManyToOne(targetEntity: Mention::class, inversedBy: 'specialties')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Mention $mention = null;
@@ -47,6 +50,18 @@ class Specialty
     public function setMention(?Mention $mention): static
     {
         $this->mention = $mention;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+
+    public function setActive(bool $active): static
+    {
+        $this->active = $active;
 
         return $this;
     }

@@ -29,6 +29,9 @@ class ProfileEditType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        /** @var User|null $user */
+        $user = $builder->getData();
+
         $builder
             ->add('firstName', TextType::class, ['label' => 'Prénom', 'constraints' => [new NotBlank()]])
             ->add('lastName', TextType::class, ['label' => 'Nom', 'constraints' => [new NotBlank()]])
@@ -97,6 +100,21 @@ class ProfileEditType extends AbstractType
                 'label' => 'Domaine',
                 'required' => false,
                 'placeholder' => 'Sélectionnez un domaine',
+                // Un domaine désactivé (cahier §29) n'est plus proposé pour
+                // un nouveau choix, mais reste sélectionnable s'il s'agit du
+                // domaine déjà attribué à ce profil — sinon la simple
+                // ouverture du formulaire pourrait faire perdre la valeur.
+                'query_builder' => function ($repository) use ($user) {
+                    $qb = $repository->createQueryBuilder('d')->orderBy('d.name', 'ASC');
+                    $current = $user?->getDomain();
+                    if ($current) {
+                        $qb->andWhere('d.active = true OR d.id = :currentDomain')->setParameter('currentDomain', $current->getId());
+                    } else {
+                        $qb->andWhere('d.active = true');
+                    }
+
+                    return $qb;
+                },
             ])
             ->add('mention', EntityType::class, [
                 'class' => Mention::class,
@@ -104,6 +122,17 @@ class ProfileEditType extends AbstractType
                 'label' => 'Mention',
                 'required' => false,
                 'placeholder' => 'Sélectionnez une mention',
+                'query_builder' => function ($repository) use ($user) {
+                    $qb = $repository->createQueryBuilder('m')->orderBy('m.name', 'ASC');
+                    $current = $user?->getMention();
+                    if ($current) {
+                        $qb->andWhere('m.active = true OR m.id = :currentMention')->setParameter('currentMention', $current->getId());
+                    } else {
+                        $qb->andWhere('m.active = true');
+                    }
+
+                    return $qb;
+                },
             ])
             ->add('specialty', EntityType::class, [
                 'class' => Specialty::class,
@@ -111,6 +140,17 @@ class ProfileEditType extends AbstractType
                 'label' => 'Spécialité',
                 'required' => false,
                 'placeholder' => 'Sélectionnez une spécialité',
+                'query_builder' => function ($repository) use ($user) {
+                    $qb = $repository->createQueryBuilder('s')->orderBy('s.name', 'ASC');
+                    $current = $user?->getSpecialty();
+                    if ($current) {
+                        $qb->andWhere('s.active = true OR s.id = :currentSpecialty')->setParameter('currentSpecialty', $current->getId());
+                    } else {
+                        $qb->andWhere('s.active = true');
+                    }
+
+                    return $qb;
+                },
             ])
             ->add('skills', EntityType::class, [
                 'class' => Skill::class,

@@ -47,26 +47,57 @@
 <div class="mt-4">
   {% for domain in domains %}
     <div class="m-carte m-carte--plate p-3 mb-2">
-      <div class="d-flex align-items-center justify-content-between">
-        <span class="fw-bold">{{ domain.name }}</span>
-        <form method="post" action="{{ path('admin_classification_delete', {type: 'domaine', id: domain.id}) }}">
-          <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-supprimer-domaine-' ~ domain.id) }}">
-          <button class="m-btn m-btn--lien p-0" style="color:#B3261E;font-size:13px" type="submit">Supprimer</button>
-        </form>
+      <div class="d-flex align-items-center justify-content-between gap-2">
+        <span class="fw-bold">{{ domain.name }}{% if not domain.active %} <span class="m-tag" style="background:#F1F1F1;color:#666">Désactivé</span>{% endif %}</span>
+        <div class="d-flex align-items-center gap-2">
+          <form method="post" action="{{ path('admin_classification_rename', {type: 'domaine', id: domain.id}) }}" class="d-flex gap-1">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-renommer-domaine-' ~ domain.id) }}">
+            <input class="m-input m-input--sm" type="text" name="name" value="{{ domain.name }}" style="width:160px">
+            <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Renommer</button>
+          </form>
+          <form method="post" action="{{ path('admin_classification_toggle_active', {type: 'domaine', id: domain.id}) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-desactiver-domaine-' ~ domain.id) }}">
+            <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">{{ domain.active ? 'Désactiver' : 'Réactiver' }}</button>
+          </form>
+          <form method="post" action="{{ path('admin_classification_delete', {type: 'domaine', id: domain.id}) }}" onsubmit="return confirm('Supprimer ce domaine ?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-supprimer-domaine-' ~ domain.id) }}">
+            <button class="m-btn m-btn--lien p-0" style="color:#B3261E;font-size:13px" type="submit">Supprimer</button>
+          </form>
+        </div>
       </div>
       {% for mention in domain.mentions %}
         <div class="ms-3 mt-2 pt-2" style="border-top:1px solid #EEF1F6">
-          <div class="d-flex align-items-center justify-content-between">
-            <span class="fw-semibold" style="font-size:14px">→ {{ mention.name }}</span>
-            <form method="post" action="{{ path('admin_classification_delete', {type: 'mention', id: mention.id}) }}">
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-supprimer-mention-' ~ mention.id) }}">
-              <button class="m-btn m-btn--lien p-0" style="color:#B3261E;font-size:12px" type="submit">Supprimer</button>
-            </form>
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <span class="fw-semibold" style="font-size:14px">→ {{ mention.name }}{% if not mention.active %} <span class="m-tag" style="background:#F1F1F1;color:#666">Désactivée</span>{% endif %}</span>
+            <div class="d-flex align-items-center gap-2">
+              <form method="post" action="{{ path('admin_classification_rename', {type: 'mention', id: mention.id}) }}" class="d-flex gap-1">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-renommer-mention-' ~ mention.id) }}">
+                <input class="m-input m-input--sm" type="text" name="name" value="{{ mention.name }}" style="width:150px">
+                <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Renommer</button>
+              </form>
+              <form method="post" action="{{ path('admin_classification_toggle_active', {type: 'mention', id: mention.id}) }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-desactiver-mention-' ~ mention.id) }}">
+                <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">{{ mention.active ? 'Désactiver' : 'Réactiver' }}</button>
+              </form>
+              <form method="post" action="{{ path('admin_classification_delete', {type: 'mention', id: mention.id}) }}" onsubmit="return confirm('Supprimer cette mention ?');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-supprimer-mention-' ~ mention.id) }}">
+                <button class="m-btn m-btn--lien p-0" style="color:#B3261E;font-size:12px" type="submit">Supprimer</button>
+              </form>
+            </div>
           </div>
           <div class="d-flex flex-wrap gap-2 mt-2">
             {% for specialty in mention.specialties %}
-              <span class="m-tag">{{ specialty.name }}
-                <form method="post" action="{{ path('admin_classification_delete', {type: 'specialite', id: specialty.id}) }}" style="display:inline">
+              <span class="m-tag d-inline-flex align-items-center gap-1"{% if not specialty.active %} style="opacity:.55"{% endif %}>
+                <form method="post" action="{{ path('admin_classification_rename', {type: 'specialite', id: specialty.id}) }}" class="d-inline-flex gap-1">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-renommer-specialite-' ~ specialty.id) }}">
+                  <input class="m-input m-input--sm" type="text" name="name" value="{{ specialty.name }}" style="width:110px">
+                  <button class="m-btn m-btn--lien p-0" style="font-size:12px" type="submit">✎</button>
+                </form>
+                <form method="post" action="{{ path('admin_classification_toggle_active', {type: 'specialite', id: specialty.id}) }}" style="display:inline" title="{{ specialty.active ? 'Désactiver' : 'Réactiver' }}">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-desactiver-specialite-' ~ specialty.id) }}">
+                  <button type="submit" style="border:0;background:none;color:inherit">{{ specialty.active ? '⏻' : '⏼' }}</button>
+                </form>
+                <form method="post" action="{{ path('admin_classification_delete', {type: 'specialite', id: specialty.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer cette spécialité ?');">
                   <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-classification-supprimer-specialite-' ~ specialty.id) }}">
                   <button type="submit" style="border:0;background:none;color:inherit">&times;</button>
                 </form>

@@ -8,6 +8,7 @@ use App\Entity\Project;
 use App\Entity\Rating;
 use App\Entity\Report;
 use App\Entity\User;
+use App\Enum\AdminAuditAction;
 use App\Enum\CommentStatus;
 use App\Enum\ModerationActionType;
 use App\Enum\NotificationType;
@@ -15,6 +16,7 @@ use App\Enum\ProjectStatus;
 use App\Enum\RatingStatus;
 use App\Enum\ReportStatus;
 use App\Enum\ReportTargetType;
+use App\Service\AdminAuditLogger;
 use App\Service\NotificationService;
 use App\Service\SanctionApplier;
 use Doctrine\ORM\EntityManagerInterface;
@@ -139,7 +141,7 @@ class ModerationController extends AbstractController
     }
 
     #[Route('/admin/moderation/signalements/{id}/decider', name: 'admin_moderation_report_decide', methods: ['POST'])]
-    public function decideReport(int $id, Request $request, EntityManagerInterface $em, SanctionApplier $sanctionApplier, NotificationService $notificationService): Response
+    public function decideReport(int $id, Request $request, EntityManagerInterface $em, SanctionApplier $sanctionApplier, NotificationService $notificationService, AdminAuditLogger $auditLogger): Response
     {
         $report = $em->getRepository(Report::class)->find($id);
         if (!$report) {
@@ -170,7 +172,7 @@ class ModerationController extends AbstractController
         // le contenu est conservé tel quel.
         $effectiveAction = $contentAction ?? ModerationActionType::AUCUNE_ACTION;
         if ($target['entity']) {
-            $this->applyContentAction($effectiveAction, $target['entity'], $em, $notificationService);
+            $this->applyContentAction($effectiveAction, $target['entity'], $em, $notificationService, $auditLogger, $admin, $reason);
         }
 
         $moderationAction = new ModerationAction();
@@ -192,13 +194,22 @@ class ModerationController extends AbstractController
         $report->setStatus($isDismissed ? ReportStatus::REJETE : ReportStatus::TRAITE);
         $em->flush();
 
+        $auditLogger->log(
+            $admin,
+            $isDismissed ? AdminAuditAction::REPORT_REJECTED : AdminAuditAction::REPORT_RESOLVED,
+            'Report',
+            $report->getId(),
+            $target['title'],
+            $reason,
+        );
+
         $this->addFlash('succes', $isDismissed ? 'Signalement rejeté et consigné dans l\'historique.' : 'Décision enregistrée et consignée dans l\'historique de modération.');
 
         return $this->redirectToRoute('admin_moderation');
     }
 
     #[Route('/admin/moderation/projets/{id}/decider', name: 'admin_moderation_project_decide', methods: ['POST'])]
-    public function decideProject(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
+    public function decideProject(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService, AdminAuditLogger $auditLogger): Response
     {
         $project = $em->getRepository(Project::class)->find($id);
         if (!$project) {
@@ -221,16 +232,18 @@ class ModerationController extends AbstractController
             return $this->redirectToRoute('admin_project_show', ['id' => $project->getId()]);
         }
 
-        $this->applyContentAction($action, $project, $em, $notificationService);
-
         /** @var User $admin */
         $admin = $this->getUser();
+        $effectiveReason = $reason ?: sprintf('Décision directe depuis le tableau de bord : %s.', $action->label());
+
+        $this->applyContentAction($action, $project, $em, $notificationService, $auditLogger, $admin, $effectiveReason);
+
         $moderationAction = new ModerationAction();
         $moderationAction->setAdmin($admin);
         $moderationAction->setTargetType(ReportTargetType::PROJECT);
         $moderationAction->setTargetId($project->getId());
         $moderationAction->setActionType($action);
-        $moderationAction->setReason($reason ?: sprintf('Décision directe depuis le tableau de bord : %s.', $action->label()));
+        $moderationAction->setReason($effectiveReason);
         $em->persist($moderationAction);
         $em->flush();
 
@@ -239,8 +252,15 @@ class ModerationController extends AbstractController
         return $this->redirectToRoute('admin_project_show', ['id' => $project->getId()]);
     }
 
-    private function applyContentAction(ModerationActionType $action, ?object $target, EntityManagerInterface $em, NotificationService $notificationService): void
-    {
+    private function applyContentAction(
+        ModerationActionType $action,
+        ?object $target,
+        EntityManagerInterface $em,
+        NotificationService $notificationService,
+        AdminAuditLogger $auditLogger,
+        User $admin,
+        string $reason,
+    ): void {
         if ($target instanceof Comment) {
             match ($action) {
                 ModerationActionType::MASQUER => $target->setStatus(CommentStatus::MASQUE),
@@ -249,6 +269,16 @@ class ModerationController extends AbstractController
                 default => null,
             };
             $em->flush();
+
+            $commentAuditAction = match ($action) {
+                ModerationActionType::MASQUER => AdminAuditAction::COMMENT_HIDDEN,
+                ModerationActionType::SUPPRIMER => AdminAuditAction::COMMENT_DELETED,
+                ModerationActionType::RESTAURER => AdminAuditAction::COMMENT_RESTORED,
+                default => null,
+            };
+            if ($commentAuditAction) {
+                $auditLogger->log($admin, $commentAuditAction, 'Comment', $target->getId(), null, $reason);
+            }
 
             return;
         }
@@ -275,6 +305,20 @@ class ModerationController extends AbstractController
         }
 
         $em->flush();
+
+        $projectAuditAction = match ($action) {
+            ModerationActionType::PUBLIER => AdminAuditAction::PROJECT_PUBLISHED,
+            ModerationActionType::MARQUER_VERIFIE => AdminAuditAction::PROJECT_VERIFIED,
+            ModerationActionType::RETIRER_VERIFICATION => AdminAuditAction::PROJECT_UNVERIFIED,
+            ModerationActionType::DEPUBLIER => AdminAuditAction::PROJECT_UNPUBLISHED,
+            ModerationActionType::DEMANDER_CORRECTION => AdminAuditAction::CORRECTION_REQUESTED,
+            ModerationActionType::MASQUER => AdminAuditAction::PROJECT_HIDDEN,
+            ModerationActionType::SUPPRIMER => AdminAuditAction::PROJECT_DELETED,
+            default => null,
+        };
+        if ($projectAuditAction) {
+            $auditLogger->log($admin, $projectAuditAction, 'Project', $target->getId(), $target->getName(), $reason);
+        }
 
         $projectUrl = $this->generateUrl('app_project_show', ['slug' => $target->getSlug()]);
         if (ModerationActionType::MARQUER_VERIFIE === $action) {

@@ -1,0 +1,80 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block title %}Administration — Journal — MOUMTOU{% endblock %}
+{% block admin_title %}Journal d'administration{% endblock %}
+
+{% block admin_body %}
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="m-label">Administrateur</label>
+      <select class="m-select" name="admin">
+        <option value="">Tous</option>
+        {% for a in admins %}
+          <option value="{{ a.id }}" {{ selectedAdmin and selectedAdmin.id == a.id ? 'selected' }}>{{ a.fullName }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Action</label>
+      <select class="m-select" name="action">
+        <option value="">Toutes</option>
+        {% for a in allActions %}
+          <option value="{{ a.value }}" {{ selectedAction and selectedAction.value == a.value ? 'selected' }}>{{ a.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="m-label">Cible</label>
+      <select class="m-select" name="target_type">
+        <option value="">Toutes</option>
+        {% for t in targetTypes %}
+          <option value="{{ t }}" {{ targetType == t ? 'selected' }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="m-label">Du</label>
+      <input class="m-input" type="date" name="date_from" value="{{ dateFrom }}">
+    </div>
+    <div class="col-md-2">
+      <label class="m-label">Au</label>
+      <input class="m-input" type="date" name="date_to" value="{{ dateTo }}">
+    </div>
+    <div class="col-12">
+      <button class="m-btn m-btn--primaire" type="submit">Filtrer</button>
+    </div>
+  </form>
+</div>
+
+<div class="m-carte m-carte--plate">
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Date</th><th>Administrateur</th><th>Action</th><th>Cible</th><th>Détails</th></tr></thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td class="m-meta">{{ log.createdAt|date('d/m/Y H:i') }}</td>
+            <td class="m-texte">{{ log.admin.fullName }}</td>
+            <td><span class="m-tag">{{ log.action.label }}</span></td>
+            <td class="m-texte">
+              {% if log.targetType %}{{ log.targetType }}{% if log.targetId %} #{{ log.targetId }}{% endif %}{% if log.targetLabel %} — {{ log.targetLabel }}{% endif %}{% else %}—{% endif %}
+            </td>
+            <td class="m-meta">{{ log.details ?: '—' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="m-meta">Aucune entrée ne correspond à ces filtres.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pageCount > 1 %}
+  <nav class="d-flex justify-content-center gap-2 mt-3">
+    {% for p in 1..pageCount %}
+      <a class="m-btn m-btn--sm {{ p == page ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_journal', {admin: selectedAdmin ? selectedAdmin.id : '', action: selectedAction ? selectedAction.value : '', target_type: targetType, date_from: dateFrom, date_to: dateTo, page: p}) }}">{{ p }}</a>
+    {% endfor %}
+  </nav>
+{% endif %}
+{% endblock %}

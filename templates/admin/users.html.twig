@@ -43,7 +43,7 @@
       <tbody>
         {% for user in users %}
           <tr>
-            <td class="fw-semibold">{{ user.fullName }}</td>
+            <td class="fw-semibold"><a href="{{ path('admin_user_show', {id: user.id}) }}">{{ user.fullName }}</a></td>
             <td class="m-texte">{{ user.email }}</td>
             <td>
               {% for r in user.roles %}
@@ -66,9 +66,9 @@
                     <input type="text" name="reason" placeholder="Motif" class="m-input m-input--sm" style="width:140px;display:inline-block">
                     {% if user.status.value == 'actif' %}
                       <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='avertir'">Avertir</button>
-                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='suspendre_7'">Suspendre 7j</button>
-                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='suspendre_30'">Suspendre 30j</button>
-                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" style="color:#B3261E" onclick="this.form['action'].value='bannir'">Bannir</button>
+                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="if(!confirm('Suspendre ce compte pour 7 jours ?')) return false; this.form['action'].value='suspendre_7'">Suspendre 7j</button>
+                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="if(!confirm('Suspendre ce compte pour 30 jours ?')) return false; this.form['action'].value='suspendre_30'">Suspendre 30j</button>
+                      <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" style="color:#B3261E" onclick="if(!confirm('Bannir définitivement ce compte ?')) return false; this.form['action'].value='bannir'">Bannir</button>
                     {% else %}
                       <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='reactiver'">Réactiver</button>
                     {% endif %}

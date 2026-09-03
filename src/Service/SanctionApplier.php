@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Sanction;
 use App\Entity\User;
+use App\Enum\AdminAuditAction;
 use App\Enum\NotificationType;
 use App\Enum\SanctionType;
 use App\Enum\UserStatus;
@@ -22,6 +23,7 @@ class SanctionApplier
         private readonly EntityManagerInterface $em,
         private readonly SanctionMailer $mailer,
         private readonly NotificationService $notificationService,
+        private readonly AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -38,6 +40,7 @@ class SanctionApplier
         if ('reactiver' === $action) {
             $target->setStatus(UserStatus::ACTIF);
             $this->em->flush();
+            $this->auditLogger->log($admin, AdminAuditAction::USER_UNSUSPENDED, 'User', $target->getId(), $target->getFullName(), $reason);
 
             return null;
         }
@@ -87,6 +90,13 @@ class SanctionApplier
             null,
             sendEmail: false,
         );
+
+        $auditAction = match ($sanctionType) {
+            SanctionType::AVERTISSEMENT => AdminAuditAction::USER_WARNED,
+            SanctionType::SUSPENSION => AdminAuditAction::USER_SUSPENDED,
+            SanctionType::BANNISSEMENT => AdminAuditAction::USER_BANNED,
+        };
+        $this->auditLogger->log($admin, $auditAction, 'User', $target->getId(), $target->getFullName(), $reason);
 
         return $sanction;
     }

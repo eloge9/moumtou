@@ -14,6 +14,7 @@ enum NotificationCategory: string
     case PROJET = 'projet';
     case COMMUNAUTE = 'communaute';
     case SECURITE = 'securite';
+    case MODERATION = 'moderation';
 
     public function label(): string
     {
@@ -23,6 +24,7 @@ enum NotificationCategory: string
             self::PROJET => 'Projets',
             self::COMMUNAUTE => 'Commentaires et évaluations',
             self::SECURITE => 'Sécurité du compte',
+            self::MODERATION => 'Modération (administrateurs)',
         };
     }
 
@@ -41,6 +43,6 @@ enum NotificationCategory: string
      */
     public function defaultEmailEnabled(): bool
     {
-        return self::COMMUNAUTE !== $this;
+        return !\in_array($this, [self::COMMUNAUTE, self::MODERATION], true);
     }
 }

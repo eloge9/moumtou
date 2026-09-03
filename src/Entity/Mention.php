@@ -20,6 +20,9 @@ class Mention
     #[ORM\Column(length: 120)]
     private ?string $name = null;
 
+    #[ORM\Column(options: ['default' => true])]
+    private bool $active = true;
+
     #[ORM\ManyToOne(targetEntity: Domain::class, inversedBy: 'mentions')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Domain $domain = null;
@@ -66,6 +69,18 @@ class Mention
     public function getSpecialties(): Collection
     {
         return $this->specialties;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+
+    public function setActive(bool $active): static
+    {
+        $this->active = $active;
+
+        return $this;
     }
 
     public function __toString(): string

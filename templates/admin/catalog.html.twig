@@ -5,46 +5,69 @@
 {% block admin_title %}Technologies · Compétences{% endblock %}
 
 {% block admin_body %}
-<div class="row g-3">
-  <div class="col-md-6">
-    <div class="m-carte m-carte--plate p-3">
-      <p class="m-surtitre mb-2">Technologies</p>
-      <form method="post" action="{{ path('admin_technologies_add') }}" class="d-flex gap-2 mb-3">
-        <input class="m-input" type="text" name="name" placeholder="Ex. : Kotlin" required>
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-technologie-ajouter') }}">
-        <button class="m-btn m-btn--primaire" type="submit">Ajouter</button>
-      </form>
-      <div class="m-tags">
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <p class="m-surtitre mb-2">Technologies ({{ technologies|length }})</p>
+  <form method="post" action="{{ path('admin_technologies_add') }}" class="d-flex gap-2 mb-3">
+    <input class="m-input" type="text" name="name" placeholder="Ex. : Kotlin" required>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-technologie-ajouter') }}">
+    <button class="m-btn m-btn--primaire" type="submit">Ajouter</button>
+  </form>
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Nom</th><th>Renommer</th><th>Fusionner vers</th><th>Actions</th></tr></thead>
+      <tbody>
         {% for technology in technologies %}
-          <span class="m-tag">{{ technology.name }}
-            <form method="post" action="{{ path('admin_technologies_delete', {id: technology.id}) }}" style="display:inline">
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-technologie-supprimer-' ~ technology.id) }}">
-              <button type="submit" style="border:0;background:none;color:inherit">&times;</button>
-            </form>
-          </span>
+          <tr>
+            <td class="fw-semibold">{{ technology.name }}</td>
+            <td>
+              <form method="post" action="{{ path('admin_technologies_rename', {id: technology.id}) }}" class="d-flex gap-1">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-technologie-renommer-' ~ technology.id) }}">
+                <input class="m-input m-input--sm" type="text" name="name" value="{{ technology.name }}" style="width:140px">
+                <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Renommer</button>
+              </form>
+            </td>
+            <td>
+              <form method="post" action="{{ path('admin_technologies_merge', {id: technology.id}) }}" class="d-flex gap-1" onsubmit="return confirm('Fusionner « {{ technology.name|e('js') }} » vers la technologie sélectionnée ? Cette action est irréversible.');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-technologie-fusionner-' ~ technology.id) }}">
+                <select class="m-select m-select--sm" name="target" style="width:150px">
+                  {% for t in technologies %}
+                    {% if t.id != technology.id %}<option value="{{ t.id }}">{{ t.name }}</option>{% endif %}
+                  {% endfor %}
+                </select>
+                <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Fusionner</button>
+              </form>
+            </td>
+            <td>
+              <form method="post" action="{{ path('admin_technologies_delete', {id: technology.id}) }}" onsubmit="return confirm('Supprimer cette technologie ?');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-technologie-supprimer-' ~ technology.id) }}">
+                <button class="m-btn m-btn--lien p-0" style="color:#B3261E" type="submit">Supprimer</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="m-meta">Aucune technologie.</td></tr>
         {% endfor %}
-      </div>
-    </div>
+      </tbody>
+    </table>
   </div>
-  <div class="col-md-6">
-    <div class="m-carte m-carte--plate p-3">
-      <p class="m-surtitre mb-2">Compétences</p>
-      <form method="post" action="{{ path('admin_skills_add') }}" class="d-flex gap-2 mb-3">
-        <input class="m-input" type="text" name="name" placeholder="Ex. : Data engineering" required>
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-competence-ajouter') }}">
-        <button class="m-btn m-btn--primaire" type="submit">Ajouter</button>
-      </form>
-      <div class="m-tags">
-        {% for skill in skills %}
-          <span class="m-tag">{{ skill.name }}
-            <form method="post" action="{{ path('admin_skills_delete', {id: skill.id}) }}" style="display:inline">
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-competence-supprimer-' ~ skill.id) }}">
-              <button type="submit" style="border:0;background:none;color:inherit">&times;</button>
-            </form>
-          </span>
-        {% endfor %}
-      </div>
-    </div>
+</div>
+
+<div class="m-carte m-carte--plate p-3">
+  <p class="m-surtitre mb-2">Compétences ({{ skills|length }})</p>
+  <form method="post" action="{{ path('admin_skills_add') }}" class="d-flex gap-2 mb-3">
+    <input class="m-input" type="text" name="name" placeholder="Ex. : Data engineering" required>
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-competence-ajouter') }}">
+    <button class="m-btn m-btn--primaire" type="submit">Ajouter</button>
+  </form>
+  <div class="m-tags">
+    {% for skill in skills %}
+      <span class="m-tag">{{ skill.name }}
+        <form method="post" action="{{ path('admin_skills_delete', {id: skill.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer cette compétence ?');">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin-competence-supprimer-' ~ skill.id) }}">
+          <button type="submit" style="border:0;background:none;color:inherit">&times;</button>
+        </form>
+      </span>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}
