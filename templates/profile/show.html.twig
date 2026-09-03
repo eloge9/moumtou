@@ -7,7 +7,8 @@
 {% block og_type %}profile{% endblock %}
 {% block og_title %}{{ profileUser.fullName }} — MOUMTOU{% endblock %}
 {% block og_description %}{{ block('meta_description') }}{% endblock %}
-{% block og_image %}{% if profileUser.photo %}<meta property="og:image" content="{{ absolute_url(asset(profileUser.photo)) }}">{% endif %}{% endblock %}
+{% block og_image %}{% if profileUser.photo %}<meta property="og:image" content="{{ absolute_url(asset(profileUser.photo)) }}">{% else %}{{ parent() }}{% endif %}{% endblock %}
+{% block twitter_image %}{% if profileUser.photo %}<meta name="twitter:image" content="{{ absolute_url(asset(profileUser.photo)) }}">{% else %}{{ parent() }}{% endif %}{% endblock %}
 {% block structured_data %}
 <script type="application/ld+json">
 {{ {
@@ -17,10 +18,24 @@
   'description': profileUser.bio,
   'jobTitle': profileUser.professionalTitle,
   'url': url('app_profile_show', {slug: profileUser.slug}),
+  'image': profileUser.photo ? absolute_url(asset(profileUser.photo)) : null,
   'address': (profileUser.city or profileUser.country) ? {'@type': 'PostalAddress', 'addressLocality': profileUser.city, 'addressCountry': profileUser.country} : null,
   'affiliation': profileUser.institution ? {'@type': 'CollegeOrUniversity', 'name': profileUser.institution.name} : null,
+  'knowsAbout': (profileUser.technologies|length or profileUser.skills|length) ? (profileUser.technologies|map(t => t.name)|merge(profileUser.skills|map(s => s.name))|join(', ')) : null,
   'sameAs': [profileUser.linkedinUrl, profileUser.githubUrl, profileUser.websiteUrl, profileUser.portfolioUrl]|filter(v => v is not empty),
 }|filter(v => v is not null)|json_encode|raw }}
+</script>
+{% endblock %}
+{% block breadcrumb_data %}
+<script type="application/ld+json">
+{{ {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  'itemListElement': [
+    {'@type': 'ListItem', 'position': 1, 'name': 'Accueil', 'item': absolute_url(path('app_home'))},
+    {'@type': 'ListItem', 'position': 2, 'name': profileUser.fullName, 'item': publicUrl},
+  ],
+}|json_encode|raw }}
 </script>
 {% endblock %}
 
@@ -109,7 +124,7 @@
           {% for project in projects %}
             <article class="m-carte m-carte--plate p-3 d-flex gap-3 align-items-center flex-wrap">
               <div class="m-media" style="width:96px;height:66px;border-radius:var(--m-r-sm);padding:0;flex:none">
-                {% if coverPhotos[project.id] is defined %}<img src="{{ asset(coverPhotos[project.id].thumbnailPath ?: coverPhotos[project.id].path) }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:var(--m-r-sm)" loading="lazy">{% endif %}
+                {% if coverPhotos[project.id] is defined %}<img src="{{ asset(coverPhotos[project.id].thumbnailPath ?: coverPhotos[project.id].path) }}" alt="Aperçu du projet {{ project.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--m-r-sm)" loading="lazy">{% endif %}
               </div>
               <div class="flex-fill" style="min-width:220px">
                 <p class="mb-1 d-flex align-items-center gap-2">

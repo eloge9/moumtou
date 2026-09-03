@@ -12,8 +12,12 @@
 <meta property="og:title" content="{% block og_title %}MOUMTOU{% endblock %}">
 <meta property="og:description" content="{% block og_description %}MOUMTOU — la plateforme où les talents démontrent leurs réalisations.{% endblock %}">
 {% block og_url %}{% endblock %}
-{% block og_image %}{% endblock %}
+{% block og_image %}<meta property="og:image" content="{{ absolute_url(asset('images/logo-moumtou.svg')) }}">{% endblock %}
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{% block twitter_title %}{{ block('og_title') }}{% endblock %}">
+<meta name="twitter:description" content="{% block twitter_description %}{{ block('og_description') }}{% endblock %}">
+{% block twitter_image %}<meta name="twitter:image" content="{{ absolute_url(asset('images/logo-moumtou.svg')) }}">{% endblock %}
+{% block breadcrumb_data %}{% endblock %}
 {% block structured_data %}{% endblock %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">

@@ -7,15 +7,19 @@
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ project.name }} — MOUMTOU{% endblock %}
 {% block og_description %}{{ block('meta_description') }}{% endblock %}
-{% block og_image %}{% if project.photos|length %}<meta property="og:image" content="{{ absolute_url(asset(project.photos.first.path)) }}">{% endif %}{% endblock %}
+{% block og_image %}{% if project.photos|length %}<meta property="og:image" content="{{ absolute_url(asset(project.photos.first.path)) }}">{% else %}{{ parent() }}{% endif %}{% endblock %}
+{% block twitter_image %}{% if project.photos|length %}<meta name="twitter:image" content="{{ absolute_url(asset(project.photos.first.path)) }}">{% else %}{{ parent() }}{% endif %}{% endblock %}
 {% block structured_data %}
+{% set githubProof = project.proofs|filter(p => p.type.value == 'github')|first %}
 <script type="application/ld+json">
 {{ {
   '@context': 'https://schema.org',
-  '@type': 'CreativeWork',
+  '@type': githubProof ? 'SoftwareSourceCode' : 'CreativeWork',
   'name': project.name,
   'description': (project.shortDescription ?: project.detailedDescription),
   'url': publicUrl,
+  'codeRepository': githubProof ? githubProof.url : null,
+  'programmingLanguage': (githubProof and project.technologies|length) ? project.technologies|map(t => t.name)|join(', ') : null,
   'dateCreated': project.realizationDate ? project.realizationDate|date('Y-m-d') : null,
   'creator': {'@type': 'Person', 'name': project.owner.fullName},
   'keywords': project.technologies|map(t => t.name)|join(', '),
@@ -25,6 +29,18 @@
     'ratingCount': project.ratingsCount,
   } : null,
 }|filter(v => v is not null)|json_encode|raw }}
+</script>
+{% endblock %}
+{% block breadcrumb_data %}
+<script type="application/ld+json">
+{{ {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  'itemListElement': [
+    {'@type': 'ListItem', 'position': 1, 'name': 'Explorer', 'item': absolute_url(path('app_explorer'))},
+    {'@type': 'ListItem', 'position': 2, 'name': project.name, 'item': publicUrl},
+  ],
+}|json_encode|raw }}
 </script>
 {% endblock %}
 
@@ -89,13 +105,13 @@
 
     {% set photos = project.photos %}
     <div class="m-media m-media--h320 mt-4"{% if photos|length %} data-modale-ouvrir="modale-galerie" style="cursor:pointer"{% endif %}>
-      {% if photos|length %}<img src="{{ asset(photos.first.path) }}" alt="" style="width:100%;height:100%;object-fit:cover">
+      {% if photos|length %}<img src="{{ asset(photos.first.path) }}" alt="Image principale du projet {{ project.name }}" style="width:100%;height:100%;object-fit:cover">
       {% else %}<span class="m-media__etiquette">capture principale du projet</span>{% endif %}
     </div>
     {% if photos|length > 1 %}
       <div class="row g-2 mt-2">
         {% for photo in photos|slice(1, 3) %}
-          <div class="col-3"><div class="m-media m-media--vignette" data-modale-ouvrir="modale-galerie" style="cursor:pointer"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div></div>
+          <div class="col-3"><div class="m-media m-media--vignette" data-modale-ouvrir="modale-galerie" style="cursor:pointer"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="Photo {{ loop.index + 1 }} du projet {{ project.name }}" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div></div>
         {% endfor %}
         {% if photos|length > 4 %}
           <div class="col-3"><div class="m-media m-media--vignette justify-content-center fw-bold" data-modale-ouvrir="modale-galerie" style="cursor:pointer;color:var(--m-bleu)">+{{ photos|length - 4 }}</div></div>
@@ -397,7 +413,7 @@
       {% for photo in project.photos %}
         <div class="col-6 col-md-4">
           <a href="{{ asset(photo.path) }}" target="_blank" rel="noopener">
-            <div class="m-media" style="aspect-ratio:4/3"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div>
+            <div class="m-media" style="aspect-ratio:4/3"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="Photo {{ loop.index }} du projet {{ project.name }}" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div>
           </a>
         </div>
       {% endfor %}

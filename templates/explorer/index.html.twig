@@ -2,6 +2,8 @@
 {% import 'components/_filtres_actifs.html.twig' as filtresActifs %}
 
 {% block title %}Explorer les projets — MOUMTOU{% endblock %}
+{% block meta_description %}Explorez les projets réalisés par les talents sur MOUMTOU : soutenances, projets personnels, professionnels et entrepreneuriaux dans tous les domaines.{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ url('app_explorer') }}">{% endblock %}
 
 {% block body %}
 <div class="m-mise-en-page">
@@ -146,7 +148,7 @@
         <div class="col-xl-4 col-md-6">
           <article class="m-carte h-100">
             <div class="m-media" style="height:132px">
-              {% if coverPhotos[project.id] is defined %}<img src="{{ asset(coverPhotos[project.id].thumbnailPath ?: coverPhotos[project.id].path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy">{% endif %}
+              {% if coverPhotos[project.id] is defined %}<img src="{{ asset(coverPhotos[project.id].thumbnailPath ?: coverPhotos[project.id].path) }}" alt="Aperçu du projet {{ project.name }}" style="width:100%;height:100%;object-fit:cover" loading="lazy">{% endif %}
             </div>
             <div class="m-carte__corps">
               <span class="m-statut{{ project.status.value == 'publie' ? ' m-statut--publie' : '' }}">{{ project.status.value == 'verifie' ? 'Vérifié' : 'Publié' }}</span>

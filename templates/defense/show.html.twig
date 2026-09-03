@@ -7,7 +7,8 @@
 {% block og_type %}article{% endblock %}
 {% block og_title %}Soutenance — {{ project.name }} — MOUMTOU{% endblock %}
 {% block og_description %}{{ block('meta_description') }}{% endblock %}
-{% block og_image %}{% if project.photos|length %}<meta property="og:image" content="{{ absolute_url(asset(project.photos.first.path)) }}">{% endif %}{% endblock %}
+{% block og_image %}{% if project.photos|length %}<meta property="og:image" content="{{ absolute_url(asset(project.photos.first.path)) }}">{% else %}{{ parent() }}{% endif %}{% endblock %}
+{% block twitter_image %}{% if project.photos|length %}<meta name="twitter:image" content="{{ absolute_url(asset(project.photos.first.path)) }}">{% else %}{{ parent() }}{% endif %}{% endblock %}
 {% block structured_data %}
 <script type="application/ld+json">
 {{ {
@@ -21,6 +22,18 @@
   'url': publicUrl,
   'eventStatus': defense.status.value == 'annoncee' ? 'https://schema.org/EventScheduled' : 'https://schema.org/EventScheduled',
 }|filter(v => v is not null)|json_encode|raw }}
+</script>
+{% endblock %}
+{% block breadcrumb_data %}
+<script type="application/ld+json">
+{{ {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  'itemListElement': [
+    {'@type': 'ListItem', 'position': 1, 'name': 'Explorer', 'item': absolute_url(path('app_explorer'))},
+    {'@type': 'ListItem', 'position': 2, 'name': 'Soutenance — ' ~ project.name, 'item': publicUrl},
+  ],
+}|json_encode|raw }}
 </script>
 {% endblock %}
 

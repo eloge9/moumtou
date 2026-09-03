@@ -6,6 +6,12 @@ Disallow: /mon-espace-enseignant
 Disallow: /publier
 Disallow: /ma-soutenance
 Disallow: /recruteur
+Disallow: /connexion
+Disallow: /inscription
+Disallow: /verifier-email
+Disallow: /mot-de-passe-oublie
+Disallow: /reinitialiser-mot-de-passe
+Disallow: /notifications
 Allow: /
 
 Sitemap: /sitemap.xml
