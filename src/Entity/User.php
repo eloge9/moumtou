@@ -44,6 +44,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 100)]
     private ?string $lastName = null;
 
+    /**
+     * Titre professionnel affiché sous le nom (ex. "Développeur Full
+     * Stack"), distinct de la spécialité académique : un talent peut se
+     * présenter différemment de son intitulé de diplôme.
+     */
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $professionalTitle = null;
+
     #[ORM\Column(length: 160, nullable: true)]
     private ?string $slug = null;
 
@@ -263,6 +271,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getFullName(): string
     {
         return trim(sprintf('%s %s', $this->firstName, $this->lastName));
+    }
+
+    public function getProfessionalTitle(): ?string
+    {
+        return $this->professionalTitle;
+    }
+
+    public function setProfessionalTitle(?string $professionalTitle): static
+    {
+        $this->professionalTitle = $professionalTitle;
+
+        return $this;
     }
 
     public function getSlug(): ?string

@@ -20,7 +20,10 @@ use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\File;
+use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Regex;
+use Symfony\Component\Validator\Constraints\Url;
 
 class ProfileEditType extends AbstractType
 {
@@ -29,6 +32,12 @@ class ProfileEditType extends AbstractType
         $builder
             ->add('firstName', TextType::class, ['label' => 'Prénom', 'constraints' => [new NotBlank()]])
             ->add('lastName', TextType::class, ['label' => 'Nom', 'constraints' => [new NotBlank()]])
+            ->add('professionalTitle', TextType::class, [
+                'label' => 'Titre professionnel',
+                'required' => false,
+                'attr' => ['placeholder' => 'Ex. : Développeur Full Stack'],
+                'constraints' => [new Length(max: 120, maxMessage: 'Le titre professionnel ne doit pas dépasser {{ limit }} caractères.')],
+            ])
             ->add('phone', TelType::class, ['label' => 'Téléphone', 'constraints' => [new NotBlank()]])
             ->add('whatsapp', TelType::class, ['label' => 'Numéro WhatsApp', 'required' => false, 'attr' => ['placeholder' => 'Ex. : 22890000000']])
             ->add('whatsappEnabled', ChoiceType::class, [
@@ -38,11 +47,31 @@ class ProfileEditType extends AbstractType
             ])
             ->add('country', TextType::class, ['label' => 'Pays', 'required' => false])
             ->add('city', TextType::class, ['label' => 'Ville', 'required' => false])
-            ->add('bio', TextareaType::class, ['label' => 'Biographie', 'required' => false])
-            ->add('linkedinUrl', UrlType::class, ['label' => 'LinkedIn', 'required' => false, 'default_protocol' => 'https'])
-            ->add('githubUrl', UrlType::class, ['label' => 'GitHub', 'required' => false, 'default_protocol' => 'https'])
-            ->add('websiteUrl', UrlType::class, ['label' => 'Site personnel', 'required' => false, 'default_protocol' => 'https'])
-            ->add('portfolioUrl', UrlType::class, ['label' => 'Portfolio', 'required' => false, 'default_protocol' => 'https'])
+            ->add('bio', TextareaType::class, [
+                'label' => 'Biographie',
+                'required' => false,
+                'constraints' => [new Length(max: 2000, maxMessage: 'La biographie ne doit pas dépasser {{ limit }} caractères.')],
+            ])
+            ->add('linkedinUrl', UrlType::class, [
+                'label' => 'LinkedIn',
+                'required' => false,
+                'default_protocol' => 'https',
+                'constraints' => [new Regex(
+                    pattern: '#^https?://([a-z]{2,3}\.)?linkedin\.com/#i',
+                    message: 'Ce lien doit pointer vers un profil LinkedIn (linkedin.com).',
+                )],
+            ])
+            ->add('githubUrl', UrlType::class, [
+                'label' => 'GitHub',
+                'required' => false,
+                'default_protocol' => 'https',
+                'constraints' => [new Regex(
+                    pattern: '#^https?://(www\.)?github\.com/#i',
+                    message: 'Ce lien doit pointer vers un profil GitHub (github.com).',
+                )],
+            ])
+            ->add('websiteUrl', UrlType::class, ['label' => 'Site personnel', 'required' => false, 'default_protocol' => 'https', 'constraints' => [new Url(requireTld: true)]])
+            ->add('portfolioUrl', UrlType::class, ['label' => 'Portfolio', 'required' => false, 'default_protocol' => 'https', 'constraints' => [new Url(requireTld: true)]])
             ->add('availability', ChoiceType::class, [
                 'label' => 'Disponibilité',
                 'required' => false,

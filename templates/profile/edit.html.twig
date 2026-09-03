@@ -24,6 +24,11 @@
             {{ form_widget(form.lastName, {attr: {class: 'm-input'}}) }}
             {{ form_errors(form.lastName) }}
           </div>
+          <div class="col-12">
+            {{ form_label(form.professionalTitle, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.professionalTitle, {attr: {class: 'm-input'}}) }}
+            {{ form_errors(form.professionalTitle) }}
+          </div>
           <div class="col-md-6">
             {{ forms.label(form.phone, 'Téléphone', true) }}
             {{ form_widget(form.phone, {attr: {class: 'm-input'}}) }}
@@ -47,23 +52,28 @@
           </div>
           <div class="col-12">
             {{ form_label(form.bio, null, {label_attr: {class: 'm-label'}}) }}
-            {{ form_widget(form.bio, {attr: {class: 'm-textarea'}}) }}
+            {{ form_widget(form.bio, {attr: {class: 'm-textarea', maxlength: 2000}}) }}
+            {{ form_errors(form.bio) }}
           </div>
           <div class="col-md-6">
             {{ form_label(form.linkedinUrl, null, {label_attr: {class: 'm-label'}}) }}
             {{ form_widget(form.linkedinUrl, {attr: {class: 'm-input'}}) }}
+            {{ form_errors(form.linkedinUrl) }}
           </div>
           <div class="col-md-6">
             {{ form_label(form.githubUrl, null, {label_attr: {class: 'm-label'}}) }}
             {{ form_widget(form.githubUrl, {attr: {class: 'm-input'}}) }}
+            {{ form_errors(form.githubUrl) }}
           </div>
           <div class="col-md-6">
             {{ form_label(form.websiteUrl, null, {label_attr: {class: 'm-label'}}) }}
             {{ form_widget(form.websiteUrl, {attr: {class: 'm-input'}}) }}
+            {{ form_errors(form.websiteUrl) }}
           </div>
           <div class="col-md-6">
             {{ form_label(form.portfolioUrl, null, {label_attr: {class: 'm-label'}}) }}
             {{ form_widget(form.portfolioUrl, {attr: {class: 'm-input'}}) }}
+            {{ form_errors(form.portfolioUrl) }}
           </div>
           <div class="col-md-6">
             {{ form_label(form.availability, null, {label_attr: {class: 'm-label'}}) }}
@@ -71,7 +81,8 @@
           </div>
           <div class="col-md-6">
             {{ form_label(form.photo, null, {label_attr: {class: 'm-label'}}) }}
-            {{ form_widget(form.photo, {attr: {class: 'm-input'}}) }}
+            {% if user.photo %}<img src="{{ asset(user.photo) }}" alt="" width="40" height="40" style="border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px">{% endif %}
+            {{ form_widget(form.photo, {attr: {class: 'm-input', style: 'display:inline-block;width:auto'}}) }}
             {{ form_errors(form.photo) }}
           </div>
           <div class="col-12 mt-2">
@@ -116,6 +127,19 @@
         </div>
       {{ form_end(form) }}
     </div>
+
+    {% if user.photo %}
+      <div class="m-carte m-carte--plate p-4 mt-4">
+        <h2 style="font-size:18px">Photo de profil</h2>
+        <div class="d-flex align-items-center gap-3 mt-2">
+          <img src="{{ asset(user.photo) }}" alt="" width="56" height="56" style="border-radius:50%;object-fit:cover">
+          <form method="post" action="{{ path('app_profile_remove_photo') }}" onsubmit="return confirm('Supprimer votre photo de profil ?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('supprimer-photo-profil') }}">
+            <button class="m-btn m-btn--secondaire" type="submit">Supprimer ma photo</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
 
     <div class="m-carte m-carte--plate p-4 mt-4">
       <h2 style="font-size:18px">Changer mon mot de passe</h2>

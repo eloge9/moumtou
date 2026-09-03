@@ -12,9 +12,12 @@ use Symfony\Component\String\Slugger\SluggerInterface;
  */
 class InstitutionLogoUploader
 {
+    private const MAX_DIMENSION = 400;
+
     public function __construct(
         private readonly SluggerInterface $slugger,
         private readonly string $institutionLogoUploadsDirectory,
+        private readonly ImageResizer $imageResizer,
     ) {
     }
 
@@ -28,6 +31,7 @@ class InstitutionLogoUploader
         $filename = sprintf('%s-%s.%s', $safeName, bin2hex(random_bytes(6)), $file->guessExtension());
 
         $file->move($this->institutionLogoUploadsDirectory, $filename);
+        $this->imageResizer->resize($this->institutionLogoUploadsDirectory.'/'.$filename, self::MAX_DIMENSION, self::MAX_DIMENSION);
 
         $institution->setLogo('uploads/institutions/'.$filename);
     }

@@ -56,6 +56,7 @@
               <a class="fw-bold" style="font-size:19px;letter-spacing:-.02em" href="{{ path('app_profile_show', {slug: talent.slug}) }}">{{ talent.fullName }}</a>
               {% if talent.availability %}<span class="m-tag">{{ talent.availability.label }}</span>{% endif %}
             </div>
+            {% if talent.professionalTitle %}<p class="fw-semibold mb-1" style="font-size:14.5px;color:var(--m-bleu)">{{ talent.professionalTitle }}</p>{% endif %}
             <p class="m-meta mt-1 mb-2">
               {{ talent.city }}{{ talent.city and talent.country ? ', ' : '' }}{{ talent.country }}
               {% if talent.institution %}{{ (talent.city or talent.country) ? ' · ' : '' }}🎓 {{ talent.institution.name }}{% endif %}

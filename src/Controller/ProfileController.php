@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class ProfileController extends AbstractController
@@ -52,6 +53,8 @@ class ProfileController extends AbstractController
 
         $defenseProjects = $projects->filter(fn ($p) => $p->getDefense() !== null);
 
+        $publicUrl = $urlGenerator->generate('app_profile_show', ['slug' => $user->getSlug()], UrlGeneratorInterface::ABSOLUTE_URL);
+
         return $this->render('profile/show.html.twig', [
             'profileUser' => $user,
             'isOwner' => $isOwner,
@@ -63,9 +66,8 @@ class ProfileController extends AbstractController
                 'averageRating' => $averageRating,
                 'totalViews' => $totalViews,
             ],
-            'qrCodeDataUri' => $qrCodeGenerator->generateSvgDataUri(
-                $urlGenerator->generate('app_profile_show', ['slug' => $user->getSlug()], UrlGeneratorInterface::ABSOLUTE_URL)
-            ),
+            'publicUrl' => $publicUrl,
+            'qrCodeDataUri' => $qrCodeGenerator->generateSvgDataUri($publicUrl),
         ]);
     }
 
@@ -104,6 +106,31 @@ class ProfileController extends AbstractController
             'form' => $form,
             'user' => $user,
         ]);
+    }
+
+    #[Route('/mon-profil/photo/supprimer', name: 'app_profile_remove_photo', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function removePhoto(Request $request, EntityManagerInterface $em): Response
+    {
+        if (!$this->isCsrfTokenValid('supprimer-photo-profil', $request->request->get('_csrf_token'))) {
+            throw new InvalidCsrfTokenException();
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if ($user->getPhoto()) {
+            $path = $this->getParameter('kernel.project_dir').'/public/'.$user->getPhoto();
+            if (is_file($path)) {
+                @unlink($path);
+            }
+            $user->setPhoto(null);
+            $em->flush();
+        }
+
+        $this->addFlash('succes', 'Votre photo de profil a été supprimée.');
+
+        return $this->redirectToRoute('app_profile_edit');
     }
 
     #[Route('/mon-profil/experiences/ajouter', name: 'app_profile_add_experience')]

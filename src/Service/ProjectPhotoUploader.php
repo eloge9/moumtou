@@ -9,19 +9,18 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 
 /**
  * Stocke les photos déposées pour un projet (cahier des charges §20 : JPG,
- * JPEG, PNG, WebP, nombre limité, nom de fichier non fiable).
- *
- * Limitation actuelle : pas de compression/redimensionnement/miniature
- * automatique, l'extension PHP GD n'étant pas activée dans cet environnement
- * (voir point d'étape). Le fichier original validé est stocké tel quel.
+ * JPEG, PNG, WebP, nombre limité, nom de fichier non fiable, compression et
+ * redimensionnement via {@see ImageResizer}).
  */
 class ProjectPhotoUploader
 {
     private const MAX_PHOTOS = 8;
+    private const MAX_DIMENSION = 1600;
 
     public function __construct(
         private readonly SluggerInterface $slugger,
         private readonly string $projectUploadsDirectory,
+        private readonly ImageResizer $imageResizer,
     ) {
     }
 
@@ -44,6 +43,7 @@ class ProjectPhotoUploader
             $filename = sprintf('%s-%s.%s', $safeName, bin2hex(random_bytes(6)), $file->guessExtension());
 
             $file->move($directory, $filename);
+            $this->imageResizer->resize($directory.'/'.$filename, self::MAX_DIMENSION, self::MAX_DIMENSION);
 
             $photo = new ProjectPhoto();
             $photo->setPath(sprintf('uploads/projects/%d/%s', $project->getId(), $filename));

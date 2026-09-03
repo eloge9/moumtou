@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ profileUser.fullName }} — Profil talent — MOUMTOU{% endblock %}
+{% block title %}{{ profileUser.fullName }}{{ profileUser.professionalTitle ? ' — ' ~ profileUser.professionalTitle : ' — Profil talent' }} — MOUMTOU{% endblock %}
 {% block meta_description %}{{ (profileUser.bio ?: profileUser.fullName ~ ' présente ses projets et compétences sur MOUMTOU.')|striptags|slice(0, 160) }}{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ url('app_profile_show', {slug: profileUser.slug}) }}">{% endblock %}
 {% block og_type %}profile{% endblock %}
@@ -14,6 +14,7 @@
   '@type': 'Person',
   'name': profileUser.fullName,
   'description': profileUser.bio,
+  'jobTitle': profileUser.professionalTitle,
   'url': url('app_profile_show', {slug: profileUser.slug}),
   'address': (profileUser.city or profileUser.country) ? {'@type': 'PostalAddress', 'addressLocality': profileUser.city, 'addressCountry': profileUser.country} : null,
   'affiliation': profileUser.institution ? {'@type': 'CollegeOrUniversity', 'name': profileUser.institution.name} : null,
@@ -34,6 +35,7 @@
         <h1 style="font-size:32px">{{ profileUser.fullName }}</h1>
         {% if stats.verifiedCount > 0 %}<span class="m-badge m-badge--verifie">Talent vérifié</span>{% endif %}
       </div>
+      {% if profileUser.professionalTitle %}<p class="fw-semibold mb-2" style="font-size:16px;color:var(--m-bleu)">{{ profileUser.professionalTitle }}</p>{% endif %}
       {% if profileUser.bio %}<p class="m-texte mb-3" style="max-width:560px">{{ profileUser.bio }}</p>{% endif %}
       <p class="m-meta mb-2">{% if profileUser.city or profileUser.country %}{{ profileUser.city }}{{ profileUser.city and profileUser.country ? ', ' : '' }}{{ profileUser.country }}{% endif %}</p>
       {% if profileUser.institution or profileUser.specialty %}
@@ -52,6 +54,7 @@
         {% if profileUser.linkedinUrl %}<a class="m-btn m-btn--secondaire" href="{{ profileUser.linkedinUrl }}" target="_blank" rel="noopener">LinkedIn</a>{% endif %}
         {% if profileUser.githubUrl %}<a class="m-btn m-btn--secondaire" href="{{ profileUser.githubUrl }}" target="_blank" rel="noopener">GitHub</a>{% endif %}
         {% if profileUser.websiteUrl %}<a class="m-btn m-btn--secondaire" href="{{ profileUser.websiteUrl }}" target="_blank" rel="noopener">Site personnel</a>{% endif %}
+        <button class="m-btn m-btn--secondaire" type="button" data-modale-ouvrir="modale-partage-profil">Partager</button>
         {% if isOwner %}<a class="m-btn m-btn--secondaire" href="{{ path('app_profile_edit') }}">Modifier mon profil</a>{% endif %}
       </div>
     </div>
@@ -163,9 +166,27 @@
         <div class="m-carte m-carte--plate p-3 text-center">
           <p class="m-surtitre mb-0">QR code du profil</p>
           <img src="{{ qrCodeDataUri }}" alt="QR code vers ce profil" width="100" height="100" class="mt-2">
+          <p class="m-meta mt-2 mb-1">À imprimer sur un CV ou une carte de visite.</p>
+          <a href="{{ qrCodeDataUri }}" download="moumtou-{{ profileUser.slug }}.svg">Télécharger le QR code</a>
         </div>
       </div>
     </div>
   </div>
 </section>
+
+{% block modals %}
+<div class="m-modale" id="modale-partage-profil" data-modale role="dialog" aria-modal="true">
+  <div class="m-modale__boite">
+    <h2 class="m-modale__titre">Partager ce profil</h2>
+    <label class="m-label mt-3" for="lien-partage-profil">Lien public</label>
+    <input class="m-input" id="lien-partage-profil" type="text" value="{{ publicUrl }}" readonly>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <a class="m-btn m-btn--secondaire" href="https://wa.me/?text={{ publicUrl|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="m-btn m-btn--secondaire" href="https://www.linkedin.com/sharing/share-offsite/?url={{ publicUrl|url_encode }}" target="_blank" rel="noopener">LinkedIn</a>
+      <button class="m-btn m-btn--secondaire" type="button" onclick="navigator.clipboard.writeText('{{ publicUrl }}')">Copier le lien</button>
+    </div>
+    <div class="text-end mt-4"><button class="m-btn m-btn--primaire" type="button" data-modale-fermer>Fermer</button></div>
+  </div>
+</div>
+{% endblock %}
 {% endblock %}
