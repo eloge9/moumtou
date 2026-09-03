@@ -86,17 +86,17 @@
     </div>
 
     {% set photos = project.photos %}
-    <div class="m-media m-media--h320 mt-4">
+    <div class="m-media m-media--h320 mt-4"{% if photos|length %} data-modale-ouvrir="modale-galerie" style="cursor:pointer"{% endif %}>
       {% if photos|length %}<img src="{{ asset(photos.first.path) }}" alt="" style="width:100%;height:100%;object-fit:cover">
       {% else %}<span class="m-media__etiquette">capture principale du projet</span>{% endif %}
     </div>
     {% if photos|length > 1 %}
       <div class="row g-2 mt-2">
         {% for photo in photos|slice(1, 3) %}
-          <div class="col-3"><div class="m-media m-media--vignette"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div></div>
+          <div class="col-3"><div class="m-media m-media--vignette" data-modale-ouvrir="modale-galerie" style="cursor:pointer"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div></div>
         {% endfor %}
         {% if photos|length > 4 %}
-          <div class="col-3"><div class="m-media m-media--vignette justify-content-center fw-bold" style="color:var(--m-bleu)">+{{ photos|length - 4 }}</div></div>
+          <div class="col-3"><div class="m-media m-media--vignette justify-content-center fw-bold" data-modale-ouvrir="modale-galerie" style="cursor:pointer;color:var(--m-bleu)">+{{ photos|length - 4 }}</div></div>
         {% endif %}
       </div>
     {% endif %}
@@ -113,23 +113,39 @@
       </div>
     {% endif %}
 
+    {% if youtubeVideoId %}
+      <h2 class="mt-4" style="font-size:20px">Vidéo</h2>
+      <div class="mt-2 m-youtube-facade" data-youtube-facade data-video-id="{{ youtubeVideoId }}" style="position:relative;padding-top:56.25%;border-radius:var(--m-r);overflow:hidden;cursor:pointer;background:#000">
+        <img src="https://i.ytimg.com/vi/{{ youtubeVideoId }}/hqdefault.jpg" alt="Miniature de la vidéo" loading="lazy" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:.85">
+        <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(220,20,20,.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px">▶</span>
+      </div>
+    {% endif %}
+
     {% if project.proofs|length %}
       <h2 class="mt-4" style="font-size:20px">Preuves de réalisation</h2>
       <div class="row g-3 mt-2">
         {% for proof in project.proofs %}
           <div class="col-md-6">
             <a class="m-preuve" href="{{ proof.url }}" target="_blank" rel="noopener">
-              <span class="m-preuve__icone">{{ proof.type.value == 'github' ? '</>' : '≡' }}</span>
-              <span><span class="fw-bold d-block" style="font-size:14.5px">{{ proof.type.label }}</span><span class="m-meta">{{ proof.url }}</span></span>
+              <span class="m-preuve__icone">{{ proof.type.icon }}</span>
+              <span><span class="fw-bold d-block" style="font-size:14.5px">{{ proof.title ?: proof.type.actionLabel }}</span><span class="m-meta">{{ proof.url }}</span></span>
             </a>
           </div>
         {% endfor %}
       </div>
     {% endif %}
 
-    {% if youtubeEmbedUrl %}
-      <div class="mt-3" style="position:relative;padding-top:56.25%;border-radius:var(--m-r);overflow:hidden">
-        <iframe src="{{ youtubeEmbedUrl }}" title="Vidéo de démonstration" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+    {% if project.documents|length %}
+      <h2 class="mt-4" style="font-size:20px">Documents</h2>
+      <div class="row g-3 mt-2">
+        {% for document in project.documents %}
+          <div class="col-md-6">
+            <a class="m-preuve" href="{{ asset(document.path) }}" target="_blank" rel="noopener">
+              <span class="m-preuve__icone">📄</span>
+              <span><span class="fw-bold d-block" style="font-size:14.5px">{{ document.title ?: document.type.label }}</span><span class="m-meta">{{ document.originalFilename }}</span></span>
+            </a>
+          </div>
+        {% endfor %}
       </div>
     {% endif %}
 
@@ -368,6 +384,24 @@
 </div>
 
 {% block modals %}
+{% if project.photos|length %}
+<div class="m-modale" id="modale-galerie" data-modale role="dialog" aria-modal="true">
+  <div class="m-modale__boite" style="max-width:900px">
+    <h2 class="m-modale__titre">Galerie ({{ project.photos|length }})</h2>
+    <div class="row g-2 mt-3" style="max-height:70vh;overflow-y:auto">
+      {% for photo in project.photos %}
+        <div class="col-6 col-md-4">
+          <a href="{{ asset(photo.path) }}" target="_blank" rel="noopener">
+            <div class="m-media" style="aspect-ratio:4/3"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="text-end mt-4"><button class="m-btn m-btn--primaire" type="button" data-modale-fermer>Fermer</button></div>
+  </div>
+</div>
+{% endif %}
+
 <div class="m-modale" id="modale-partage" data-modale role="dialog" aria-modal="true">
   <div class="m-modale__boite">
     <h2 class="m-modale__titre">Partager ce projet</h2>

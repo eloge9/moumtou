@@ -22,6 +22,14 @@ class ProjectProof
     #[ORM\Column(enumType: ProofType::class)]
     private ?ProofType $type = null;
 
+    /**
+     * Titre éventuel (cahier des charges — FONCTIONNALITÉ 10 §6 : "chaque
+     * lien doit posséder au minimum : type, titre éventuel, URL"). Utile
+     * notamment pour distinguer plusieurs preuves de type AUTRE.
+     */
+    #[ORM\Column(length: 180, nullable: true)]
+    private ?string $title = null;
+
     #[ORM\Column(length: 500)]
     private ?string $url = null;
 
@@ -50,6 +58,18 @@ class ProjectProof
     public function setType(ProofType $type): static
     {
         $this->type = $type;
+
+        return $this;
+    }
+
+    public function getTitle(): ?string
+    {
+        return $this->title;
+    }
+
+    public function setTitle(?string $title): static
+    {
+        $this->title = $title;
 
         return $this;
     }

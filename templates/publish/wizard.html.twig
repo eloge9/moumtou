@@ -138,43 +138,58 @@
 
       <!-- Étape 3 -->
       <section class="m-panneau-etape" data-etape-panneau>
-        <h1 style="font-size:24px">Preuves de réalisation</h1>
+        <h1 style="font-size:24px">Médias et preuves</h1>
         <p class="m-meta mt-1">Au moins une preuve est obligatoire. Les liens sont externes : aucun fichier lourd n'est hébergé.</p>
 
-        <div class="row g-3 mt-2">
-          <div class="col-md-6">
-            {{ form_label(form.githubUrl, null, {label_attr: {class: 'm-label'}}) }}
-            {{ form_widget(form.githubUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://github.com/…'}}) }}
-            {{ form_errors(form.githubUrl) }}
-          </div>
-          <div class="col-md-6">
-            {{ form_label(form.youtubeUrl, null, {label_attr: {class: 'm-label'}}) }}
-            {{ form_widget(form.youtubeUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://youtube.com/watch?v=…'}}) }}
-            {{ form_errors(form.youtubeUrl) }}
-          </div>
-          <div class="col-md-6">
-            {{ form_label(form.siteUrl, null, {label_attr: {class: 'm-label'}}) }}
-            {{ form_widget(form.siteUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://…'}}) }}
-            {{ form_errors(form.siteUrl) }}
-          </div>
-          <div class="col-md-6">
-            {{ form_label(form.memoireUrl, null, {label_attr: {class: 'm-label'}}) }}
-            {{ form_widget(form.memoireUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://github.com/…/memoire.pdf'}}) }}
-            {{ form_errors(form.memoireUrl) }}
-          </div>
+        <h2 class="mt-4 mb-2" style="font-size:16px">📷 Galerie</h2>
+        <div class="row g-3">
           {% if editingProject is defined and editingProject and editingProject.photos|length %}
             <div class="col-12">
-              <label class="m-label">Photos actuelles</label>
+              <label class="m-label">Photos actuelles — la première est l'image principale</label>
               <div class="row g-2">
                 {% for photo in editingProject.photos %}
-                  <div class="col-3">
-                    <div class="m-media m-media--vignette"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover"></div>
-                    <label class="m-meta d-flex align-items-center gap-1 mt-1" style="font-size:12.5px">
-                      <input type="checkbox" name="remove_photos[]" value="{{ photo.id }}"> Supprimer
-                    </label>
+                  <div class="col-6 col-md-3">
+                    <div class="m-media m-media--vignette" style="position:relative">
+                      <img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover">
+                      {% if loop.first %}<span class="m-tag m-tag--bleu" style="position:absolute;top:4px;left:4px">Principale</span>{% endif %}
+                    </div>
+                    <div class="d-grid gap-1 mt-1">
+                      {% if not loop.first %}
+                        <form method="post" action="{{ path('app_project_photo_set_cover', {slug: editingProject.slug, photoId: photo.id}) }}">
+                          <input type="hidden" name="_csrf_token" value="{{ csrf_token('photo-principale-' ~ photo.id) }}">
+                          <button class="m-btn m-btn--lien p-0" style="font-size:11.5px" type="submit">Définir comme principale</button>
+                        </form>
+                      {% endif %}
+                      <div class="d-flex gap-1">
+                        {% if not loop.first %}
+                          <form method="post" action="{{ path('app_project_photo_move', {slug: editingProject.slug, photoId: photo.id}) }}">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token('photo-deplacer-' ~ photo.id) }}">
+                            <input type="hidden" name="direction" value="haut">
+                            <button class="m-btn m-btn--lien p-0" style="font-size:11.5px" type="submit" title="Déplacer vers le haut">▲</button>
+                          </form>
+                        {% endif %}
+                        {% if not loop.last %}
+                          <form method="post" action="{{ path('app_project_photo_move', {slug: editingProject.slug, photoId: photo.id}) }}">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token('photo-deplacer-' ~ photo.id) }}">
+                            <input type="hidden" name="direction" value="bas">
+                            <button class="m-btn m-btn--lien p-0" style="font-size:11.5px" type="submit" title="Déplacer vers le bas">▼</button>
+                          </form>
+                        {% endif %}
+                        <form method="post" action="{{ path('app_project_photo_delete', {slug: editingProject.slug, photoId: photo.id}) }}" onsubmit="return confirm('Supprimer cette photo ?');">
+                          <input type="hidden" name="_csrf_token" value="{{ csrf_token('photo-supprimer-' ~ photo.id) }}">
+                          <button class="m-btn m-btn--lien p-0" style="font-size:11.5px;color:#B3261E" type="submit">Supprimer</button>
+                        </form>
+                      </div>
+                      <form method="post" action="{{ path('app_project_photo_replace', {slug: editingProject.slug, photoId: photo.id}) }}" enctype="multipart/form-data">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('photo-remplacer-' ~ photo.id) }}">
+                        <input type="file" id="remplacer-photo-{{ photo.id }}" name="file" accept="image/jpeg,image/png,image/webp" class="d-none" data-remplacer-photo-input>
+                        <label class="m-btn m-btn--lien p-0" style="font-size:11.5px;cursor:pointer" for="remplacer-photo-{{ photo.id }}">Remplacer</label>
+                      </form>
+                    </div>
                   </div>
                 {% endfor %}
               </div>
+              <p class="m-aide mt-1">Ces actions s'appliquent immédiatement, sans attendre l'enregistrement du formulaire.</p>
             </div>
           {% endif %}
           <div class="col-12">
@@ -182,6 +197,95 @@
             <label class="m-depot" for="{{ form.photos.vars.id }}"><span style="font-size:18px;color:var(--m-bleu)">⇪</span>Glisser des images ici ou cliquer pour choisir</label>
             {{ form_widget(form.photos, {attr: {class: 'd-none'}}) }}
             {{ form_errors(form.photos) }}
+          </div>
+        </div>
+
+        <h2 class="mt-4 mb-2" style="font-size:16px">🎥 Vidéo</h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            {{ form_label(form.youtubeUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.youtubeUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://youtube.com/watch?v=…'}}) }}
+            {{ form_errors(form.youtubeUrl) }}
+          </div>
+        </div>
+
+        <h2 class="mt-4 mb-2" style="font-size:16px">💻 GitHub</h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            {{ form_label(form.githubUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.githubUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://github.com/…'}}) }}
+            {{ form_errors(form.githubUrl) }}
+          </div>
+        </div>
+
+        <h2 class="mt-4 mb-2" style="font-size:16px">🌐 Site web · 🚀 Démo</h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            {{ form_label(form.siteUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.siteUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://…'}}) }}
+            {{ form_errors(form.siteUrl) }}
+          </div>
+          <div class="col-md-6">
+            {{ form_label(form.demoUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.demoUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://…'}}) }}
+            {{ form_errors(form.demoUrl) }}
+          </div>
+        </div>
+
+        <h2 class="mt-4 mb-2" style="font-size:16px">📄 Documents</h2>
+        <div class="row g-3">
+          {% if editingProject is defined and editingProject and editingProject.documents|length %}
+            <div class="col-12">
+              <label class="m-label">Documents actuels</label>
+              <div class="d-grid gap-2">
+                {% for document in editingProject.documents %}
+                  <div class="d-flex align-items-center justify-content-between" style="font-size:13.5px">
+                    <span>{{ document.title ?: document.type.label }} <span class="m-meta">({{ document.originalFilename }})</span></span>
+                    <form method="post" action="{{ path('app_project_document_delete', {slug: editingProject.slug, documentId: document.id}) }}" onsubmit="return confirm('Supprimer ce document ?');">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token('document-supprimer-' ~ document.id) }}">
+                      <button class="m-btn m-btn--lien p-0" style="font-size:12.5px;color:#B3261E" type="submit">Supprimer</button>
+                    </form>
+                  </div>
+                {% endfor %}
+              </div>
+              <p class="m-aide mt-1">La suppression d'un document s'applique immédiatement.</p>
+            </div>
+          {% endif %}
+          <div class="col-md-4">
+            {{ form_label(form.documentType, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.documentType, {attr: {class: 'm-select'}}) }}
+          </div>
+          <div class="col-md-8">
+            {{ form_label(form.documentTitle, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.documentTitle, {attr: {class: 'm-input', placeholder: 'Ex. : Rapport de soutenance'}}) }}
+          </div>
+          <div class="col-12">
+            {{ form_label(form.documents, null, {label_attr: {class: 'm-label'}}) }}
+            <label class="m-depot" for="{{ form.documents.vars.id }}"><span style="font-size:18px;color:var(--m-bleu)">⇪</span>Glisser des documents ici ou cliquer pour choisir</label>
+            {{ form_widget(form.documents, {attr: {class: 'd-none'}}) }}
+            {{ form_errors(form.documents) }}
+          </div>
+        </div>
+
+        <h2 class="mt-4 mb-2" style="font-size:16px">📚 Mémoire</h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            {{ form_label(form.memoireUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.memoireUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://github.com/…/memoire.pdf'}}) }}
+            {{ form_errors(form.memoireUrl) }}
+          </div>
+        </div>
+
+        <h2 class="mt-4 mb-2" style="font-size:16px">🔗 Autre preuve</h2>
+        <div class="row g-3">
+          <div class="col-md-5">
+            {{ form_label(form.otherProofTitle, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.otherProofTitle, {attr: {class: 'm-input', placeholder: 'Ex. : Page produit'}}) }}
+          </div>
+          <div class="col-md-7">
+            {{ form_label(form.otherProofUrl, null, {label_attr: {class: 'm-label'}}) }}
+            {{ form_widget(form.otherProofUrl, {attr: {class: 'm-input', 'data-preuve': true, placeholder: 'https://…'}}) }}
+            {{ form_errors(form.otherProofUrl) }}
           </div>
         </div>
 

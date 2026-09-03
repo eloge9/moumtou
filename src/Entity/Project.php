@@ -93,6 +93,11 @@ class Project
     #[ORM\OrderBy(['position' => 'ASC'])]
     private Collection $photos;
 
+    /** @var Collection<int, ProjectDocument> */
+    #[ORM\OneToMany(targetEntity: ProjectDocument::class, mappedBy: 'project', orphanRemoval: true, cascade: ['persist'])]
+    #[ORM\OrderBy(['uploadedAt' => 'ASC'])]
+    private Collection $documents;
+
     #[ORM\OneToOne(targetEntity: Defense::class, mappedBy: 'project', cascade: ['persist', 'remove'])]
     private ?Defense $defense = null;
 
@@ -110,6 +115,7 @@ class Project
         $this->technologies = new ArrayCollection();
         $this->proofs = new ArrayCollection();
         $this->photos = new ArrayCollection();
+        $this->documents = new ArrayCollection();
         $this->ratings = new ArrayCollection();
         $this->comments = new ArrayCollection();
     }
@@ -397,6 +403,29 @@ class Project
     public function removePhoto(ProjectPhoto $photo): static
     {
         $this->photos->removeElement($photo);
+
+        return $this;
+    }
+
+    /** @return Collection<int, ProjectDocument> */
+    public function getDocuments(): Collection
+    {
+        return $this->documents;
+    }
+
+    public function addDocument(ProjectDocument $document): static
+    {
+        if (!$this->documents->contains($document)) {
+            $this->documents->add($document);
+            $document->setProject($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDocument(ProjectDocument $document): static
+    {
+        $this->documents->removeElement($document);
 
         return $this;
     }

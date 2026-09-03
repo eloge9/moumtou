@@ -17,6 +17,7 @@ use App\Security\Voter\CommentVoter;
 use App\Service\NotificationService;
 use App\Service\QrCodeGenerator;
 use App\Service\RatingIntegrityChecker;
+use App\Service\YoutubeUrlExtractor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,6 +41,7 @@ class ProjectController extends AbstractController
         RequestStack $requestStack,
         UrlGeneratorInterface $urlGenerator,
         QrCodeGenerator $qrCodeGenerator,
+        YoutubeUrlExtractor $youtubeUrlExtractor,
     ): Response {
         $project = $em->getRepository(Project::class)->findOneBy(['slug' => $slug]);
         $this->assertViewable($project);
@@ -67,23 +69,10 @@ class ProjectController extends AbstractController
             'publicUrl' => $publicUrl,
             'qrCodeDataUri' => $qrCodeGenerator->generateSvgDataUri($publicUrl),
             'reportReasons' => ReportReason::cases(),
-            'youtubeEmbedUrl' => $this->extractYoutubeEmbedUrl($project),
+            'youtubeVideoId' => $youtubeUrlExtractor->extractVideoId($project),
         ]);
     }
 
-    private function extractYoutubeEmbedUrl(Project $project): ?string
-    {
-        foreach ($project->getProofs() as $proof) {
-            if ($proof->getType() !== \App\Enum\ProofType::YOUTUBE) {
-                continue;
-            }
-            if (preg_match('#(?:youtu\.be/|v=|/embed/)([\w-]{6,})#', $proof->getUrl(), $matches)) {
-                return 'https://www.youtube.com/embed/'.$matches[1];
-            }
-        }
-
-        return null;
-    }
 
     #[Route('/projets/{slug}/noter', name: 'app_project_rate', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]

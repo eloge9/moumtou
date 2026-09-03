@@ -14,6 +14,7 @@ use App\Enum\ProjectType;
 use App\Enum\ProofType;
 use App\Form\PublishProjectType;
 use App\Service\ForbiddenContentDetector;
+use App\Service\ProjectDocumentUploader;
 use App\Service\ProjectPhotoUploader;
 use App\Service\SlugGenerator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,6 +32,7 @@ class PublishController extends AbstractController
         'githubUrl' => ProofType::GITHUB,
         'youtubeUrl' => ProofType::YOUTUBE,
         'siteUrl' => ProofType::SITE,
+        'demoUrl' => ProofType::DEMO,
         'memoireUrl' => ProofType::MEMOIRE,
     ];
 
@@ -41,6 +43,7 @@ class PublishController extends AbstractController
         EntityManagerInterface $entityManager,
         SlugGenerator $slugGenerator,
         ProjectPhotoUploader $photoUploader,
+        ProjectDocumentUploader $documentUploader,
         ForbiddenContentDetector $forbiddenContentDetector,
     ): Response {
         $project = new Project();
@@ -76,18 +79,14 @@ class PublishController extends AbstractController
                 $entityManager->persist($project);
                 $entityManager->flush();
 
-                foreach (self::PROOF_FIELDS as $field => $proofType) {
-                    $url = $form->get($field)->getData();
-                    if ($url) {
-                        $proof = new ProjectProof();
-                        $proof->setType($proofType);
-                        $proof->setUrl($url);
-                        $project->addProof($proof);
-                        $entityManager->persist($proof);
-                    }
-                }
-
+                $this->persistProofs($form, $project, $entityManager);
                 $photoUploader->upload($project, $form->get('photos')->getData() ?? []);
+                $documentUploader->upload(
+                    $project,
+                    $form->get('documents')->getData() ?? [],
+                    $form->get('documentType')->getData(),
+                    $form->get('documentTitle')->getData(),
+                );
 
                 $entityManager->flush();
 
@@ -108,6 +107,7 @@ class PublishController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         ProjectPhotoUploader $photoUploader,
+        ProjectDocumentUploader $documentUploader,
         ForbiddenContentDetector $forbiddenContentDetector,
     ): Response {
         $project = $entityManager->getRepository(Project::class)->findOneBy(['slug' => $slug]);
@@ -151,19 +151,16 @@ class PublishController extends AbstractController
                     $project->removeProof($proof);
                     $entityManager->remove($proof);
                 }
-                foreach (self::PROOF_FIELDS as $field => $proofType) {
-                    $url = $form->get($field)->getData();
-                    if ($url) {
-                        $proof = new ProjectProof();
-                        $proof->setType($proofType);
-                        $proof->setUrl($url);
-                        $project->addProof($proof);
-                        $entityManager->persist($proof);
-                    }
-                }
+                $this->persistProofs($form, $project, $entityManager);
 
-                $this->removeSelectedPhotos($project, $request, $entityManager);
                 $photoUploader->upload($project, $form->get('photos')->getData() ?? []);
+
+                $documentUploader->upload(
+                    $project,
+                    $form->get('documents')->getData() ?? [],
+                    $form->get('documentType')->getData(),
+                    $form->get('documentTitle')->getData(),
+                );
 
                 // Un projet vérifié doit repasser par une nouvelle vérification
                 // après une modification substantielle (cahier des charges §15) :
@@ -218,33 +215,32 @@ class PublishController extends AbstractController
     }
 
     /**
-     * Supprime les photos existantes cochées pour suppression (cahier des
-     * charges §11/§15), fichier physique et miniature compris.
+     * Enregistre les preuves-liens du formulaire (cahier des charges —
+     * FONCTIONNALITÉ 10 §6) : les champs à valeur unique de
+     * {@see PROOF_FIELDS}, plus l'éventuelle preuve « Autre » (titre +
+     * URL), seul type pouvant porter un titre libre.
      */
-    private function removeSelectedPhotos(Project $project, Request $request, EntityManagerInterface $entityManager): void
+    private function persistProofs(FormInterface $form, Project $project, EntityManagerInterface $entityManager): void
     {
-        $idsToRemove = array_map('intval', $request->request->all('remove_photos'));
-        if (!$idsToRemove) {
-            return;
+        foreach (self::PROOF_FIELDS as $field => $proofType) {
+            $url = $form->get($field)->getData();
+            if ($url) {
+                $proof = new ProjectProof();
+                $proof->setType($proofType);
+                $proof->setUrl($url);
+                $project->addProof($proof);
+                $entityManager->persist($proof);
+            }
         }
 
-        foreach ($project->getPhotos()->toArray() as $photo) {
-            if (!\in_array($photo->getId(), $idsToRemove, true)) {
-                continue;
-            }
-
-            foreach ([$photo->getPath(), $photo->getThumbnailPath()] as $relativePath) {
-                if (!$relativePath) {
-                    continue;
-                }
-                $absolutePath = $this->getParameter('kernel.project_dir').'/public/'.$relativePath;
-                if (is_file($absolutePath)) {
-                    @unlink($absolutePath);
-                }
-            }
-
-            $project->removePhoto($photo);
-            $entityManager->remove($photo);
+        $otherUrl = $form->get('otherProofUrl')->getData();
+        if ($otherUrl) {
+            $proof = new ProjectProof();
+            $proof->setType(ProofType::AUTRE);
+            $proof->setTitle(trim((string) $form->get('otherProofTitle')->getData()) ?: null);
+            $proof->setUrl($otherUrl);
+            $project->addProof($proof);
+            $entityManager->persist($proof);
         }
     }
 
@@ -274,6 +270,12 @@ class PublishController extends AbstractController
         )));
 
         foreach ($project->getProofs() as $proof) {
+            if (ProofType::AUTRE === $proof->getType()) {
+                $form->get('otherProofTitle')->setData($proof->getTitle());
+                $form->get('otherProofUrl')->setData($proof->getUrl());
+                continue;
+            }
+
             $field = array_search($proof->getType(), self::PROOF_FIELDS, true);
             if ($field) {
                 $form->get($field)->setData($proof->getUrl());
@@ -453,14 +455,14 @@ class PublishController extends AbstractController
         }
 
         $hasProof = false;
-        foreach (array_keys(self::PROOF_FIELDS) as $field) {
+        foreach ([...array_keys(self::PROOF_FIELDS), 'otherProofUrl'] as $field) {
             if ($form->get($field)->getData()) {
                 $hasProof = true;
                 break;
             }
         }
         if (!$hasProof) {
-            $errors[] = 'Au moins une preuve de réalisation est obligatoire (GitHub, vidéo, site ou mémoire).';
+            $errors[] = 'Au moins une preuve de réalisation est obligatoire (GitHub, vidéo, site, démo, mémoire ou autre lien).';
         }
 
         return $errors;

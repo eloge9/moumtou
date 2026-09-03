@@ -12,6 +12,15 @@ parameters:
     app.institution_logo_uploads_directory: '%kernel.project_dir%/public/uploads/institutions'
     app.recruiter_logo_uploads_directory: '%kernel.project_dir%/public/uploads/recruiters'
 
+    # Limites d'upload des médias/preuves de projet (cahier des charges —
+    # FONCTIONNALITÉ 10 §4) : centralisées ici plutôt que dispersées en
+    # constantes dans chaque service/formulaire, pour rester facilement
+    # modifiables sans toucher au code.
+    app.project_photo_max_size: '5M'
+    app.project_photo_max_count: 8
+    app.project_document_max_size: '10M'
+    app.project_document_max_count: 5
+
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -26,6 +35,19 @@ services:
     App\Service\ProjectPhotoUploader:
         arguments:
             $projectUploadsDirectory: '%app.project_uploads_directory%'
+            $maxPhotos: '%app.project_photo_max_count%'
+
+    App\Service\ProjectDocumentUploader:
+        arguments:
+            $projectUploadsDirectory: '%app.project_uploads_directory%'
+            $maxDocuments: '%app.project_document_max_count%'
+
+    App\Form\PublishProjectType:
+        arguments:
+            $projectPhotoMaxSize: '%app.project_photo_max_size%'
+            $projectPhotoMaxCount: '%app.project_photo_max_count%'
+            $projectDocumentMaxSize: '%app.project_document_max_size%'
+            $projectDocumentMaxCount: '%app.project_document_max_count%'
 
     App\Service\AvatarUploader:
         arguments:

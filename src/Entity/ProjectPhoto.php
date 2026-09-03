@@ -7,6 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ProjectPhotoRepository::class)]
 #[ORM\Table(name: 'project_photo')]
+#[ORM\Index(columns: ['project_id', 'position'], name: 'project_photo_project_position_idx')]
 class ProjectPhoto
 {
     #[ORM\Id]

@@ -88,9 +88,10 @@
       <div class="m-tags mt-2">{% for tech in project.technologies %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}</div>
     {% endif %}
 
-    {% if youtubeEmbedUrl %}
-      <div class="mt-4" style="position:relative;padding-top:56.25%;border-radius:var(--m-r);overflow:hidden">
-        <iframe src="{{ youtubeEmbedUrl }}" title="Vidéo de la soutenance" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+    {% if youtubeVideoId %}
+      <div class="mt-4 m-youtube-facade" data-youtube-facade data-video-id="{{ youtubeVideoId }}" style="position:relative;padding-top:56.25%;border-radius:var(--m-r);overflow:hidden;cursor:pointer;background:#000">
+        <img src="https://i.ytimg.com/vi/{{ youtubeVideoId }}/hqdefault.jpg" alt="Miniature de la vidéo" loading="lazy" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:.85">
+        <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(220,20,20,.9);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px">▶</span>
       </div>
     {% endif %}
 
@@ -109,7 +110,22 @@
         {% for proof in project.proofs %}
           <div class="col-md-6">
             <a class="m-preuve" href="{{ proof.url }}" target="_blank" rel="noopener">
-              <span><span class="fw-bold d-block" style="font-size:14.5px">{{ proof.type.label }}</span><span class="m-meta">{{ proof.url }}</span></span>
+              <span class="m-preuve__icone">{{ proof.type.icon }}</span>
+              <span><span class="fw-bold d-block" style="font-size:14.5px">{{ proof.title ?: proof.type.actionLabel }}</span><span class="m-meta">{{ proof.url }}</span></span>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if project.documents|length %}
+      <h2 class="mt-4" style="font-size:20px">Documents</h2>
+      <div class="row g-3 mt-2">
+        {% for document in project.documents %}
+          <div class="col-md-6">
+            <a class="m-preuve" href="{{ asset(document.path) }}" target="_blank" rel="noopener">
+              <span class="m-preuve__icone">📄</span>
+              <span><span class="fw-bold d-block" style="font-size:14.5px">{{ document.title ?: document.type.label }}</span><span class="m-meta">{{ document.originalFilename }}</span></span>
             </a>
           </div>
         {% endfor %}

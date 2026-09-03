@@ -10,6 +10,7 @@ use App\Entity\Technology;
 use App\Enum\DefenseStatus;
 use App\Enum\ProjectType;
 use App\Repository\InstitutionRepository;
+use App\Repository\ProjectPhotoRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\UserRepository;
 use App\Search\InstitutionSearchCriteria;
@@ -65,6 +66,7 @@ class InstitutionController extends AbstractController
         EntityManagerInterface $em,
         InstitutionRepository $institutionRepository,
         ProjectRepository $projectRepository,
+        ProjectPhotoRepository $projectPhotoRepository,
         UserRepository $userRepository,
         UrlGeneratorInterface $urlGenerator,
     ): Response {
@@ -87,6 +89,7 @@ class InstitutionController extends AbstractController
 
         if ('apercu' === $tab) {
             $data['recentProjects'] = $projectRepository->search(new ProjectSearchCriteria(institutionId: $institution->getId(), perPage: 6))['items'];
+            $data['coverPhotos'] = $projectPhotoRepository->findCoversForProjects($data['recentProjects']);
             $data['upcomingDefenses'] = $projectRepository->search(new ProjectSearchCriteria(
                 institutionId: $institution->getId(),
                 types: [ProjectType::SOUTENANCE->value],
@@ -99,6 +102,7 @@ class InstitutionController extends AbstractController
             $result = $projectRepository->search($criteria);
             $data['projectCriteria'] = $criteria;
             $data['projects'] = $result['items'];
+            $data['coverPhotos'] = $projectPhotoRepository->findCoversForProjects($result['items']);
             $data['projectsTotal'] = $result['total'];
             $data['projectsPageCount'] = (int) ceil($result['total'] / $criteria->perPage);
             $data['domains'] = $em->getRepository(Domain::class)->findBy([], ['name' => 'ASC']);

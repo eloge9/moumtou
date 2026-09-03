@@ -146,7 +146,7 @@
         <div class="col-xl-4 col-md-6">
           <article class="m-carte h-100">
             <div class="m-media" style="height:132px">
-              {% if project.photos|length %}<img src="{{ asset(project.photos.first.thumbnailPath ?: project.photos.first.path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy">{% endif %}
+              {% if coverPhotos[project.id] is defined %}<img src="{{ asset(coverPhotos[project.id].thumbnailPath ?: coverPhotos[project.id].path) }}" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy">{% endif %}
             </div>
             <div class="m-carte__corps">
               <span class="m-statut{{ project.status.value == 'publie' ? ' m-statut--publie' : '' }}">{{ project.status.value == 'verifie' ? 'Vérifié' : 'Publié' }}</span>

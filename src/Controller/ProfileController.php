@@ -14,6 +14,7 @@ use App\Enum\ProjectStatus;
 use App\Form\ExperienceType;
 use App\Form\ProfileEditType;
 use App\Repository\ContactRequestRepository;
+use App\Repository\ProjectPhotoRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\RecruiterFavoriteRepository;
 use App\Service\AvatarUploader;
@@ -37,6 +38,7 @@ class ProfileController extends AbstractController
         UrlGeneratorInterface $urlGenerator,
         RecruiterFavoriteRepository $favoriteRepository,
         ContactRequestRepository $contactRequestRepository,
+        ProjectPhotoRepository $projectPhotoRepository,
     ): Response {
         $user = $em->getRepository(User::class)->findOneBy(['slug' => $slug]);
         if (!$user) {
@@ -94,6 +96,7 @@ class ProfileController extends AbstractController
             'profileUser' => $user,
             'isOwner' => $isOwner,
             'projects' => $projects,
+            'coverPhotos' => $projectPhotoRepository->findCoversForProjects($projects->toArray()),
             'defenseProjects' => $defenseProjects,
             'stats' => [
                 'publishedCount' => \count($projects),

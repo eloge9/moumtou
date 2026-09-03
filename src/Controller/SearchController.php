@@ -7,6 +7,7 @@ use App\Entity\Project;
 use App\Entity\Technology;
 use App\Entity\User;
 use App\Repository\DefenseRepository;
+use App\Repository\ProjectPhotoRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\TechnologyRepository;
 use App\Repository\UserRepository;
@@ -36,6 +37,7 @@ class SearchController extends AbstractController
     public function index(
         Request $request,
         ProjectRepository $projectRepository,
+        ProjectPhotoRepository $projectPhotoRepository,
         UserRepository $userRepository,
         TechnologyRepository $technologyRepository,
         DefenseRepository $defenseRepository,
@@ -50,12 +52,15 @@ class SearchController extends AbstractController
         }
 
         if (!$query && !$hasFilters) {
+            $recentProjects = $projectRepository->search(new ProjectSearchCriteria(perPage: self::PREVIEW_LIMIT))['items'];
+
             return $this->render('search/index.html.twig', [
                 'active_nav' => 'recherche',
                 'empty' => true,
                 'query' => '',
                 'popularTechnologies' => $technologyRepository->findMostUsed(10),
-                'recentProjects' => $projectRepository->search(new ProjectSearchCriteria(perPage: self::PREVIEW_LIMIT))['items'],
+                'recentProjects' => $recentProjects,
+                'coverPhotos' => $projectPhotoRepository->findCoversForProjects($recentProjects),
                 'upcomingDefenses' => $defenseRepository->findUpcoming(self::PREVIEW_LIMIT),
             ]);
         }
@@ -84,6 +89,7 @@ class SearchController extends AbstractController
             'talentsTotal' => $talentResult['total'],
             'projects' => $projectResult['items'],
             'projectsTotal' => $projectResult['total'],
+            'coverPhotos' => $projectPhotoRepository->findCoversForProjects($projectResult['items']),
             'defenses' => $defenseResult['items'],
             'defensesTotal' => $defenseResult['total'],
             'technologies' => $technologies,

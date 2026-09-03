@@ -333,6 +333,37 @@
     document.querySelectorAll('[data-modale].is-open').forEach(function (m) { m.classList.remove('is-open'); });
   }
 
+  /* --------------- Vidéo YouTube : miniature cliquable, pas de lecture --- */
+  /* --------------- automatique (cahier des charges — F10 §5/§22) --------- */
+  function initYoutubeFacade() {
+    document.querySelectorAll('[data-youtube-facade]').forEach(function (bloc) {
+      bloc.addEventListener('click', function () {
+        var videoId = bloc.getAttribute('data-video-id');
+        if (!videoId) return;
+        var iframe = document.createElement('iframe');
+        iframe.src = 'https://www.youtube.com/embed/' + encodeURIComponent(videoId) + '?autoplay=1';
+        iframe.title = 'Vidéo';
+        iframe.frameBorder = '0';
+        iframe.allow = 'autoplay; encrypted-media';
+        iframe.allowFullscreen = true;
+        iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%';
+        bloc.innerHTML = '';
+        bloc.appendChild(iframe);
+      });
+    });
+  }
+
+  /* --------- Remplacement d'une photo existante : envoi dès sélection ---- */
+  function initRemplacerPhoto() {
+    document.querySelectorAll('[data-remplacer-photo-input]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        if (input.files && input.files.length) {
+          input.closest('form').requestSubmit();
+        }
+      });
+    });
+  }
+
   /* ------------------------------------- Champ « Autre (à préciser) » ----- */
   function initAutrePrecision() {
     document.querySelectorAll('[data-autre]').forEach(function (zone) {
@@ -413,6 +444,8 @@
     initOnglets();
     initMenus();
     initModales();
+    initYoutubeFacade();
+    initRemplacerPhoto();
     initAutrePrecision();
     initRecherche();
   });

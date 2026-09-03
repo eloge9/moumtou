@@ -22,3 +22,4 @@
 # Fichiers déposés par les utilisateurs (photos de projets) : jamais versionnés.
 /public/uploads/*
 !/public/uploads/.gitkeep
+!/public/uploads/.htaccess

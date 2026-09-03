@@ -45,20 +45,32 @@
       <p class="m-surtitre mb-2">Preuves de réalisation ({{ project.proofs|length }})</p>
       {% for proof in project.proofs %}
         <a class="m-preuve d-block mb-2" href="{{ proof.url }}" target="_blank" rel="noopener">
-          <span class="fw-bold d-block" style="font-size:14px">{{ proof.type.label }}</span>
-          <span class="m-meta">{{ proof.url }}</span>
+          <span class="m-preuve__icone">{{ proof.type.icon }}</span>
+          <span><span class="fw-bold d-block" style="font-size:14px">{{ proof.title ?: proof.type.label }}</span><span class="m-meta">{{ proof.url }}</span></span>
         </a>
       {% else %}
-        <p class="m-meta mb-0">Aucune preuve fournie.</p>
+        <p class="m-meta mb-0">Aucune preuve fournie — le projet n'a pas encore de preuve à vérifier.</p>
       {% endfor %}
     </div>
+
+    {% if project.documents|length %}
+      <div class="m-carte m-carte--plate p-3 mt-3">
+        <p class="m-surtitre mb-2">Documents ({{ project.documents|length }})</p>
+        {% for document in project.documents %}
+          <a class="m-preuve d-block mb-2" href="{{ asset(document.path) }}" target="_blank" rel="noopener">
+            <span class="m-preuve__icone">📄</span>
+            <span><span class="fw-bold d-block" style="font-size:14px">{{ document.title ?: document.type.label }}</span><span class="m-meta">{{ document.originalFilename }} · {{ (document.size / 1024 / 1024)|number_format(1) }} Mo</span></span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
 
     {% if project.photos|length %}
       <div class="m-carte m-carte--plate p-3 mt-3">
         <p class="m-surtitre mb-2">Photos ({{ project.photos|length }})</p>
         <div class="row g-2">
           {% for photo in project.photos %}
-            <div class="col-3"><div class="m-media m-media--vignette"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover"></div></div>
+            <div class="col-3"><div class="m-media m-media--vignette" style="position:relative"><img src="{{ asset(photo.thumbnailPath ?: photo.path) }}" alt="" style="width:100%;height:100%;object-fit:cover">{% if loop.first %}<span class="m-tag m-tag--bleu" style="position:absolute;top:4px;left:4px">Principale</span>{% endif %}</div></div>
           {% endfor %}
         </div>
       </div>

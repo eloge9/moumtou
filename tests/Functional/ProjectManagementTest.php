@@ -256,15 +256,11 @@ class ProjectManagementTest extends FunctionalTestCase
 
         $client->loginUser($owner);
         $crawler = $client->request('GET', '/projets/projet-photo-a-retirer/modifier');
-        self::assertSelectorExists('input[name="remove_photos[]"][value="'.$photoId.'"]');
+        $deleteFormSelector = 'form[action="/projets/projet-photo-a-retirer/photos/'.$photoId.'/supprimer"]';
+        self::assertSelectorExists($deleteFormSelector);
 
-        $form = $crawler->selectButton('Enregistrer les modifications')->form([
-            'publish_project[type]' => 'personnel',
-            'publish_project[name]' => 'Projet photo-a-retirer',
-            'publish_project[githubUrl]' => 'https://github.com/owner/projet-photo',
-        ]);
-        $form['remove_photos'][0]->tick();
-        $client->submit($form);
+        $token = $crawler->filter($deleteFormSelector.' input[name="_csrf_token"]')->attr('value');
+        $client->request('POST', '/projets/projet-photo-a-retirer/photos/'.$photoId.'/supprimer', ['_csrf_token' => $token]);
         self::assertResponseRedirects();
 
         $em = static::getContainer()->get(EntityManagerInterface::class);

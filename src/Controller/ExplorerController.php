@@ -9,6 +9,7 @@ use App\Entity\Specialty;
 use App\Entity\Technology;
 use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
+use App\Repository\ProjectPhotoRepository;
 use App\Repository\ProjectRepository;
 use App\Search\ProjectSearchCriteria;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,7 +21,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class ExplorerController extends AbstractController
 {
     #[Route('/explorer', name: 'app_explorer')]
-    public function index(Request $request, ProjectRepository $projectRepository, EntityManagerInterface $em): Response
+    public function index(Request $request, ProjectRepository $projectRepository, ProjectPhotoRepository $projectPhotoRepository, EntityManagerInterface $em): Response
     {
         $criteria = $this->buildCriteria($request);
         $result = $projectRepository->search($criteria);
@@ -30,6 +31,7 @@ class ExplorerController extends AbstractController
         return $this->render('explorer/index.html.twig', [
             'active_nav' => 'explorer',
             'projects' => $result['items'],
+            'coverPhotos' => $projectPhotoRepository->findCoversForProjects($result['items']),
             'total' => $result['total'],
             'criteria' => $criteria,
             'countByType' => $countByType,

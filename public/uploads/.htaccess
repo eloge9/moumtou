@@ -1,0 +1,17 @@
+# Défense en profondeur (cahier des charges — FONCTIONNALITÉ 10 §16) : les
+# fichiers déposés par les utilisateurs (photos, documents) ne doivent
+# jamais pouvoir être exécutés par le serveur, quel que soit le contenu ou
+# l'extension. N'a d'effet que sous Apache — sans incidence sous un autre
+# serveur, où la même règle doit être appliquée au niveau de sa configuration.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<FilesMatch "\.(php|php[3-8]?|phtml|pht|phar|cgi|pl|py|sh|asp|aspx|exe)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

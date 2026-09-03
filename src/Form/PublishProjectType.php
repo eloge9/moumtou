@@ -7,6 +7,7 @@ use App\Entity\Institution;
 use App\Entity\Mention;
 use App\Entity\Project;
 use App\Entity\Specialty;
+use App\Enum\ProjectDocumentType;
 use App\Enum\ProjectType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Form\AbstractType;
@@ -30,8 +31,13 @@ class PublishProjectType extends AbstractType
 {
     public const OTHER_VALUE = 'autre';
 
-    public function __construct(private readonly EntityManagerInterface $entityManager)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $entityManager,
+        private readonly string $projectPhotoMaxSize,
+        private readonly int $projectPhotoMaxCount,
+        private readonly string $projectDocumentMaxSize,
+        private readonly int $projectDocumentMaxCount,
+    ) {
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -82,20 +88,59 @@ class PublishProjectType extends AbstractType
                     message: 'Ce lien doit être une URL YouTube valide (youtube.com ou youtu.be).',
                 )],
             ])
-            ->add('siteUrl', UrlType::class, ['label' => 'Site web ou démo', 'mapped' => false, 'required' => false, 'default_protocol' => 'https', 'constraints' => [new Url(requireTld: true)]])
+            ->add('siteUrl', UrlType::class, ['label' => 'Site web', 'mapped' => false, 'required' => false, 'default_protocol' => 'https', 'constraints' => [new Url(requireTld: true)]])
+            ->add('demoUrl', UrlType::class, ['label' => 'Démo', 'mapped' => false, 'required' => false, 'default_protocol' => 'https', 'constraints' => [new Url(requireTld: true)]])
             ->add('memoireUrl', UrlType::class, ['label' => 'Lien du mémoire', 'mapped' => false, 'required' => false, 'default_protocol' => 'https', 'constraints' => [new Url(requireTld: true)]])
+            ->add('otherProofTitle', TextType::class, ['label' => 'Titre (autre preuve)', 'mapped' => false, 'required' => false, 'constraints' => [new Length(max: 180, maxMessage: '180 caractères maximum.')]])
+            ->add('otherProofUrl', UrlType::class, ['label' => 'Autre preuve', 'mapped' => false, 'required' => false, 'default_protocol' => 'https', 'constraints' => [new Url(requireTld: true)]])
             ->add('photos', FileType::class, [
-                'label' => 'Photos (JPG, PNG, WebP — 8 maximum)',
+                'label' => sprintf('Photos (JPG, PNG, WebP — %d maximum)', $this->projectPhotoMaxCount),
                 'mapped' => false,
                 'required' => false,
                 'multiple' => true,
                 'constraints' => [
-                    new Count(max: 8, maxMessage: '8 photos maximum.'),
+                    new Count(max: $this->projectPhotoMaxCount, maxMessage: '{{ limit }} photos maximum.'),
                     new All([
                         new File(
-                            maxSize: '5M',
+                            maxSize: $this->projectPhotoMaxSize,
                             mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
                             mimeTypesMessage: 'Formats acceptés : JPG, PNG, WebP.',
+                            maxSizeMessage: 'Image trop volumineuse. Taille maximale autorisée : {{ limit }} {{ suffix }}.',
+                        ),
+                    ]),
+                ],
+            ])
+            ->add('documentType', ChoiceType::class, [
+                'label' => 'Type de document',
+                'mapped' => false,
+                'required' => false,
+                'choices' => array_combine(
+                    array_map(fn (ProjectDocumentType $t) => $t->value, ProjectDocumentType::cases()),
+                    ProjectDocumentType::cases(),
+                ),
+                'choice_value' => fn (?ProjectDocumentType $t) => $t?->value,
+                'choice_label' => fn (ProjectDocumentType $t) => $t->label(),
+            ])
+            ->add('documentTitle', TextType::class, ['label' => 'Titre du document', 'mapped' => false, 'required' => false, 'constraints' => [new Length(max: 180, maxMessage: '180 caractères maximum.')]])
+            ->add('documents', FileType::class, [
+                'label' => sprintf('Documents (PDF, Word, PowerPoint — %d maximum)', $this->projectDocumentMaxCount),
+                'mapped' => false,
+                'required' => false,
+                'multiple' => true,
+                'constraints' => [
+                    new Count(max: $this->projectDocumentMaxCount, maxMessage: '{{ limit }} documents maximum.'),
+                    new All([
+                        new File(
+                            maxSize: $this->projectDocumentMaxSize,
+                            mimeTypes: [
+                                'application/pdf',
+                                'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'application/vnd.ms-powerpoint',
+                                'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                            ],
+                            mimeTypesMessage: 'Formats acceptés : PDF, Word (.doc, .docx), PowerPoint (.ppt, .pptx).',
+                            maxSizeMessage: 'Document trop volumineux. Taille maximale autorisée : {{ limit }} {{ suffix }}.',
                         ),
                     ]),
                 ],
