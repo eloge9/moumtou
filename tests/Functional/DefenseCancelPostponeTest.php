@@ -71,7 +71,7 @@ class DefenseCancelPostponeTest extends FunctionalTestCase
 
         // Avec motif : annulée.
         $client->request('POST', '/ma-soutenance/'.$projectId.'/annuler', ['reason' => 'Salle indisponible', '_csrf_token' => $token]);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $refreshed = $em->getRepository(Project::class)->find($projectId)->getDefense();
@@ -132,7 +132,7 @@ class DefenseCancelPostponeTest extends FunctionalTestCase
         $token = $crawler->filter('form[action="/ma-soutenance/'.$projectId.'/annuler"] input[name="_csrf_token"]')->attr('value');
 
         $client->request('POST', '/ma-soutenance/'.$projectId.'/annuler', ['reason' => 'Décision administrative', '_csrf_token' => $token]);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
         self::assertSame(DefenseStatus::ANNULEE, $em->getRepository(Project::class)->find($projectId)->getDefense()->getStatus());
@@ -152,7 +152,7 @@ class DefenseCancelPostponeTest extends FunctionalTestCase
         $crawler = $client->request('GET', '/ma-soutenance');
         $token = $crawler->filter('form[action="/ma-soutenance/'.$projectId.'/reporter"] input[name="_csrf_token"]')->attr('value');
         $client->request('POST', '/ma-soutenance/'.$projectId.'/reporter', ['reason' => 'Indisponibilité du jury', '_csrf_token' => $token]);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $refreshed = $em->getRepository(Project::class)->find($projectId)->getDefense();
@@ -171,7 +171,7 @@ class DefenseCancelPostponeTest extends FunctionalTestCase
             'defense_announce[place]' => 'Amphi B',
         ]);
         $client->submit($form);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $refreshed = $em->getRepository(Project::class)->find($projectId)->getDefense();

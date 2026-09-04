@@ -23,11 +23,13 @@ Tous les comptes ci-dessous existent déjà (créés via le formulaire d'inscrip
 
 **Pour les comptes #4 à #8 : le mot de passe est exactement l'adresse e-mail.** Pour #1/#2/#3 : `TestMoumtou123` (déjà en votre possession).
 
-**Compte administrateur** (déjà existant, ne pas recréer) :
+**Compte administrateur** (déjà existant sur cette base de dev locale, ne pas recréer) :
 
 | E-mail              | Mot de passe      |
 | ------------------- | ----------------- |
 | `admin@moumtou.com` | `AdminMoumtou123` |
+
+> Note (livraison client) : ce compte venait des fixtures de démonstration. Pour toute **nouvelle** installation, les fixtures ne créent plus d'administrateur — voir `php bin/console app:create-admin` dans le README. Ce compte de dev local n'est pas affecté et reste utilisable tel quel pour vos tests manuels en cours.
 
 **Établissement des enseignants** : les comptes #3/#4/#5 sont déjà rattachés à **IPNET INSTITUTE OF TECHNOLOGY** (établissement réel ajouté au catalogue entretemps), chacun avec sa propre fonction (Président du jury / Maître de conférences, Rapporteur pédagogique, Examinateur) — inutile de le refaire, passez directement aux scénarios du §4.
 

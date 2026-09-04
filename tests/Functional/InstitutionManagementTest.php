@@ -301,7 +301,7 @@ class InstitutionManagementTest extends FunctionalTestCase
             'jury_invite[email]' => 'prof.externe@example.com',
         ]);
         $client->submit($form);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$project->getId());
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $juryMember = $em->getRepository(JuryMember::class)->findOneBy(['email' => 'prof.externe@example.com']);
@@ -349,7 +349,7 @@ class InstitutionManagementTest extends FunctionalTestCase
             'jury_invite[email]' => 'double.role@example.com',
         ]);
         $client->submit($form);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$project->getId());
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $refreshed = $em->getRepository(User::class)->find($bothRoles->getId());

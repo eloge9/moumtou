@@ -55,7 +55,7 @@ class DefenseJuryTest extends FunctionalTestCase
             'defense_announce[place]' => 'Amphi B',
         ]);
         $client->submit($form);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
 
         // Les requêtes HTTP réinitialisent l'EntityManager de test : on
         // récupère systématiquement des entités fraîches par leur identifiant
@@ -74,7 +74,7 @@ class DefenseJuryTest extends FunctionalTestCase
             'jury_invite[email]' => 'akodjo@example.com',
         ]);
         $client->submit($form);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
 
         $crawler = $client->request('GET', '/ma-soutenance');
         $form = $crawler->selectButton('+ Inviter')->form([
@@ -84,7 +84,7 @@ class DefenseJuryTest extends FunctionalTestCase
             'jury_invite[email]' => 'bamah@example.com',
         ]);
         $client->submit($form);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $juryA = $em->getRepository(JuryMember::class)->findOneBy(['email' => 'akodjo@example.com']);
@@ -113,7 +113,7 @@ class DefenseJuryTest extends FunctionalTestCase
         $crawler = $client->request('GET', '/ma-soutenance');
         $token = $crawler->filter('form[action="/ma-soutenance/'.$projectId.'/realisee"] input[name="_csrf_token"]')->attr('value');
         $client->request('POST', '/ma-soutenance/'.$projectId.'/realisee', ['_csrf_token' => $token]);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
 
         $em = static::getContainer()->get(EntityManagerInterface::class);
         self::assertSame('realisee', $em->getRepository(Project::class)->find($projectId)->getDefense()->getStatus()->value);
@@ -195,7 +195,7 @@ class DefenseJuryTest extends FunctionalTestCase
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
         $client->followRedirect();
         self::assertSelectorTextContains('body', 'Merci de renseigner');
 

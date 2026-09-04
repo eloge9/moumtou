@@ -113,7 +113,7 @@ class DefenseController extends AbstractController
         if ($project->getDefense()) {
             $this->addFlash('erreur', 'Cette soutenance est déjà annoncée.');
 
-            return $this->redirectToRoute('app_defense_manage');
+            return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
         }
 
         $defense = new Defense();
@@ -132,7 +132,7 @@ class DefenseController extends AbstractController
             $this->addFlash('erreur', 'Merci de renseigner une date, une heure et un lieu valides.');
         }
 
-        return $this->redirectToRoute('app_defense_manage');
+        return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
     }
 
     #[Route('/ma-soutenance/{id}/jury/inviter', name: 'app_defense_invite_jury', methods: ['POST'])]
@@ -147,7 +147,7 @@ class DefenseController extends AbstractController
         if (\in_array($defense->getStatus(), [DefenseStatus::ANNULEE, DefenseStatus::REPORTEE], true)) {
             $this->addFlash('erreur', 'Impossible d\'inviter un membre du jury tant que la soutenance est annulée ou en attente d\'une nouvelle date.');
 
-            return $this->redirectToRoute('app_defense_manage');
+            return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
         }
 
         $juryMember = new JuryMember();
@@ -196,7 +196,7 @@ class DefenseController extends AbstractController
             $this->addFlash('erreur', 'Merci de renseigner correctement le membre du jury.');
         }
 
-        return $this->redirectToRoute('app_defense_manage');
+        return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
     }
 
     /**
@@ -288,7 +288,7 @@ class DefenseController extends AbstractController
 
         $this->addFlash('succes', 'Soutenance marquée comme réalisée. Les membres du jury peuvent maintenant confirmer.');
 
-        return $this->redirectToRoute('app_defense_manage');
+        return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
     }
 
     /**
@@ -314,7 +314,7 @@ class DefenseController extends AbstractController
         if (!$reason) {
             $this->addFlash('erreur', 'Merci d\'indiquer le motif de l\'annulation.');
 
-            return $this->redirectToRoute('app_defense_manage');
+            return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
         }
 
         $defense->setStatus(DefenseStatus::ANNULEE);
@@ -325,7 +325,7 @@ class DefenseController extends AbstractController
 
         $this->addFlash('succes', 'La soutenance a été annulée. Les membres du jury ont été informés.');
 
-        return $this->redirectToRoute('app_defense_manage');
+        return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
     }
 
     /**
@@ -350,7 +350,7 @@ class DefenseController extends AbstractController
         if (!$reason) {
             $this->addFlash('erreur', 'Merci d\'indiquer le motif du report.');
 
-            return $this->redirectToRoute('app_defense_manage');
+            return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
         }
 
         $defense->setPreviousDate($defense->getDate());
@@ -362,7 +362,7 @@ class DefenseController extends AbstractController
 
         $this->addFlash('succes', 'La soutenance a été marquée comme reportée. Renseignez la nouvelle date dès qu\'elle sera connue.');
 
-        return $this->redirectToRoute('app_defense_manage');
+        return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
     }
 
     /**
@@ -392,7 +392,7 @@ class DefenseController extends AbstractController
             $this->addFlash('erreur', 'Merci de renseigner une date, une heure et un lieu valides.');
         }
 
-        return $this->redirectToRoute('app_defense_manage');
+        return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
     }
 
     #[Route('/ma-soutenance/{id}/completer', name: 'app_defense_complete', methods: ['POST'])]
@@ -430,7 +430,7 @@ class DefenseController extends AbstractController
 
         $this->addFlash('succes', 'Informations de la soutenance mises à jour.');
 
-        return $this->redirectToRoute('app_defense_manage');
+        return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
     }
 
     /**
@@ -460,7 +460,7 @@ class DefenseController extends AbstractController
 
         $this->addFlash('succes', 'Vos préférences de confidentialité ont été enregistrées.');
 
-        return $this->redirectToRoute('app_defense_manage');
+        return $this->redirectToRoute('app_defense_manage_show', ['id' => $id]);
     }
 
     #[Route('/jury/confirmer', name: 'app_jury_confirm')]
@@ -503,7 +503,7 @@ class DefenseController extends AbstractController
                     $juryMember->getLastName(),
                     'confirmer' === $decision ? 'a confirmé' : 'a décliné l\'invitation à'
                 ),
-                $this->generateUrl('app_defense_manage'),
+                $this->generateUrl('app_defense_manage_show', ['id' => $defense->getProject()->getId()]),
             );
         }
 

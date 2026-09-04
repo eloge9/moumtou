@@ -8,51 +8,28 @@ use App\Entity\Mention;
 use App\Entity\Skill;
 use App\Entity\Specialty;
 use App\Entity\Technology;
-use App\Entity\User;
-use App\Enum\UserStatus;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
  * Données de référence de démonstration, reprises telles quelles des exemples
  * déjà présents dans la maquette (code/README.md : « les données affichées
- * sont des exemples »). Ce sont des référentiels, pas des comptes ni des
- * projets fictifs — à l'exception du compte administrateur de démonstration,
- * clairement identifié comme tel, nécessaire pour accéder à /admin.
+ * sont des exemples »). Ce sont uniquement des référentiels (établissements,
+ * technologies, compétences, classification) — jamais de compte utilisateur :
+ * le premier compte administrateur se crée avec ses propres identifiants via
+ * `php bin/console app:create-admin` (voir README), jamais un couple
+ * email/mot de passe fixé dans le code.
  */
 class AppFixtures extends Fixture
 {
-    public function __construct(private readonly UserPasswordHasherInterface $passwordHasher)
-    {
-    }
-
     public function load(ObjectManager $manager): void
     {
         $this->loadClassification($manager);
         $this->loadInstitutions($manager);
         $this->loadTechnologies($manager);
         $this->loadSkills($manager);
-        $this->loadAdmin($manager);
 
         $manager->flush();
-    }
-
-    private function loadAdmin(ObjectManager $manager): void
-    {
-        $admin = new User();
-        $admin->setEmail('admin@moumtou.com');
-        $admin->setFirstName('Admin');
-        $admin->setLastName('MOUMTOU');
-        $admin->setPhone('+22890000000');
-        $admin->setSlug('admin-moumtou');
-        // TALENT reste le rôle de base de tout compte, y compris admin
-        // (inscription/rôles multiples, règle 5/21) — purement additif.
-        $admin->setRoles(['ROLE_ADMIN', 'ROLE_TALENT']);
-        $admin->setStatus(UserStatus::ACTIF);
-        $admin->setEmailVerified(true);
-        $admin->setPassword($this->passwordHasher->hashPassword($admin, 'AdminMoumtou123'));
-        $manager->persist($admin);
     }
 
     private function loadClassification(ObjectManager $manager): void

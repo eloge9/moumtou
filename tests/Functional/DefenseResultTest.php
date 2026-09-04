@@ -270,7 +270,7 @@ class DefenseResultTest extends FunctionalTestCase
             'grade_visible' => '1',
             '_csrf_token' => $token,
         ]);
-        self::assertResponseRedirects('/ma-soutenance');
+        self::assertResponseRedirects('/ma-soutenance/'.$projectId);
 
         $client->request('GET', '/soutenances/projet-resultat-6');
         self::assertSelectorTextContains('body', '17/20');
