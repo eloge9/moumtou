@@ -86,35 +86,40 @@
         {% endif %}
 
         {% if defense.status.value in ['annoncee', 'realisee']  %}
+        {% set peutCompleter = defense.status.value == 'realisee' %}
         <section class="mt-5">
           <div class="d-flex align-items-baseline gap-3 flex-wrap">
             <h2 style="font-size:19px">Après la soutenance</h2>
-            <span class="m-meta">Complétez le dossier pour obtenir la vérification.</span>
+            {% if peutCompleter %}
+              <span class="m-meta">Complétez le dossier pour obtenir la vérification.</span>
+            {% else %}
+              <span class="m-meta" style="color:#B36B00">Disponible une fois la soutenance passée (automatique le lendemain de la date, ou via le bouton ci-dessous).</span>
+            {% endif %}
           </div>
-          <form method="post" action="{{ path('app_defense_complete', {id: project.id}) }}" enctype="multipart/form-data">
+          <form method="post" action="{{ path('app_defense_complete', {id: project.id}) }}" enctype="multipart/form-data" style="{{ not peutCompleter ? 'opacity:.5;pointer-events:none' }}" aria-disabled="{{ peutCompleter ? 'false' : 'true' }}">
             <div class="row g-3 mt-2">
               <div class="col-md-6">
                 <label class="m-label" for="photos-soutenance">Photos de la soutenance</label>
                 <label class="m-depot" for="photos-soutenance"><span style="font-size:18px;color:var(--m-bleu)">⇪</span>Glisser des images (JPG, PNG, WebP)</label>
-                <input class="d-none" id="photos-soutenance" type="file" name="photos[]" accept="image/*" multiple>
+                <input class="d-none" id="photos-soutenance" type="file" name="photos[]" accept="image/*" multiple {{ not peutCompleter ? 'disabled' }}>
               </div>
               <div class="col-md-6">
                 <label class="m-label" for="video-soutenance">Vidéo de la présentation</label>
-                <input class="m-input" id="video-soutenance" name="video_url" type="url" placeholder="https://youtube.com/watch?v=…">
+                <input class="m-input" id="video-soutenance" name="video_url" type="url" placeholder="https://youtube.com/watch?v=…" {{ not peutCompleter ? 'disabled' }}>
                 <label class="m-label mt-3" for="resultat">Résultat obtenu (optionnel)</label>
-                <select class="m-select" id="resultat" name="result">
+                <select class="m-select" id="resultat" name="result" {{ not peutCompleter ? 'disabled' }}>
                   <option value="">Mention</option><option>Passable</option><option>Assez bien</option><option>Bien</option><option>Très bien</option>
                 </select>
               </div>
             </div>
             <input type="hidden" name="_csrf_token" value="{{ csrf_token('soutenance-completer-' ~ project.id) }}">
-            <button class="m-btn m-btn--secondaire mt-3" type="submit">Enregistrer</button>
+            <button class="m-btn m-btn--secondaire mt-3" type="submit" {{ not peutCompleter ? 'disabled' }}>Enregistrer</button>
           </form>
 
           {% if defense.status.value == 'annoncee' %}
             <form method="post" action="{{ path('app_defense_mark_realized', {id: project.id}) }}" class="mt-3">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token('soutenance-realisee-' ~ project.id) }}">
-              <button class="m-btn m-btn--sombre" type="submit">Marquer la soutenance comme réalisée</button>
+              <button class="m-btn m-btn--sombre" type="submit">Marquer la soutenance comme réalisée dès maintenant</button>
               <span class="m-meta ms-2">Le statut passe à « réalisée », puis « vérifiée » après confirmation du jury.</span>
             </form>
           {% endif %}
@@ -143,6 +148,19 @@
             </div>
 
             {% if inviteForm and defense.status.value not in ['annulee', 'reportee'] %}
+              <div class="mt-3 pt-3" style="border-top:1px solid #EEF1F6" data-recherche-jury data-recherche-jury-url="{{ path('app_defense_search_jury_member') }}">
+                <label class="m-label">Rechercher un enseignant déjà inscrit sur MOUMTOU</label>
+                <input class="m-input" type="text" placeholder="Nom ou e-mail…" data-recherche-jury-champ>
+                <select class="m-select mt-2" data-recherche-jury-etablissement>
+                  <option value="">Tous les établissements</option>
+                  {% for choice in inviteForm.institution.vars.choices %}
+                    <option value="{{ choice.value }}">{{ choice.label }}</option>
+                  {% endfor %}
+                </select>
+                <div class="d-grid gap-1 mt-2" data-recherche-jury-resultats hidden></div>
+                <p class="m-meta mt-2 mb-0">Personne introuvable ? Complétez le formulaire ci-dessous à la main — une invitation sera envoyée par e-mail.</p>
+              </div>
+
               {{ form_start(inviteForm, {action: path('app_defense_invite_jury', {id: project.id}), attr: {class: 'mt-3'}}) }}
                 <label class="m-label mt-2">{{ form_label(inviteForm.firstName, 'Prénom') }}</label>
                 {{ form_widget(inviteForm.firstName, {attr: {class: 'm-input'}}) }}

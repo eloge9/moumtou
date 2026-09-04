@@ -34,6 +34,16 @@ class UserInstitution
     #[ORM\Column(enumType: InstitutionContext::class)]
     private ?InstitutionContext $context = null;
 
+    /**
+     * Fonction/rôle propre à CET établissement (ex. « Maître de conférences »
+     * à l'un, « Vacataire » à un autre) : un enseignant peut avoir un rôle
+     * différent d'un établissement à l'autre, donc ce champ vit ici plutôt
+     * que sur {@see User::$professionalTitle} (générique, indépendant de
+     * tout établissement).
+     */
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $title = null;
+
     #[ORM\Column]
     private bool $active = true;
 
@@ -88,6 +98,18 @@ class UserInstitution
     public function setContext(?InstitutionContext $context): static
     {
         $this->context = $context;
+
+        return $this;
+    }
+
+    public function getTitle(): ?string
+    {
+        return $this->title;
+    }
+
+    public function setTitle(?string $title): static
+    {
+        $this->title = $title;
 
         return $this;
     }

@@ -30,7 +30,7 @@ class DefenseReminderMailer
             }
 
             $email = (new TemplatedEmail())
-                ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+                ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
                 ->to($juryMember->getEmail())
                 ->subject('Rappel — Soutenance de '.$project->getOwner()->getFullName().' bientôt')
                 ->htmlTemplate('emails/defense_reminder.html.twig')
@@ -41,7 +41,7 @@ class DefenseReminderMailer
 
         $owner = $project->getOwner();
         $email = (new TemplatedEmail())
-            ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+            ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
             ->to($owner->getEmail())
             ->subject('Rappel — Votre soutenance approche')
             ->htmlTemplate('emails/defense_reminder.html.twig')

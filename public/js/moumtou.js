@@ -415,6 +415,198 @@
     });
   }
 
+  /* ---------------- Zones de dépôt (.m-depot) : glisser-déposer réel ----- */
+  /* ---------------- (le texte l'annonce, il doit fonctionner) et --------- */
+  /* ---------------- confirmation visuelle immédiate — coche + aperçu — --- */
+  /* ---------------- que la sélection a bien été prise en compte, avant --- */
+  /* ---------------- même l'envoi du formulaire. --------------------------- */
+  function initDepot() {
+    document.querySelectorAll('.m-depot').forEach(function (label) {
+      var inputId = label.getAttribute('for');
+      var input = inputId ? document.getElementById(inputId) : null;
+      if (!input) return;
+
+      var resultat = document.createElement('div');
+      resultat.className = 'm-depot__resultat mt-2';
+      resultat.hidden = true;
+      label.insertAdjacentElement('afterend', resultat);
+
+      function majApercu() {
+        resultat.innerHTML = '';
+        var fichiers = Array.prototype.slice.call(input.files || []);
+        if (!fichiers.length) { resultat.hidden = true; return; }
+
+        var recap = document.createElement('p');
+        recap.className = 'm-meta mb-2';
+        recap.style.color = 'var(--m-bleu)';
+        recap.textContent = '✓ ' + fichiers.length + ' fichier' + (fichiers.length > 1 ? 's' : '') + ' sélectionné' + (fichiers.length > 1 ? 's' : '') + ' — envoyé(s) à l\'enregistrement du formulaire.';
+        resultat.appendChild(recap);
+
+        var liste = document.createElement('div');
+        liste.className = 'd-flex flex-wrap gap-2';
+        fichiers.forEach(function (fichier) {
+          if (fichier.type && fichier.type.indexOf('image/') === 0) {
+            var img = document.createElement('img');
+            img.src = URL.createObjectURL(fichier);
+            img.alt = fichier.name;
+            img.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--m-bordure)';
+            liste.appendChild(img);
+          } else {
+            var chip = document.createElement('span');
+            chip.className = 'm-chip';
+            chip.textContent = fichier.name;
+            liste.appendChild(chip);
+          }
+        });
+        resultat.appendChild(liste);
+        resultat.hidden = false;
+      }
+
+      input.addEventListener('change', majApercu);
+
+      // Glisser-déposer réel : sans ceci, seul le clic (via <label for>)
+      // fonctionnait — le texte "Glisser..." était trompeur.
+      ['dragenter', 'dragover'].forEach(function (evt) {
+        label.addEventListener(evt, function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          label.classList.add('is-survol');
+        });
+      });
+      ['dragleave', 'dragend'].forEach(function (evt) {
+        label.addEventListener(evt, function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          label.classList.remove('is-survol');
+        });
+      });
+      label.addEventListener('drop', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        label.classList.remove('is-survol');
+
+        var deposes = e.dataTransfer && e.dataTransfer.files;
+        if (!deposes || !deposes.length) return;
+
+        if (input.multiple && input.files && input.files.length && 'DataTransfer' in window) {
+          // Ajoute aux fichiers déjà choisis plutôt que de les remplacer.
+          var transfert = new DataTransfer();
+          Array.prototype.forEach.call(input.files, function (f) { transfert.items.add(f); });
+          Array.prototype.forEach.call(deposes, function (f) { transfert.items.add(f); });
+          input.files = transfert.files;
+        } else {
+          input.files = deposes;
+        }
+        majApercu();
+      });
+    });
+  }
+
+  /* --------- Recherche d'un compte existant pour l'inviter au jury ------- */
+  /* --------- (plutôt que de toujours ressaisir son nom à la main) -------- */
+  function initRechercheJury() {
+    document.querySelectorAll('[data-recherche-jury]').forEach(function (zone) {
+      var url = zone.getAttribute('data-recherche-jury-url');
+      var champ = zone.querySelector('[data-recherche-jury-champ]');
+      var etablissement = zone.querySelector('[data-recherche-jury-etablissement]');
+      var resultats = zone.querySelector('[data-recherche-jury-resultats]');
+      if (!url || !champ || !resultats) return;
+
+      // Le formulaire de saisie manuelle suit juste après dans le DOM : on y
+      // retrouve les champs par la fin de leur id (indépendant du préfixe
+      // exact généré par Symfony pour ce formulaire).
+      var conteneur = zone.parentElement;
+      var champPrenom = conteneur.querySelector('[id$="_firstName"]');
+      var champNom = conteneur.querySelector('[id$="_lastName"]');
+      var champEmail = conteneur.querySelector('[id$="_email"]');
+      var champInstitution = conteneur.querySelector('select[id$="_institution"]');
+
+      var minuteur = null;
+      var requeteEnCours = null;
+
+      function fermer() { resultats.hidden = true; resultats.innerHTML = ''; }
+
+      function lancerRecherche() {
+        var q = champ.value.trim();
+        var institutionId = etablissement.value;
+        if (q.length < 2 && !institutionId) { fermer(); return; }
+
+        clearTimeout(minuteur);
+        minuteur = setTimeout(function () {
+          if (requeteEnCours) requeteEnCours.abort();
+          var controleur = new AbortController();
+          requeteEnCours = controleur;
+
+          var params = new URLSearchParams();
+          if (q) params.set('q', q);
+          if (institutionId) params.set('institution', institutionId);
+
+          fetch(url + '?' + params.toString(), { signal: controleur.signal })
+            .then(function (reponse) { return reponse.ok ? reponse.json() : { results: [] }; })
+            .then(function (donnees) { afficher(donnees.results || []); })
+            .catch(function () {});
+        }, 300);
+      }
+
+      function afficher(personnes) {
+        resultats.innerHTML = '';
+        if (!personnes.length) {
+          var vide = document.createElement('p');
+          vide.className = 'm-meta mb-0';
+          vide.textContent = 'Aucun compte ne correspond.';
+          resultats.appendChild(vide);
+          resultats.hidden = false;
+          return;
+        }
+
+        personnes.forEach(function (personne) {
+          var bouton = document.createElement('button');
+          bouton.type = 'button';
+          bouton.className = 'm-btn m-btn--secondaire text-start';
+          var etiquette = personne.firstName + ' ' + personne.lastName
+            + (personne.institutions.length ? ' · ' + personne.institutions.join(', ') : '');
+          var nomSpan = document.createElement('span');
+          nomSpan.className = 'd-block fw-semibold';
+          nomSpan.style.fontSize = '13.5px';
+          nomSpan.textContent = personne.firstName + ' ' + personne.lastName;
+          var detailSpan = document.createElement('span');
+          detailSpan.className = 'd-block m-meta';
+          detailSpan.textContent = personne.institutions.join(', ') || personne.email;
+          bouton.appendChild(nomSpan);
+          bouton.appendChild(detailSpan);
+          bouton.setAttribute('aria-label', etiquette);
+
+          bouton.addEventListener('click', function () {
+            if (champPrenom) champPrenom.value = personne.firstName;
+            if (champNom) champNom.value = personne.lastName;
+            if (champEmail) champEmail.value = personne.email;
+            if (champInstitution && personne.institutions.length) {
+              Array.prototype.some.call(champInstitution.options, function (option) {
+                if (personne.institutions.indexOf(option.textContent.trim()) !== -1) {
+                  champInstitution.value = option.value;
+                  return true;
+                }
+                return false;
+              });
+            }
+            fermer();
+            champ.value = personne.firstName + ' ' + personne.lastName;
+            if (champPrenom) champPrenom.focus();
+          });
+
+          resultats.appendChild(bouton);
+        });
+        resultats.hidden = false;
+      }
+
+      champ.addEventListener('input', lancerRecherche);
+      etablissement.addEventListener('change', lancerRecherche);
+      document.addEventListener('click', function (e) {
+        if (!zone.contains(e.target)) fermer();
+      });
+    });
+  }
+
   /* --------- Remplacement d'une photo existante : envoi dès sélection ---- */
   function initRemplacerPhoto() {
     document.querySelectorAll('[data-remplacer-photo-input]').forEach(function (input) {
@@ -529,6 +721,8 @@
     initOnglets();
     initMenus();
     initModales();
+    initDepot();
+    initRechercheJury();
     initPartageNatif();
     initPartageSuivi();
     initYoutubeFacade();

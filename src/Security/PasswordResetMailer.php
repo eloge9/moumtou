@@ -73,7 +73,7 @@ class PasswordResetMailer
         $signedUrl = $this->generateSignedUrl($user);
 
         $email = (new TemplatedEmail())
-            ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+            ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
             ->to($user->getEmail())
             ->subject('Réinitialisation de votre mot de passe')
             ->htmlTemplate('emails/password_reset.html.twig')

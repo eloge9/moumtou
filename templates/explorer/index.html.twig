@@ -146,13 +146,13 @@
     <div class="row g-3 mt-3">
       {% for project in projects %}
         <div class="col-xl-4 col-md-6">
-          <article class="m-carte h-100">
+          <a class="m-carte m-carte--lien h-100" href="{{ path('app_project_show', {slug: project.slug}) }}">
             <div class="m-media" style="height:132px">
               {% if coverPhotos[project.id] is defined %}<img src="{{ asset(coverPhotos[project.id].thumbnailPath ?: coverPhotos[project.id].path) }}" alt="Aperçu du projet {{ project.name }}" style="width:100%;height:100%;object-fit:cover" loading="lazy">{% endif %}
             </div>
             <div class="m-carte__corps">
               <span class="m-statut{{ project.status.value == 'publie' ? ' m-statut--publie' : '' }}">{{ project.status.value == 'verifie' ? 'Vérifié' : 'Publié' }}</span>
-              <h3 class="m-carte__titre mt-2" style="font-size:16px"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a></h3>
+              <h3 class="m-carte__titre mt-2" style="font-size:16px">{{ project.name }}</h3>
               <p class="m-meta mt-1 mb-0">{{ project.owner.fullName }} · {{ project.institution ? project.institution.name : project.type.shortLabel }}</p>
               <div class="m-tags mt-2">
                 {% for tech in project.technologies %}<span class="m-tag">{{ tech.name }}</span>{% endfor %}
@@ -162,7 +162,7 @@
                 <span>{{ project.realizationDate ? project.realizationDate|date('Y') : project.createdAt|date('Y') }}</span>
               </div>
             </div>
-          </article>
+          </a>
         </div>
       {% else %}
         <div class="col-12">

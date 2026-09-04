@@ -198,7 +198,8 @@ class AccountController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->syncInstitutionAttachment($user, $em, InstitutionContext::ENSEIGNANT);
+            $title = trim((string) $form->get('title')->getData()) ?: null;
+            $this->syncInstitutionAttachment($user, $em, InstitutionContext::ENSEIGNANT, $title);
 
             if (!$alreadyTeacher) {
                 $roles = $user->getRoles();
@@ -229,7 +230,7 @@ class AccountController extends AbstractController
      * principe que {@see \App\Controller\ProfileController} — sans doublon
      * pour un même (utilisateur, établissement, contexte).
      */
-    private function syncInstitutionAttachment(User $user, EntityManagerInterface $em, InstitutionContext $context): void
+    private function syncInstitutionAttachment(User $user, EntityManagerInterface $em, InstitutionContext $context, ?string $title = null): void
     {
         $existing = $em->getRepository(UserInstitution::class)->findOneBy([
             'user' => $user,
@@ -239,6 +240,9 @@ class AccountController extends AbstractController
 
         if ($existing) {
             $existing->setActive(true);
+            if (null !== $title) {
+                $existing->setTitle($title);
+            }
 
             return;
         }
@@ -246,6 +250,7 @@ class AccountController extends AbstractController
         $attachment = new UserInstitution();
         $attachment->setInstitution($user->getInstitution());
         $attachment->setContext($context);
+        $attachment->setTitle($title);
         $user->addInstitutionAttachment($attachment);
         $em->persist($attachment);
     }

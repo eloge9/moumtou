@@ -24,7 +24,7 @@ class NotificationMailer
     public function send(User $recipient, string $title, string $message, ?string $actionUrl): void
     {
         $email = (new TemplatedEmail())
-            ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+            ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
             ->to($recipient->getEmail())
             ->subject($title.' — MOUMTOU')
             ->htmlTemplate('emails/notification.html.twig')

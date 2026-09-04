@@ -5,11 +5,13 @@ namespace App\Controller;
 use App\Entity\Defense;
 use App\Entity\JuryMember;
 use App\Entity\Project;
+use App\Entity\User;
 use App\Enum\DefenseStatus;
 use App\Enum\JuryStatus;
 use App\Enum\NotificationType;
 use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
+use App\Enum\UserStatus;
 use App\Form\DefenseAnnounceType;
 use App\Form\JuryInviteType;
 use App\Security\JuryInvitationMailer;
@@ -17,6 +19,7 @@ use App\Service\NotificationService;
 use App\Service\ProjectPhotoUploader;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -24,6 +27,13 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class DefenseController extends AbstractController
 {
+    /**
+     * Un talent peut avoir publié plusieurs projets de type Soutenance : avec
+     * un seul (le cas courant), cette page affiche directement sa gestion
+     * complète, sans détour — avec plusieurs, elle devient la liste des
+     * soutenances, chacune menant à sa propre page de gestion
+     * ({@see showProject()}).
+     */
     #[Route('/ma-soutenance', name: 'app_defense_manage')]
     #[IsGranted('ROLE_TALENT')]
     public function manage(EntityManagerInterface $em): Response
@@ -31,12 +41,42 @@ class DefenseController extends AbstractController
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
 
-        $project = $em->getRepository(Project::class)->createQueryBuilder('p')
+        $projects = $em->getRepository(Project::class)->createQueryBuilder('p')
             ->andWhere('p.owner = :user')->setParameter('user', $user)
             ->andWhere('p.type = :type')->setParameter('type', ProjectType::SOUTENANCE)
             ->orderBy('p.id', 'DESC')
-            ->setMaxResults(1)
-            ->getQuery()->getOneOrNullResult();
+            ->getQuery()->getResult();
+
+        if (\count($projects) > 1) {
+            return $this->render('defense/list.html.twig', [
+                'projects' => $projects,
+            ]);
+        }
+
+        return $this->renderDefenseDetail($projects[0] ?? null, $em);
+    }
+
+    /**
+     * Gestion d'une soutenance précise, quand le talent en a plusieurs
+     * (choisie depuis la liste rendue par {@see manage()}).
+     */
+    #[Route('/ma-soutenance/{id}', name: 'app_defense_manage_show', requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_TALENT')]
+    public function showProject(int $id, EntityManagerInterface $em): Response
+    {
+        $project = $this->findOwnedProject($id, $em);
+        if (ProjectType::SOUTENANCE !== $project->getType()) {
+            throw $this->createNotFoundException();
+        }
+
+        return $this->renderDefenseDetail($project, $em);
+    }
+
+    private function renderDefenseDetail(?Project $project, EntityManagerInterface $em): Response
+    {
+        if ($project && $project->getDefense()) {
+            $this->autoMarkRealizedIfPastDate($project->getDefense(), $em);
+        }
 
         $announceForm = null;
         $inviteForm = null;
@@ -66,6 +106,9 @@ class DefenseController extends AbstractController
     public function announce(int $id, Request $request, EntityManagerInterface $em): Response
     {
         $project = $this->findOwnedProject($id, $em);
+        if (ProjectType::SOUTENANCE !== $project->getType()) {
+            throw $this->createNotFoundException();
+        }
 
         if ($project->getDefense()) {
             $this->addFlash('erreur', 'Cette soutenance est déjà annoncée.');
@@ -154,6 +197,76 @@ class DefenseController extends AbstractController
         }
 
         return $this->redirectToRoute('app_defense_manage');
+    }
+
+    /**
+     * Recherche d'un compte existant à inviter comme membre du jury (§ ajout
+     * demandé : « il faut le rechercher dans la base de données plutôt que
+     * de rentrer son nom, avec des filtres nom/établissement »). Ne
+     * remplace pas la saisie manuelle : quand la personne n'a pas encore de
+     * compte MOUMTOU, celle-ci reste le seul moyen de l'inviter (email
+     * externe classique, cahier des charges §15).
+     *
+     * Volontairement restreint aux comptes ayant déjà ROLE_TEACHER (le vivier
+     * réaliste de jurés) plutôt qu'à tous les comptes MOUMTOU : exposer
+     * l'e-mail de n'importe quel talent à n'importe quel autre talent via une
+     * recherche libre serait une fuite de données inutile (cahier — sécurité
+     * §18 : « le frontend ne doit jamais être la source de vérité », et plus
+     * largement minimisation des données exposées).
+     */
+    #[Route('/ma-soutenance/jury/rechercher', name: 'app_defense_search_jury_member')]
+    #[IsGranted('ROLE_TALENT')]
+    public function searchJuryMember(Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $query = trim((string) $request->query->get('q', ''));
+        $institutionId = $request->query->get('institution') ? (int) $request->query->get('institution') : null;
+
+        if (mb_strlen($query) < 2 && !$institutionId) {
+            return new JsonResponse(['results' => []]);
+        }
+
+        $qb = $em->getRepository(User::class)->createQueryBuilder('u')
+            ->andWhere('u.status = :status')->setParameter('status', UserStatus::ACTIF)
+            ->andWhere('u.roles LIKE :teacherRole')->setParameter('teacherRole', '%"ROLE_TEACHER"%')
+            ->andWhere('u != :me')->setParameter('me', $this->getUser())
+            ->orderBy('u.firstName', 'ASC')->addOrderBy('u.lastName', 'ASC')
+            ->setMaxResults(15);
+
+        if ($query) {
+            $qb->andWhere('u.firstName LIKE :q OR u.lastName LIKE :q OR u.email LIKE :q')
+                ->setParameter('q', '%'.$query.'%');
+        }
+
+        if ($institutionId) {
+            $qb->leftJoin('u.institutionAttachments', 'attachment')
+                ->andWhere('u.institution = :institution OR attachment.institution = :institution')
+                ->setParameter('institution', $institutionId);
+        }
+
+        $users = $qb->getQuery()->getResult();
+
+        $results = [];
+        foreach ($users as $user) {
+            $institutionNames = [];
+            if ($user->getInstitution()) {
+                $institutionNames[] = $user->getInstitution()->getName();
+            }
+            foreach ($user->getInstitutionAttachments() as $attachment) {
+                if ($attachment->isActive() && $attachment->getInstitution()->getName() !== ($institutionNames[0] ?? null)) {
+                    $institutionNames[] = $attachment->getInstitution()->getName();
+                }
+            }
+
+            $results[] = [
+                'id' => $user->getId(),
+                'firstName' => $user->getFirstName(),
+                'lastName' => $user->getLastName(),
+                'email' => $user->getEmail(),
+                'institutions' => array_values(array_unique($institutionNames)),
+            ];
+        }
+
+        return new JsonResponse(['results' => $results]);
     }
 
     #[Route('/ma-soutenance/{id}/realisee', name: 'app_defense_mark_realized', methods: ['POST'])]
@@ -422,6 +535,28 @@ class DefenseController extends AbstractController
             'declineUrl' => $mailer->generateDecisionUrl($juryMember, 'refuser'),
             'validateUrl' => $mailer->generateDecisionUrl($juryMember, 'valider'),
         ]);
+    }
+
+    /**
+     * Fait automatiquement passer une soutenance encore « annoncée » à
+     * « réalisée » dès que sa date est passée, sans attendre que le candidat
+     * clique manuellement sur le bouton (qui reste utilisable pour une
+     * confirmation anticipée). Effet immédiat à chaque affichage de cette
+     * page — voir aussi {@see \App\Command\MarkPastDefensesRealizedCommand}
+     * pour la même transition via une tâche planifiée, utile pour les autres
+     * pages (espace enseignant, fiche projet publique…).
+     */
+    private function autoMarkRealizedIfPastDate(Defense $defense, EntityManagerInterface $em): void
+    {
+        if (DefenseStatus::ANNONCEE !== $defense->getStatus()) {
+            return;
+        }
+        if (!$defense->getDate() || $defense->getDate() >= (new \DateTimeImmutable())->setTime(0, 0)) {
+            return;
+        }
+
+        $defense->setStatus(DefenseStatus::REALISEE);
+        $em->flush();
     }
 
     /**

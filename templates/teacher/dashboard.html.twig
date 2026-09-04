@@ -3,7 +3,7 @@
 {% block title %}Espace enseignant — MOUMTOU{% endblock %}
 {% block meta_robots %}noindex, follow{% endblock %}
 
-{% block header %}{% include 'components/_header_minimal.html.twig' with {context_label: 'Espace enseignant'} %}{% endblock %}
+{% block header %}{% include 'components/_header.html.twig' %}{% endblock %}
 
 {% block body %}
 <section class="m-section">
@@ -16,7 +16,10 @@
         <p class="m-surtitre mb-2">Mes établissements</p>
         {% for attachment in attachments %}
           <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid #EEF1F6">
-            <span class="fw-semibold" style="font-size:14.5px">{{ attachment.institution.name }}</span>
+            <span>
+              <span class="fw-semibold d-block" style="font-size:14.5px">{{ attachment.institution.name }}</span>
+              {% if attachment.title %}<span class="m-meta">{{ attachment.title }}</span>{% endif %}
+            </span>
             <form method="post" action="{{ path('app_teacher_remove_institution', {id: attachment.id}) }}">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token('enseignant-institution-retirer-' ~ attachment.id) }}">
               <button class="m-btn m-btn--lien" type="submit" style="font-size:13px;padding:0">Retirer</button>
@@ -32,6 +35,7 @@
               <option value="{{ institution.id }}">{{ institution.name }}</option>
             {% endfor %}
           </select>
+          <input class="m-input" type="text" name="title" placeholder="Votre fonction à cet établissement (ex. Maître de conférences)">
           <input type="hidden" name="_csrf_token" value="{{ csrf_token('enseignant-institution') }}">
           <button class="m-btn m-btn--secondaire" type="submit">Ajouter</button>
         </form>

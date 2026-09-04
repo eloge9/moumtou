@@ -19,7 +19,13 @@
     </div>
 
     {% if pendingProjects|length %}
-      <p class="m-surtitre mt-4 mb-2">Projets en attente</p>
+      <div class="d-flex align-items-center justify-content-between mt-4 mb-2">
+        <p class="m-surtitre mb-0">Projets en attente ({{ pendingProjects|length }})</p>
+      </div>
+      <form method="post" action="{{ path('admin_moderation_projects_publish_all') }}" onsubmit="return confirm('Publier les {{ pendingProjects|length }} projet(s) en attente d\'un seul coup ?');" class="mb-2">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('moderation-publier-tout') }}">
+        <button class="m-btn m-btn--primaire m-btn--sm w-100" type="submit">Tout publier ({{ pendingProjects|length }})</button>
+      </form>
       <div class="d-grid gap-2">
         {% for project in pendingProjects %}
           <a class="m-carte m-carte--plate p-3 text-start d-block" href="{{ path('admin_project_show', {id: project.id}) }}">

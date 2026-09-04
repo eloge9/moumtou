@@ -124,6 +124,13 @@ class DefenseResultController extends AbstractController
         $result->setValidated(true);
         $result->setValidatedBy($user);
         $result->setValidatedAt(new \DateTimeImmutable());
+        // Visible publiquement par défaut dès la validation finale (le
+        // candidat garde la main : il peut toujours décocher ensuite depuis
+        // « Ma soutenance » — ex. en cas d'échec) — avant la validation, rien
+        // n'est encore définitif, donc rien n'est rendu public d'office.
+        $result->setResultVisible(true);
+        $result->setGradeVisible(true);
+        $result->setAppreciationVisible(true);
         $em->flush();
 
         // Journalisation uniquement lorsque la validation provient d'un

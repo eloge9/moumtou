@@ -6,28 +6,32 @@ Cochez au fur et à mesure. Pour chaque erreur : notez le numéro du scénario, 
 
 ---
 
-## 1. Comptes à créer vous-même
+## 1. Comptes de test — état actuel
 
-Tous avec le même mot de passe pour simplifier : **`TestMoumtou123`**.
+Tous les comptes ci-dessous existent déjà (créés via le formulaire d'inscription pour #1/#2/#3, complétés directement en base pour #4 à #8 après que la limite d'inscription a été atteinte).
 
-| # | But du compte | E-mail | Choix à l'inscription |
-|---|---|---|---|
-| 1 | Étudiant — candidat qui présente sa soutenance | `test.etudiant1@moumtou.dev` | Étudiant |
-| 2 | Étudiant — second compte, pour tester la bascule entre comptes | `test.etudiant2@moumtou.dev` | Étudiant |
-| 3 | Enseignant — sera **président** du jury | `test.president@moumtou.dev` | Enseignant |
-| 4 | Enseignant — sera **rapporteur** du jury | `test.rapporteur@moumtou.dev` | Enseignant |
-| 5 | Enseignant — sera **examinateur** du jury | `test.examinateur@moumtou.dev` | Enseignant |
-| 6 | Recruteur | `test.recruteur@moumtou.dev` | Recruteur |
-| 7 | Talent qui cumule les rôles un par un après coup | `test.multirole@moumtou.dev` | Talent |
-| 8 | Compte jetable, destiné à être supprimé par l'admin | `test.asupprimer@moumtou.dev` | Talent |
+| #   | But du compte                                                  | E-mail                         | Mot de passe                   |
+| --- | -------------------------------------------------------------- | ------------------------------ | ------------------------------ |
+| 1   | Étudiant — candidat qui présente sa soutenance                 | `test.etudiant1@moumtou.dev`   | `test.etudiant1@moumtou.dev`   |
+| 2   | Étudiant — second compte, pour tester la bascule entre comptes | `test.etudiant2@moumtou.dev`   | `test.etudiant2@moumtou.dev`   |
+| 3   | Enseignant — **président** du jury, rattaché à IPNET           | `test.president@moumtou.dev`   | `test.president@moumtou.dev`   |
+| 4   | Enseignant — **rapporteur** du jury, rattaché à IPNET          | `test.rapporteur@moumtou.dev`  | `test.rapporteur@moumtou.dev`  |
+| 5   | Enseignant — **examinateur** du jury, rattaché à IPNET         | `test.examinateur@moumtou.dev` | `test.examinateur@moumtou.dev` |
+| 6   | Recruteur (« MOUMTOU Test SARL »)                              | `test.recruteur@moumtou.dev`   | `test.recruteur@moumtou.dev`   |
+| 7   | Talent qui cumule les rôles un par un après coup               | `test.multirole@moumtou.dev`   | `test.multirole@moumtou.dev`   |
+| 8   | Compte jetable, destiné à être supprimé par l'admin            | `test.asupprimer@moumtou.dev`  | `test.asupprimer@moumtou.dev`  |
+
+**Pour les comptes #4 à #8 : le mot de passe est exactement l'adresse e-mail.** Pour #1/#2/#3 : `TestMoumtou123` (déjà en votre possession).
 
 **Compte administrateur** (déjà existant, ne pas recréer) :
 
-| E-mail | Mot de passe |
-|---|---|
+| E-mail              | Mot de passe      |
+| ------------------- | ----------------- |
 | `admin@moumtou.com` | `AdminMoumtou123` |
 
-**Important pour le jury** : quand le candidat (#1) invitera les membres du jury, il devra saisir **exactement** les e-mails des comptes #3/#4/#5 — c'est ce qui relie automatiquement l'invitation au bon compte enseignant (et lui accorde le rôle Enseignant s'il ne l'a pas déjà).
+**Établissement des enseignants** : les comptes #3/#4/#5 sont déjà rattachés à **IPNET INSTITUTE OF TECHNOLOGY** (établissement réel ajouté au catalogue entretemps), chacun avec sa propre fonction (Président du jury / Maître de conférences, Rapporteur pédagogique, Examinateur) — inutile de le refaire, passez directement aux scénarios du §4.
+
+**Important pour le jury** : quand le candidat (#1) invitera les membres du jury (scénario F), saisissez **exactement** les e-mails des comptes #3/#4/#5 — c'est ce qui relie l'invitation au bon compte enseignant.
 
 ---
 
@@ -35,10 +39,10 @@ Tous avec le même mot de passe pour simplifier : **`TestMoumtou123`**.
 
 Le catalogue actuel ne contient que 4 établissements de démonstration (tous au Togo). Créez ces **2 nouveaux** via le bouton **« Mon établissement n'est pas dans la liste »** (jamais directement dans l'admin — le but est de tester le circuit self-service en entier) :
 
-| # | Nom à saisir | Type | Pays | Ville |
-|---|---|---|---|---|
-| 1 | École Supérieure d'Informatique de Lomé | École | Togo | Lomé |
-| 2 | Institut Universitaire de la Côte | Institut | Togo | Aného |
+| #   | Nom à saisir                            | Type     | Pays | Ville |
+| --- | --------------------------------------- | -------- | ---- | ----- |
+| 1   | École Supérieure d'Informatique de Lomé | École    | Togo | Lomé  |
+| 2   | Institut Universitaire de la Côte       | Institut | Togo | Aného |
 
 ---
 
@@ -46,84 +50,93 @@ Le catalogue actuel ne contient que 4 établissements de démonstration (tous au
 
 ### 3.1 Profil de base (`Modifier mon profil`) — tout compte
 
-| Champ | Obligatoire | Exemple à saisir |
-|---|---|---|
-| Prénom | Oui (déjà rempli à l'inscription) | — |
-| Nom | Oui (déjà rempli) | — |
-| Titre professionnel | Non | `Développeur Full Stack` |
-| Téléphone | Oui (déjà rempli) | — |
-| Numéro WhatsApp | Non | `22890000001` |
-| Autoriser les contacts WhatsApp | Non | Oui |
-| Pays | Non | `Togo` |
-| Ville | Non | `Lomé` |
-| Biographie | Non (max 2000 caractères) | Quelques phrases sur vous |
-| LinkedIn | Non (doit être un lien `linkedin.com`) | `https://linkedin.com/in/votre-profil` |
-| GitHub | Non (doit être un lien `github.com`) | `https://github.com/votre-compte` |
-| Site personnel | Non (URL valide) | `https://exemple.dev` |
-| Portfolio | Non (URL valide) | `https://exemple.dev/portfolio` |
-| Disponibilité | Non | Stage / Alternance / CDI |
-| Établissement | Non ici (obligatoire seulement via « Devenir étudiant/enseignant ») | — |
-| Domaine / Mention / Spécialité | Non ici | — |
-| Compétences | Non (cases à cocher) | Cochez-en 2-3 |
-| Technologies | Non (tapez un mot puis Entrée pour l'ajouter) | `PHP`, `Symfony`, `MySQL` |
-| Photo de profil | Non (JPG/PNG/WebP, 3 Mo max) | Une image quelconque |
+| Champ                           | Obligatoire                                                         | Exemple à saisir                       |
+| ------------------------------- | ------------------------------------------------------------------- | -------------------------------------- |
+| Prénom                          | Oui (déjà rempli à l'inscription)                                   | —                                      |
+| Nom                             | Oui (déjà rempli)                                                   | —                                      |
+| Titre professionnel             | Non                                                                 | `Développeur Full Stack`               |
+| Téléphone                       | Oui (déjà rempli)                                                   | —                                      |
+| Numéro WhatsApp                 | Non                                                                 | `22890000001`                          |
+| Autoriser les contacts WhatsApp | Non                                                                 | Oui                                    |
+| Pays                            | Non                                                                 | `Togo`                                 |
+| Ville                           | Non                                                                 | `Lomé`                                 |
+| Biographie                      | Non (max 2000 caractères)                                           | Quelques phrases sur vous              |
+| LinkedIn                        | Non (doit être un lien `linkedin.com`)                              | `https://linkedin.com/in/votre-profil` |
+| GitHub                          | Non (doit être un lien `github.com`)                                | `https://github.com/votre-compte`      |
+| Site personnel                  | Non (URL valide)                                                    | `https://exemple.dev`                  |
+| Portfolio                       | Non (URL valide)                                                    | `https://exemple.dev/portfolio`        |
+| Disponibilité                   | Non                                                                 | Stage / Alternance / CDI               |
+| Établissement                   | Non ici (obligatoire seulement via « Devenir étudiant/enseignant ») | —                                      |
+| Domaine / Mention / Spécialité  | Non ici                                                             | —                                      |
+| Compétences                     | Non (cases à cocher)                                                | Cochez-en 2-3                          |
+| Technologies                    | Non (tapez un mot puis Entrée pour l'ajouter)                       | `PHP`, `Symfony`, `MySQL`              |
+| Photo de profil                 | Non (JPG/PNG/WebP, 3 Mo max)                                        | Une image quelconque                   |
 
 ### 3.2 Devenir étudiant (`/devenir-etudiant`)
 
 Tous obligatoires — le rôle ne s'active pas sans les 4 :
 
-| Champ | Exemple |
-|---|---|
-| Établissement | Université de Lomé |
-| Domaine | Sciences et Technologies |
-| Mention | Informatique |
-| Spécialité | Génie Logiciel |
+| Champ         | Exemple                  |
+| ------------- | ------------------------ |
+| Établissement | Université de Lomé       |
+| Domaine       | Sciences et Technologies |
+| Mention       | Informatique             |
+| Spécialité    | Génie Logiciel           |
 
 ### 3.3 Devenir enseignant (`/devenir-enseignant`)
 
-| Champ | Obligatoire | Exemple |
-|---|---|---|
-| Établissement | Oui | Université de Lomé |
-| Fonction | Non | `Maître de conférences` |
+| Champ                        | Obligatoire | Exemple                       |
+| ---------------------------- | ----------- | ----------------------------- |
+| Établissement                | Oui         | IPNET INSTITUTE OF TECHNOLOGY |
+| Fonction à cet établissement | Non         | `Maître de conférences`       |
+
+La fonction est propre à **chaque établissement** : un même enseignant peut être « Maître de conférences » à IPNET et « Vacataire » ailleurs. Pour ajouter un 2ᵉ (ou 3ᵉ) établissement avec sa propre fonction, utilisez le formulaire « Ajouter un établissement » dans **Mon espace enseignant** (§3.3 bis ci-dessous), pas le formulaire d'inscription initial.
+
+### 3.3 bis Ajouter un établissement supplémentaire (`Mon espace enseignant`)
+
+| Champ                              | Obligatoire | Exemple               |
+| ---------------------------------- | ----------- | --------------------- |
+| Établissement                      | Oui         | Institut des Sciences |
+| Votre fonction à cet établissement | Non         | `Vacataire`           |
 
 ### 3.4 Devenir recruteur (`/recruteur/profil`)
 
-| Champ | Obligatoire | Exemple |
-|---|---|---|
-| Entreprise / organisation | Oui | `MOUMTOU Test SARL` |
-| Secteur d'activité | Non | `Technologies de l'information` |
-| Pays | Non | `Togo` |
-| Ville | Non | `Lomé` |
-| Description | Non | Quelques phrases sur l'entreprise |
-| Site web | Non | `https://exemple-entreprise.com` |
-| LinkedIn | Non | `https://linkedin.com/company/exemple` |
-| E-mail professionnel | Non | `contact@exemple-entreprise.com` |
-| Téléphone professionnel | Non | `22890000002` |
-| Logo | Non (image) | — |
+| Champ                     | Obligatoire | Exemple                                |
+| ------------------------- | ----------- | -------------------------------------- |
+| Entreprise / organisation | Oui         | `MOUMTOU Test SARL`                    |
+| Secteur d'activité        | Non         | `Technologies de l'information`        |
+| Pays                      | Non         | `Togo`                                 |
+| Ville                     | Non         | `Lomé`                                 |
+| Description               | Non         | Quelques phrases sur l'entreprise      |
+| Site web                  | Non         | `https://exemple-entreprise.com`       |
+| LinkedIn                  | Non         | `https://linkedin.com/company/exemple` |
+| E-mail professionnel      | Non         | `contact@exemple-entreprise.com`       |
+| Téléphone professionnel   | Non         | `22890000002`                          |
+| Logo                      | Non (image) | —                                      |
 
 ### 3.5 Publier un projet de type « Soutenance » (`/publier`)
 
 Utilisez le compte **#1 `test.etudiant1`** pour ce projet — c'est lui qui présentera la soutenance testée plus loin.
 
-| Champ | Obligatoire | Exemple |
-|---|---|---|
-| Type de projet | Oui | **Soutenance** (choisissez bien celui-ci, pas Personnel) |
-| Nom du projet | Oui | `Plateforme de gestion des soutenances` |
-| Thème | Non | `Génie logiciel` |
-| Description courte | Non (160 car. max) | Une phrase résumant le projet |
-| Description détaillée | Non | Quelques paragraphes |
-| Date de réalisation | Non | Une date récente |
-| Technologies utilisées | Non (tags) | `Symfony`, `MySQL` |
-| **Au moins une preuve est obligatoire** — remplissez-en au moins une parmi : | | |
-| — Lien GitHub | | `https://github.com/exemple/projet` |
-| — Vidéo YouTube | | `https://youtube.com/watch?v=xxxxxxxxxxx` |
-| — Site web | | `https://exemple.dev` |
-| — Démo | | `https://demo.exemple.dev` |
-| — Lien du mémoire | | `https://exemple.dev/memoire.pdf` |
-| — Autre preuve (titre + URL) | | |
-| Photos | Non | 1-2 images |
-| Document (type + titre + fichier) | Non | Un PDF si vous en avez un sous la main |
-| Domaine / Mention / Spécialité / Établissement | Non (ou « Autre (à préciser) » si absent du catalogue) | Mêmes valeurs que le profil étudiant |
+| Champ                                                                        | Obligatoire                                            | Exemple                                                  |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
+| Type de projet                                                               | Oui                                                    | **Soutenance** (choisissez bien celui-ci, pas Personnel) |
+| Nom du projet                                                                | Oui                                                    | `Plateforme de gestion des soutenances`                  |
+| Thème                                                                        | Non                                                    | `Génie logiciel`                                         |
+| Description courte                                                           | Non (160 car. max)                                     | Une phrase résumant le projet                            |
+| Description détaillée                                                        | Non                                                    | Quelques paragraphes                                     |
+| Date de réalisation                                                          | Non                                                    | Une date récente                                         |
+| Technologies utilisées                                                       | Non (tags)                                             | `Symfony`, `MySQL`                                       |
+| **Au moins une preuve est obligatoire** — remplissez-en au moins une parmi : |                                                        |                                                          |
+| — Lien GitHub                                                                |                                                        | `https://github.com/exemple/projet`                      |
+| — Vidéo YouTube                                                              |                                                        | `https://youtube.com/watch?v=xxxxxxxxxxx`                |
+| — Site web                                                                   |                                                        | `https://exemple.dev`                                    |
+| — Démo                                                                       |                                                        | `https://demo.exemple.dev`                               |
+| — Lien du mémoire                                                            |                                                        | `https://exemple.dev/memoire.pdf`                        |
+| — Autre preuve (titre + URL)                                                 |                                                        |                                                          |
+| Photos                                                                       | Non                                                    | 1-2 images                                               |
+| Document (type + titre + fichier)                                            | Non                                                    | Un PDF si vous en avez un sous la main                   |
+| Domaine / Mention / Spécialité / Établissement                               | Non (ou « Autre (à préciser) » si absent du catalogue) | Mêmes valeurs que le profil étudiant                     |
 
 ---
 
@@ -134,7 +147,7 @@ Utilisez le compte **#1 `test.etudiant1`** pour ce projet — c'est lui qui pré
 - [ ] **A1.** Inscrivez le compte #1 (choix **Étudiant**). Attendu : redirection directe vers **« Bienvenue sur MOUMTOU »**, déjà connecté.
 - [ ] **A2.** Le bouton de la page Bienvenue mène directement vers **« Devenir étudiant »** (pas le profil général) — puisque « Étudiant » a été choisi à l'inscription.
 - [ ] **A3.** Complétez immédiatement ce formulaire avec les valeurs du §3.2. Attendu : rôle **Étudiant** actif tout de suite après (badge visible).
-- [ ] **A4.** Répétez l'inscription pour les comptes #2 (Étudiant), #3/#4/#5 (Enseignant — complétez « Devenir enseignant » avec l'établissement **Université de Lomé** pour chacun), #6 (Recruteur — complétez le profil recruteur), #7 et #8 (Talent).
+- [ ] **A4.** _(Déjà fait pour tous les comptes #2 à #8 — vérifiez simplement que chacun se connecte correctement avec le mot de passe indiqué au §1, puis passez directement au §B.)_
 
 ### B — Compléter le profil de base (tous les comptes)
 
@@ -146,6 +159,7 @@ Utilisez le compte **#1 `test.etudiant1`** pour ce projet — c'est lui qui pré
 - [ ] **C1.** Avec le compte #7 (`test.multirole`), allez dans **Modifier mon profil → Mes rôles**. Ajoutez **Étudiant**, puis **Enseignant**, puis **Recruteur**, l'un après l'autre. Après chaque ajout, vérifiez que **tous** les rôles précédents sont toujours affichés (rien ne disparaît).
 - [ ] **C2. Bascule entre comptes étudiants.** Déconnectez-vous du compte #1, connectez-vous avec le compte #2 (`test.etudiant2`). Vérifiez que son profil, son cursus (établissement/domaine/mention/spécialité saisis pour lui) et ses éventuels projets sont bien **distincts** de ceux du compte #1 (aucun mélange entre les deux comptes).
 - [ ] **C3.** Reconnectez-vous avec le compte #1 : ses informations doivent être exactement celles saisies pour lui, inchangées par la navigation sur le compte #2.
+- [ ] **C4. Fonction différente par établissement.** _(Déjà en place : le compte #3 `test.president` est rattaché à IPNET — « Président du jury / Maître de conférences » — et à Institut Y sans fonction précisée.)_ Allez dans **Mon espace enseignant** avec ce compte et vérifiez que les deux établissements apparaissent bien dans la liste, chacun avec **sa propre fonction affichée en dessous du nom** (l'un renseigné, l'autre vide) — pas la même pour les deux. Vous pouvez aussi tester d'en ajouter un 3ᵉ vous-même pour valider le formulaire.
 
 ### D — Établissement absent du catalogue
 
@@ -163,12 +177,10 @@ Utilisez le compte **#1 `test.etudiant1`** pour ce projet — c'est lui qui pré
 
 ### F — Inviter le jury (3 enseignants, rôles différents)
 
-- [ ] **F1.** Toujours sur **Ma soutenance**, dans « Membres du jury », invitez :
-  - `test.president@moumtou.dev` → rôle **Président**
-  - `test.rapporteur@moumtou.dev` → rôle **Rapporteur**
-  - `test.examinateur@moumtou.dev` → rôle **Examinateur**
+- [ ] **F1a. Recherche.** Toujours sur **Ma soutenance**, dans « Membres du jury », utilisez d'abord le bloc **« Rechercher un enseignant déjà inscrit sur MOUMTOU »** : tapez `test.president` (ou filtrez par établissement IPNET). Attendu : `test.president@moumtou.dev` apparaît dans les résultats avec son établissement affiché. Cliquez dessus : prénom/nom/e-mail (et l'établissement si une correspondance existe) se remplissent automatiquement dans le formulaire en dessous — il ne reste qu'à choisir le rôle **Président** et valider.
+- [ ] **F1b.** Répétez pour `test.rapporteur` (rôle **Rapporteur**) et `test.examinateur` (rôle **Examinateur**) via la recherche.
+- [ ] **F1c. Repli manuel.** Pour vérifier que la saisie manuelle reste disponible, testez aussi une invitation avec une adresse e-mail qui n'existe pas encore sur MOUMTOU (ex. `prof.externe@example.com`) directement dans le formulaire du bas, sans passer par la recherche. Attendu : ça fonctionne comme avant (invitation envoyée par e-mail à une personne sans compte).
 
-  Pour chacun : prénom, nom, établissement (Université de Lomé), e-mail exact du compte correspondant.
 - [ ] **F2.** Attendu après chaque envoi : message « Invitation envoyée à … ». Les 3 membres apparaissent dans la liste, statut **« En attente »**.
 - [ ] **F3.** Connectez-vous avec `test.president@moumtou.dev`. Allez dans **Mon espace enseignant**. L'invitation doit apparaître avec le rôle **Président**.
 - [ ] **F4.** Cliquez **« Confirmer ma participation »**. Statut passe à **Confirmé**.
@@ -177,7 +189,8 @@ Utilisez le compte **#1 `test.etudiant1`** pour ce projet — c'est lui qui pré
 
 ### G — Réalisation et vérification de la soutenance (règle des 2 confirmations)
 
-- [ ] **G1.** Avec le compte #1, sur **Ma soutenance**, cliquez **« Marquer la soutenance comme réalisée »**. Attendu : statut passe à **« Réalisée »**.
+- [ ] **G0. Champs grisés avant la date.** Juste après avoir annoncé la soutenance (§E), avec une date future, allez sur **Ma soutenance** : la section « Après la soutenance » (photos, vidéo, résultat) doit apparaître **grisée et non modifiable**, avec un message expliquant qu'elle sera disponible une fois la date passée. Le bouton **« Marquer la soutenance comme réalisée dès maintenant »** reste lui cliquable.
+- [ ] **G1.** Avec le compte #1, sur **Ma soutenance**, cliquez **« Marquer la soutenance comme réalisée dès maintenant »**. Attendu : statut passe à **« Réalisée »**, et la section « Après la soutenance » redevient immédiatement modifiable (elle n'était grisée que le temps que la soutenance ne soit pas encore réalisée).
 - [ ] **G2.** Connectez-vous avec `test.president@moumtou.dev`. Dans **Mon espace enseignant**, sous l'invitation, un bouton **« Je confirme que cette soutenance a bien eu lieu »** doit être visible. Cliquez dessus.
 - [ ] **G3.** Attendu : message « En attente d'une 2ᵉ confirmation (1/2) ».
 - [ ] **G4.** Connectez-vous avec `test.rapporteur@moumtou.dev`, faites la même confirmation.
@@ -191,8 +204,8 @@ Utilisez le compte **#1 `test.etudiant1`** pour ce projet — c'est lui qui pré
 - [ ] **H4. Validation finale.** Toujours en tant que président, un bouton supplémentaire doit apparaître : **« Valider le résultat final (président du jury) »** — ce bouton n'existe **que** pour le président, ni pour le rapporteur ni pour l'examinateur (revérifiez sur leurs comptes : le bouton n'y est pas). Cliquez dessus.
 - [ ] **H5.** Attendu : le résultat passe en **« Validé »**. Reconnectez-vous en `test.rapporteur` ou `test.examinateur` : les champs (note, décision, statut, appréciation) doivent maintenant être **grisés/désactivés** — impossible de les modifier après validation.
 - [ ] **H6.** Reconnectez-vous en `test.etudiant1`. Sur **Ma soutenance**, la carte « Résultat de ma soutenance » doit afficher le statut (Réussie), la note, l'appréciation, et « Validé ».
-- [ ] **H7. Visibilité publique.** Toujours en `test.etudiant1`, cochez « Afficher le résultat », « Afficher ma note », « Afficher l'appréciation du jury ». Enregistrez. Allez sur la page publique du projet : note et appréciation doivent maintenant y être visibles.
-- [ ] **H8.** Décochez-les à nouveau, enregistrez, revérifiez que la page publique ne montre plus rien de tout ça (contrôle du candidat sur sa propre confidentialité).
+- [ ] **H7. Visibilité publique — visible par défaut dès la validation.** Sans rien cocher, allez directement sur la page publique du projet : note et appréciation doivent **déjà** être visibles (la validation du président au §H4 les a rendues publiques automatiquement). Vérifiez aussi sur **Ma soutenance** que les 3 cases (« Afficher le résultat », « ma note », « l'appréciation ») sont déjà cochées.
+- [ ] **H8. Le candidat garde la main.** Décochez les 3 cases, enregistrez, revérifiez que la page publique ne montre plus rien de tout ça — utile par exemple en cas d'échec, pour ne pas exposer un résultat non souhaité.
 
 ### I — Report et annulation de soutenance (à tester séparément, sur un 2ᵉ projet si besoin)
 
@@ -241,11 +254,26 @@ php bin/console app:defense:send-reminders
 
 - [ ] **N1.** En admin, vérifiez la présence des boutons **« Interface utilisateur »** et **« Déconnexion »** en haut de l'espace Administration.
 
+### O — Plusieurs soutenances pour un même compte
+
+- [ ] **O1.** Avec le compte #1 (`test.etudiant1`), publiez un **second** projet de type Soutenance (nom différent, ex. « Deuxième projet de soutenance »). Ce compte a maintenant 2 projets Soutenance.
+- [ ] **O2.** Allez sur **Ma soutenance**. Attendu : au lieu de la gestion directe, une **liste** apparaît avec les 2 projets, chacun avec son statut (« Annoncée »/« Vérifiée »/« À annoncer »…).
+- [ ] **O3.** Cliquez sur le nouveau projet (pas encore annoncé) : sa propre page de gestion s'ouvre, avec le formulaire « Annoncer ma soutenance » — indépendante de la première (déjà vérifiée au §H).
+- [ ] **O4.** Annoncez cette 2ᵉ soutenance avec une date différente. Retournez sur **Ma soutenance** : la liste doit refléter les 2 statuts distincts, sans que l'un affecte l'autre.
+- [ ] **O5.** Avec un compte n'ayant qu'**une seule** soutenance (ex. `test.etudiant2`), vérifiez que **Ma soutenance** affiche directement sa gestion — pas de liste intermédiaire quand il n'y en a qu'une (aucun clic supplémentaire nécessaire).
+
+### P — Vérification directe d'une soutenance par l'admin
+
+- [ ] **P1.** En admin, ouvrez la fiche du 2ᵉ projet de soutenance (§O4) via **Administration → Projets**. Dans le bloc « Soutenance », un bouton **« Vérifier directement (admin) »** doit être visible (la soutenance est encore « Annoncée », sans confirmation du jury).
+- [ ] **P2.** Cliquez dessus (confirmez la boîte de dialogue). Attendu : la soutenance passe directement à **« Vérifiée »**, sans attendre les 2 confirmations du jury — le projet associé passe aussi à **« Vérifié »**.
+- [ ] **P3.** Revérifiez que le bouton a disparu (une soutenance déjà vérifiée ne peut plus l'être une seconde fois), et que ceci apparaît dans **Journal d'administration**.
+
 ---
 
 ## 5. En cas d'erreur trouvée
 
 Notez pour chaque erreur :
+
 1. Le numéro du scénario (ex. « H4 »).
 2. Ce que vous avez fait exactement, avec quel compte.
 3. Ce qui était attendu (voir ci-dessus).

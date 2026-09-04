@@ -210,6 +210,43 @@ class ModerationController extends AbstractController
         return $this->redirectToRoute('admin_moderation');
     }
 
+    /**
+     * Publie en une seule fois tous les projets actuellement en attente de
+     * modération, sans passer par le formulaire de décision individuel.
+     */
+    #[Route('/admin/moderation/projets/publier-tout', name: 'admin_moderation_projects_publish_all', methods: ['POST'])]
+    public function publishAllPendingProjects(Request $request, EntityManagerInterface $em, NotificationService $notificationService, AdminAuditLogger $auditLogger, VerificationService $verificationService): Response
+    {
+        if (!$this->isCsrfTokenValid('moderation-publier-tout', $request->request->get('_csrf_token'))) {
+            throw new \Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException();
+        }
+
+        $pendingProjects = $em->getRepository(Project::class)->createQueryBuilder('p')
+            ->andWhere('p.status = :status')->setParameter('status', ProjectStatus::EN_ATTENTE)
+            ->getQuery()->getResult();
+
+        /** @var User $admin */
+        $admin = $this->getUser();
+        $reason = 'Publication groupée depuis le tableau de bord de modération.';
+
+        foreach ($pendingProjects as $project) {
+            $this->applyContentAction(ModerationActionType::PUBLIER, $project, $em, $notificationService, $auditLogger, $admin, $reason, $verificationService);
+
+            $moderationAction = new ModerationAction();
+            $moderationAction->setAdmin($admin);
+            $moderationAction->setTargetType(ReportTargetType::PROJECT);
+            $moderationAction->setTargetId($project->getId());
+            $moderationAction->setActionType(ModerationActionType::PUBLIER);
+            $moderationAction->setReason($reason);
+            $em->persist($moderationAction);
+        }
+        $em->flush();
+
+        $this->addFlash('succes', \sprintf('%d projet(s) publié(s) en une seule fois.', \count($pendingProjects)));
+
+        return $this->redirectToRoute('admin_moderation');
+    }
+
     #[Route('/admin/moderation/projets/{id}/decider', name: 'admin_moderation_project_decide', methods: ['POST'])]
     public function decideProject(int $id, Request $request, EntityManagerInterface $em, NotificationService $notificationService, AdminAuditLogger $auditLogger, VerificationService $verificationService): Response
     {

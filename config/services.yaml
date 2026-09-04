@@ -138,6 +138,17 @@ services:
         arguments:
             $uploadsRootDirectory: '%kernel.project_dir%/public/uploads'
 
+    # Journalisation de chaque envoi d'e-mail (succès/échec) sans dupliquer
+    # le système d'envoi : décore le mailer Symfony existant.
+    App\Mailer\LoggingMailer:
+        decorates: mailer.mailer
+        arguments:
+            $decoratedMailer: '@.inner'
+
+    App\Command\MailerDiagnosticCommand:
+        arguments:
+            $mailerDsn: '%env(MAILER_DSN)%'
+
     App\Security\OAuth\OAuthProviderRegistry:
         arguments:
             $googleClientId: '%env(GOOGLE_OAUTH_CLIENT_ID)%'

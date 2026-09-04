@@ -84,8 +84,15 @@
         <p class="m-texte mb-2">{{ defense.date|date('d/m/Y') }} — {{ defense.time }} — {{ defense.place }} ·
           {% if defense.status.value == 'verifiee' %}<span class="m-tag m-tag--bleu">✅ Vérifiée ({{ defense.validationCount }} membres)</span>
           {% elseif defense.status.value == 'realisee' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">Réalisée — {{ defense.validationCount }}/2 validations</span>
+          {% elseif defense.status.value == 'annulee' %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Annulée</span>
           {% else %}<span class="m-tag">À venir</span>{% endif %}
         </p>
+        {% if defense.status.value not in ['verifiee', 'annulee'] %}
+          <form method="post" action="{{ path('admin_defense_verify', {id: defense.id}) }}" class="mb-2" onsubmit="return confirm('Vérifier directement cette soutenance sans attendre les 2 confirmations du jury ?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('verifier-soutenance-admin-' ~ defense.id) }}">
+            <button class="m-btn m-btn--secondaire m-btn--sm" type="submit">Vérifier directement (admin)</button>
+          </form>
+        {% endif %}
         <p class="m-surtitre mb-2 mt-3">Jury</p>
         <div class="d-grid gap-2">
           {% for membre in defense.juryMembers %}

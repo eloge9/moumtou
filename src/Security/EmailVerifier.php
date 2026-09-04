@@ -50,7 +50,7 @@ class EmailVerifier
         $signedUrl = $this->generateSignedUrl($user);
 
         $email = (new TemplatedEmail())
-            ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+            ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
             ->to($user->getEmail())
             ->subject('Confirmez votre adresse e-mail')
             ->htmlTemplate('emails/confirmation.html.twig')

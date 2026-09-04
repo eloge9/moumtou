@@ -8,9 +8,14 @@ use App\Entity\User;
 use App\Enum\ProjectStatus;
 use App\Enum\ProjectType;
 use App\Enum\UserStatus;
+use App\Entity\ErrorLog;
 use App\Security\PasswordResetMailer;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\Exception\TransportException;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\RawMessage;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
@@ -55,6 +60,49 @@ class SecurityHardeningTest extends FunctionalTestCase
         self::assertTrue($response->headers->has('Permissions-Policy'));
         // Pas de HSTS en HTTP local : casserait le développement (cahier §36).
         self::assertFalse($response->headers->has('Strict-Transport-Security'));
+    }
+
+    // ---- Envoi d'e-mail : un échec SMTP ne doit jamais être présenté comme
+    // un succès (le contrôleur ne fait aucun try/catch autour de l'envoi :
+    // une vraie panne SMTP doit remonter comme une vraie erreur serveur,
+    // journalisée, jamais masquée par le message générique "vérifiez votre
+    // boîte e-mail") -----------------------------------------------------
+
+    public function testForgotPasswordNeverFakesSuccessWhenSmtpReallyFails(): void
+    {
+        $client = static::createClient(['debug' => false]);
+        // Le noyau (et donc le conteneur) est rebooté avant chaque requête
+        // par défaut : sans ça, le service remplacé ci-dessous serait perdu
+        // avant même d'atteindre le contrôleur.
+        $client->disableReboot();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->purgeDatabase($em);
+
+        $user = $this->createUser($em, 'panne-smtp@example.com', 'panne-smtp');
+        $em->flush();
+
+        // La classe MailerInterface est résolue à la compilation vers le
+        // service concret "mailer.mailer" (que App\Mailer\LoggingMailer
+        // décore) : remplacer l'alias seul ne serait pas pris en compte,
+        // il faut remplacer le service concret lui-même.
+        static::getContainer()->set('mailer.mailer', new class implements MailerInterface {
+            public function send(RawMessage $message, ?Envelope $envelope = null): void
+            {
+                throw new TransportException('Connection could not be established with host smtp.gmail.com');
+            }
+        });
+
+        $crawler = $client->request('GET', '/mot-de-passe-oublie');
+        $form = $crawler->selectButton('Envoyer le lien')->form(['email' => 'panne-smtp@example.com']);
+        $client->submit($form);
+
+        // Aucune page de succès : une vraie panne SMTP doit se voir.
+        self::assertResponseStatusCodeSame(500);
+        self::assertSelectorTextNotContains('body', 'Vérifiez votre boîte e-mail');
+
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $errorLog = $em->getRepository(ErrorLog::class)->findOneBy([]);
+        self::assertNotNull($errorLog, 'La panne SMTP doit être journalisée comme une vraie erreur serveur, pas avalée silencieusement.');
     }
 
     // ---- Réinitialisation de mot de passe : lien à usage unique (§27) ----

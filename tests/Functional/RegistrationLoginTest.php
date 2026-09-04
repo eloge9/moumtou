@@ -172,6 +172,67 @@ class RegistrationLoginTest extends FunctionalTestCase
         self::assertSame(['ROLE_TALENT', 'ROLE_TEACHER', 'ROLE_USER'], $refreshed->getRoles());
     }
 
+    public function testForgotPasswordWithPrefilledEmailShowsConfirmationInsteadOfAForm(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->purgeDatabase($em);
+
+        $passwordHasher = static::getContainer()->get('security.user_password_hasher');
+        $user = (new User())
+            ->setEmail('oubli.prefill@example.com')
+            ->setFirstName('Oubli')
+            ->setLastName('Prefill')
+            ->setPhone('+22890000005')
+            ->setRoles(['ROLE_USER']);
+        $user->setPassword($passwordHasher->hashPassword($user, 'MotDePasse123'));
+        $em->persist($user);
+        $em->flush();
+
+        $crawler = $client->request('GET', '/mot-de-passe-oublie?email=oubli.prefill@example.com');
+        self::assertSelectorTextContains('body', 'oubli.prefill@example.com');
+        self::assertSelectorNotExists('input[name="email"][type="email"]');
+
+        $form = $crawler->selectButton('Confirmer l\'envoi')->form();
+        self::assertSame('oubli.prefill@example.com', $form->get('email')->getValue());
+        $client->submit($form);
+
+        self::assertSelectorTextContains('h1', 'Vérifiez votre boîte e-mail');
+    }
+
+    public function testLoginPageCarriesTypedEmailIntoForgotPasswordLink(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->purgeDatabase($em);
+
+        $client->request('GET', '/connexion?_username=deja.saisi@example.com');
+        // Le lien lui-même se construit côté JS à partir du champ ; ici on
+        // vérifie que le rendu initial (sans JS, via last_username) fonctionne
+        // aussi lorsqu'un précédent essai de connexion a laissé un username.
+        $passwordHasher = static::getContainer()->get('security.user_password_hasher');
+        $user = (new User())
+            ->setEmail('deja.saisi@example.com')
+            ->setFirstName('Deja')
+            ->setLastName('Saisi')
+            ->setPhone('+22890000006')
+            ->setRoles(['ROLE_USER']);
+        $user->setPassword($passwordHasher->hashPassword($user, 'MotDePasse123'));
+        $em->persist($user);
+        $em->flush();
+
+        $crawler = $client->request('GET', '/connexion');
+        $form = $crawler->selectButton('Se connecter')->form([
+            '_username' => 'deja.saisi@example.com',
+            '_password' => 'MauvaisMotDePasse',
+        ]);
+        $crawler = $client->submit($form);
+        $crawler = $client->followRedirect();
+
+        $href = $crawler->filter('#lien-mdp-oublie')->attr('href');
+        self::assertStringContainsString('email=deja.saisi%40example.com', $href);
+    }
+
     public function testRegistrationRejectsDuplicateEmail(): void
     {
         $client = static::createClient();

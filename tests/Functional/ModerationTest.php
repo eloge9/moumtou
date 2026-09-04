@@ -64,6 +64,45 @@ class ModerationTest extends FunctionalTestCase
         self::assertSame('publie', $project->getStatus()->value);
     }
 
+    public function testAdminCanPublishAllPendingProjectsAtOnce(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->purgeDatabase($em);
+
+        $author = $this->createUser($em, 'auteur-groupe@example.com', 'auteur-groupe');
+        $admin = $this->createUser($em, 'admin-groupe@example.com', 'admin-groupe');
+        $admin->setRoles(['ROLE_ADMIN']);
+
+        $projectIds = [];
+        for ($i = 1; $i <= 3; ++$i) {
+            $project = new Project();
+            $project->setName('Projet en attente '.$i);
+            $project->setType(ProjectType::PERSONNEL);
+            $project->setStatus(ProjectStatus::EN_ATTENTE);
+            $project->setSlug('projet-attente-'.$i);
+            $project->setOwner($author);
+            $em->persist($project);
+            $projectIds[] = $project;
+        }
+        $em->flush();
+        $projectIds = array_map(static fn (Project $p) => $p->getId(), $projectIds);
+
+        $client->loginUser($admin);
+
+        $crawler = $client->request('GET', '/admin/moderation');
+        $form = $crawler->selectButton('Tout publier (3)')->form();
+        $client->submit($form);
+        self::assertResponseRedirects('/admin/moderation');
+
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        foreach ($projectIds as $id) {
+            $project = $em->getRepository(Project::class)->find($id);
+            self::assertSame('publie', $project->getStatus()->value);
+        }
+        self::assertCount(3, $em->getRepository(\App\Entity\ModerationAction::class)->findAll());
+    }
+
     public function testAdminCanDecideOnAReportAndSuspendTheAuthor(): void
     {
         $client = static::createClient();

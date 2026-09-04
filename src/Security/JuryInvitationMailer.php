@@ -69,7 +69,7 @@ class JuryInvitationMailer
         $project = $defense->getProject();
 
         $email = (new TemplatedEmail())
-            ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+            ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
             ->to($juryMember->getEmail())
             ->subject('Invitation à confirmer une soutenance')
             ->htmlTemplate('emails/jury_invitation.html.twig')
@@ -100,7 +100,7 @@ class JuryInvitationMailer
             }
 
             $email = (new TemplatedEmail())
-                ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+                ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
                 ->to($juryMember->getEmail())
                 ->subject(sprintf('Soutenance %s — %s', $situation, $project->getName()))
                 ->htmlTemplate('emails/defense_cancelled_or_postponed.html.twig')

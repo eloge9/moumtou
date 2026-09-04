@@ -28,9 +28,9 @@
           <button class="m-btn m-btn--secondaire m-btn--sm mt-2" type="button" data-modale-ouvrir="modale-demande-etablissement">Mon établissement n'est pas dans la liste</button>
         </div>
         <div class="mb-4">
-          {{ form_label(form.professionalTitle, null, {label_attr: {class: 'm-label'}}) }}
-          {{ form_widget(form.professionalTitle, {attr: {class: 'm-input'}}) }}
-          {{ form_errors(form.professionalTitle) }}
+          {{ form_label(form.title, null, {label_attr: {class: 'm-label'}}) }}
+          {{ form_widget(form.title, {attr: {class: 'm-input'}}) }}
+          {{ form_errors(form.title) }}
         </div>
         <div class="d-flex justify-content-end gap-2">
           <button class="m-btn m-btn--primaire" type="submit">{{ alreadyTeacher ? 'Enregistrer' : 'Activer le rôle Enseignant' }}</button>

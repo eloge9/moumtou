@@ -178,6 +178,49 @@ class MultiRoleAndAccountDeletionTest extends FunctionalTestCase
         self::assertEqualsCanonicalizing(['ROLE_TALENT', 'ROLE_STUDENT', 'ROLE_TEACHER', 'ROLE_USER'], $refreshed->getRoles());
     }
 
+    /**
+     * Un enseignant peut avoir une fonction différente d'un établissement à
+     * l'autre (ex. Maître de conférences ici, vacataire ailleurs) : la
+     * fonction est propre à chaque rattachement, jamais un champ unique sur
+     * le compte.
+     */
+    public function testTeacherFunctionIsIndependentPerInstitution(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->purgeDatabase($em);
+
+        $institutionA = $this->anInstitution($em);
+        $institutionB = (new Institution())->setName('Institut Test B')->setCountry('Togo')->setCity('Kara')->setVerified(true);
+        $em->persist($institutionB);
+        $user = $this->createUser($em, 'teacher-multi-institution@example.com', 'teacher-multi-institution');
+        $em->flush();
+
+        $client->loginUser($user);
+        $crawler = $client->request('GET', '/devenir-enseignant');
+        $form = $crawler->selectButton('Activer le rôle Enseignant')->form([
+            'become_teacher[institution]' => (string) $institutionA->getId(),
+            'become_teacher[title]' => 'Maître de conférences',
+        ]);
+        $client->submit($form);
+        self::assertResponseRedirects('/mon-espace-enseignant');
+        $dashboardCrawler = $client->followRedirect();
+
+        $addInstitutionForm = $dashboardCrawler->filter('form[action="'.static::getContainer()->get('router')->generate('app_teacher_set_institution').'"]')->form([
+            'institution' => (string) $institutionB->getId(),
+            'title' => 'Vacataire',
+        ]);
+        $client->submit($addInstitutionForm);
+
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $attachments = $em->getRepository(\App\Entity\UserInstitution::class)->findBy(['user' => $user], ['id' => 'ASC']);
+        self::assertCount(2, $attachments);
+        self::assertSame('Maître de conférences', $attachments[0]->getTitle());
+        self::assertSame($institutionA->getId(), $attachments[0]->getInstitution()->getId());
+        self::assertSame('Vacataire', $attachments[1]->getTitle());
+        self::assertSame($institutionB->getId(), $attachments[1]->getInstitution()->getId());
+    }
+
     public function testAnonymousCannotAccessBecomeStudentOrTeacher(): void
     {
         $client = static::createClient();

@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes soutenances — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}{% include 'components/_header.html.twig' with {active_nav: 'soutenances'} %}{% endblock %}
+
+{% block body %}
+<section class="m-section">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+    <h1 style="font-size:24px">Mes soutenances</h1>
+    <a class="m-btn m-btn--secondaire" href="{{ path('app_publish_start') }}">Publier un nouveau projet de soutenance</a>
+  </div>
+  <p class="m-texte mb-4">Vous avez publié plusieurs projets de type « Soutenance ». Choisissez celle à gérer.</p>
+
+  <div class="d-grid gap-3">
+    {% for p in projects %}
+      {% set defense = p.defense %}
+      <a class="m-carte m-carte--plate p-3 d-flex align-items-center justify-content-between flex-wrap gap-2" href="{{ path('app_defense_manage_show', {id: p.id}) }}" style="text-decoration:none;color:inherit">
+        <div>
+          <p class="fw-bold mb-1" style="font-size:15px">{{ p.name }}</p>
+          {% if defense %}
+            <p class="m-meta mb-0">{{ defense.date|date('d F Y') }} · {{ defense.place }}</p>
+          {% else %}
+            <p class="m-meta mb-0">Pas encore annoncée</p>
+          {% endif %}
+        </div>
+        {% if defense %}
+          {% if defense.status.value == 'verifiee' %}<span class="m-tag m-tag--bleu">✅ Vérifiée</span>
+          {% elseif defense.status.value == 'realisee' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">Réalisée — {{ defense.validationCount }}/2</span>
+          {% elseif defense.status.value == 'reportee' %}<span class="m-tag" style="background:#FFF4E5;color:#B36B00">Reportée</span>
+          {% elseif defense.status.value == 'annulee' %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Annulée</span>
+          {% else %}<span class="m-tag">Annoncée</span>{% endif %}
+        {% else %}
+          <span class="m-tag">À annoncer</span>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

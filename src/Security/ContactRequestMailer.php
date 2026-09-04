@@ -23,7 +23,7 @@ class ContactRequestMailer
         $talent = $contactRequest->getTalent();
 
         $email = (new TemplatedEmail())
-            ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+            ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
             ->to($talent->getEmail())
             ->subject('Nouvelle demande de contact recruteur sur MOUMTOU')
             ->htmlTemplate('emails/contact_request_received.html.twig')
@@ -37,7 +37,7 @@ class ContactRequestMailer
         $recruiter = $contactRequest->getRecruiter();
 
         $email = (new TemplatedEmail())
-            ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+            ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
             ->to($recruiter->getEmail())
             ->subject('accepted' === $contactRequest->getStatus()->value ? 'Votre demande de contact a été acceptée' : 'Votre demande de contact a été refusée')
             ->htmlTemplate('emails/contact_request_decided.html.twig')

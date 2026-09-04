@@ -276,6 +276,51 @@ class DefenseResultTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', '17/20');
     }
 
+    /**
+     * Dès la validation finale (président/admin), le résultat devient
+     * visible par défaut sur la page publique — le candidat garde la main
+     * pour le masquer ensuite (ex. en cas d'échec), mais n'a plus besoin de
+     * l'activer lui-même pour un résultat simplement réussi.
+     */
+    public function testResultBecomesPubliclyVisibleByDefaultOnceValidated(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->purgeDatabase($em);
+
+        $owner = $this->makeUser($em, 'owner.result7@example.com', ['ROLE_TALENT'], 'owner-result7');
+        $president = $this->makeUser($em, 'president.result7@example.com', ['ROLE_TEACHER'], 'president-result7');
+        $rapporteur = $this->makeUser($em, 'rapporteur.result7@example.com', ['ROLE_TEACHER'], 'rapporteur-result7');
+        [$project, $defense] = $this->makeRealizedDefenseWithTwoConfirmedJurors($em, $owner, $president, $rapporteur, 'projet-resultat-7');
+        $defenseId = $defense->getId();
+
+        $client->loginUser($rapporteur);
+        $crawler = $client->request('GET', '/mon-espace-enseignant');
+        $token = $crawler->filter('form[action="/soutenances/'.$defenseId.'/resultat"] input[name="_csrf_token"]')->attr('value');
+        $client->request('POST', '/soutenances/'.$defenseId.'/resultat', ['grade' => '18', 'status' => 'reussie', 'appreciation' => 'Excellent travail.', '_csrf_token' => $token]);
+
+        // Toujours masqué avant validation (comportement inchangé).
+        $client->request('GET', '/soutenances/projet-resultat-7');
+        self::assertSelectorTextNotContains('body', '18/20');
+
+        $client->loginUser($president);
+        $crawler = $client->request('GET', '/mon-espace-enseignant');
+        $token = $crawler->filter('form[action="/soutenances/'.$defenseId.'/resultat/valider"] input[name="_csrf_token"]')->attr('value');
+        $client->request('POST', '/soutenances/'.$defenseId.'/resultat/valider', ['_csrf_token' => $token]);
+        self::assertResponseRedirects();
+
+        // Visible sans que le candidat n'ait rien eu à activer.
+        $client->request('GET', '/soutenances/projet-resultat-7');
+        self::assertSelectorTextContains('body', '18/20');
+        self::assertSelectorTextContains('body', 'Excellent travail.');
+
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $result = $em->getRepository(Defense::class)->find($defenseId)->getAcademicResult();
+        self::assertTrue($result->isResultVisible());
+        self::assertTrue($result->isGradeVisible());
+        self::assertTrue($result->isAppreciationVisible());
+    }
+
     public function testPublicDefensePageIsAccessibleWithoutLoginAndListsJury(): void
     {
         $client = static::createClient();

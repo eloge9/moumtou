@@ -129,6 +129,15 @@ Aucun système de tâches planifiées n'existe déjà dans MOUMTOU (pas de Symfo
 
 # Mensuel le 1er du mois à 4h
 0 4 1 * *  cd /chemin/vers/moumtou && php bin/console app:backup:full monthly >> var/log/backup.log 2>&1
+
+# Rappels de soutenance à venir, quotidien à 8h
+0 8 * * *  cd /chemin/vers/moumtou && php bin/console app:defense:send-reminders
+
+# Fait passer les soutenances passées de "annoncée" à "réalisée", quotidien à 0h30
+# (en complément : la même transition a aussi lieu immédiatement dès que le
+# candidat consulte "Ma soutenance", même sans cette tâche planifiée — voir
+# App\Controller\DefenseController::manage())
+30 0 * * *  cd /chemin/vers/moumtou && php bin/console app:defense:mark-past-realized
 ```
 
 Sous Windows (Planificateur de tâches), créer une tâche exécutant `php.exe bin\console app:backup:full daily` avec les mêmes horaires.

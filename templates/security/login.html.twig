@@ -33,7 +33,7 @@
           <input class="m-input" type="password" id="password" name="_password" autocomplete="current-password" required>
         </div>
 
-        <p class="m-meta mb-4"><a href="{{ path('app_forgot_password') }}">Mot de passe oublié ?</a></p>
+        <p class="m-meta mb-4"><a id="lien-mdp-oublie" href="{{ path('app_forgot_password') }}{{ last_username ? '?email=' ~ last_username|url_encode : '' }}">Mot de passe oublié ?</a></p>
 
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
         <button class="m-btn m-btn--primaire m-btn--bloc m-btn--lg" type="submit">Se connecter</button>
@@ -56,4 +56,16 @@
     </p>
   </div>
 </section>
+
+<script>
+  (function () {
+    var champEmail = document.getElementById('username');
+    var lienMdpOublie = document.getElementById('lien-mdp-oublie');
+    if (!champEmail || !lienMdpOublie) { return; }
+    var baseHref = '{{ path('app_forgot_password') }}';
+    champEmail.addEventListener('input', function () {
+      lienMdpOublie.href = champEmail.value ? baseHref + '?email=' + encodeURIComponent(champEmail.value) : baseHref;
+    });
+  })();
+</script>
 {% endblock %}

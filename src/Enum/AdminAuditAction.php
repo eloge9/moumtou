@@ -62,6 +62,7 @@ enum AdminAuditAction: string
     case SKILL_DELETED = 'skill_deleted';
 
     case DEFENSE_RESULT_VALIDATED = 'defense_result_validated';
+    case DEFENSE_VERIFIED_BY_ADMIN = 'defense_verified_by_admin';
 
     case USER_ROLE_CHANGED = 'user_role_changed';
     case USER_DELETED = 'user_deleted';
@@ -119,6 +120,7 @@ enum AdminAuditAction: string
             self::SKILL_CREATED => 'Compétence créée',
             self::SKILL_DELETED => 'Compétence supprimée',
             self::DEFENSE_RESULT_VALIDATED => 'Résultat de soutenance validé (admin)',
+            self::DEFENSE_VERIFIED_BY_ADMIN => 'Soutenance vérifiée directement par un administrateur',
             self::USER_ROLE_CHANGED => 'Rôle utilisateur modifié',
             self::USER_DELETED => 'Compte utilisateur supprimé définitivement',
             self::PROFILE_VERIFIED => 'Profil vérifié',

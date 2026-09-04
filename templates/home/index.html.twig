@@ -48,14 +48,14 @@
   <div class="row g-3 mt-3">
     {% for project in recentVerifiedProjects %}
       <div class="col-lg-4">
-        <article class="m-carte h-100">
+        <a class="m-carte m-carte--lien h-100" href="{{ path('app_project_show', {slug: project.slug}) }}">
           <div class="m-media m-media--h150">
             <span class="m-media__etiquette">visuel du projet</span>
             <span class="m-badge m-badge--type">{{ project.typeLabel }}</span>
           </div>
           <div class="m-carte__corps">
             <span class="m-statut{{ project.verified ? '' : ' m-statut--publie' }}">{{ project.verified ? 'Vérifié par le jury' : 'Publié · preuves fournies' }}</span>
-            <h3 class="m-carte__titre mt-2"><a href="{{ path('app_project_show', {slug: project.slug}) }}">{{ project.name }}</a></h3>
+            <h3 class="m-carte__titre mt-2">{{ project.name }}</h3>
             <p class="m-meta mt-1 mb-0">{{ project.authorName }} · {{ project.contextLabel }}</p>
             <div class="m-tags mt-3">
               {% for tech in project.technologies %}<span class="m-tag">{{ tech }}</span>{% endfor %}
@@ -65,7 +65,7 @@
               <span>{{ project.proofLabels|join(' · ') }}</span>
             </div>
           </div>
-        </article>
+        </a>
       </div>
     {% else %}
       <div class="col-12">

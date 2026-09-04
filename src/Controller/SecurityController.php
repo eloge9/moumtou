@@ -61,7 +61,9 @@ class SecurityController extends AbstractController
             return $this->render('security/forgot_password_sent.html.twig', ['devSignedUrl' => $devSignedUrl]);
         }
 
-        return $this->render('security/forgot_password.html.twig');
+        return $this->render('security/forgot_password.html.twig', [
+            'prefillEmail' => trim((string) $request->query->get('email')) ?: null,
+        ]);
     }
 
     #[Route('/reinitialiser-mot-de-passe', name: 'app_reset_password')]

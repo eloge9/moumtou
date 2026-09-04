@@ -46,7 +46,11 @@
         </div>
       </div>
       <div class="m-menu" data-menu>
-        <button class="m-btn m-btn--lien" type="button" data-menu-bouton>{{ app.user.firstName }} ▾</button>
+        <button class="m-btn m-btn--lien p-0" type="button" data-menu-bouton aria-label="Menu de {{ app.user.firstName }}">
+          <span class="m-avatar d-flex align-items-center justify-content-center" style="{% if app.user.photo %}background-image:url('{{ asset(app.user.photo) }}');background-size:cover;background-position:center{% endif %}">
+            {% if not app.user.photo %}<span class="fw-bold" style="font-size:13px;color:var(--m-gris)">{{ app.user.firstName|slice(0, 1)|upper }}</span>{% endif %}
+          </span>
+        </button>
         <div class="m-menu__liste">
           {# Un compte peut cumuler plusieurs rôles (multi-rôle) : chaque
              section reste indépendante, pas de "elseif" qui masquerait les

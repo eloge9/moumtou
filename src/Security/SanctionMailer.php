@@ -23,7 +23,7 @@ class SanctionMailer
         $user = $sanction->getUser();
 
         $email = (new TemplatedEmail())
-            ->from(new Address('contact@moumtou.com', 'MOUMTOU'))
+            ->from(new Address('elogegomina@gmail.com', 'MOUMTOU'))
             ->to($user->getEmail())
             ->subject(match ($sanction->getType()->value) {
                 'avertissement' => 'Avertissement concernant votre compte MOUMTOU',

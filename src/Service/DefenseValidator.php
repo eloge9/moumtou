@@ -72,6 +72,29 @@ class DefenseValidator
             return;
         }
 
+        $this->markVerified($defense, 'Votre soutenance pour "%s" a été vérifiée par le jury.');
+    }
+
+    /**
+     * Vérification directe par un administrateur (cahier — gestion des
+     * soutenances §25 : « Admin peut consulter/modérer toutes les
+     * soutenances »), sans attendre les 2 confirmations du jury — réservée
+     * aux cas où le jury ne peut/ne va pas confirmer lui-même (ex. jury
+     * externe non inscrit, soutenance ancienne). Toujours journalisée
+     * ({@see \App\Enum\AdminAuditAction::DEFENSE_VERIFIED_BY_ADMIN}) par
+     * l'appelant, jamais silencieuse.
+     */
+    public function forceVerifyByAdmin(Defense $defense): void
+    {
+        if (DefenseStatus::VERIFIEE === $defense->getStatus()) {
+            return;
+        }
+
+        $this->markVerified($defense, 'Votre soutenance pour "%s" a été vérifiée par l\'administration.');
+    }
+
+    private function markVerified(Defense $defense, string $notificationMessageTemplate): void
+    {
         $defense->setStatus(DefenseStatus::VERIFIEE);
         $defense->setVerifiedAt(new \DateTimeImmutable());
         $project = $defense->getProject();
@@ -83,7 +106,7 @@ class DefenseValidator
             $project->getOwner(),
             NotificationType::DEFENSE_VERIFIED,
             'Soutenance vérifiée',
-            \sprintf('Votre soutenance pour "%s" a été vérifiée par le jury.', $project->getName()),
+            \sprintf($notificationMessageTemplate, $project->getName()),
             $this->urlGenerator->generate('app_defense_manage'),
         );
     }

@@ -48,7 +48,14 @@ class DefenseResult
     #[ORM\Column(enumType: DefenseDecision::class)]
     private DefenseDecision $decision = DefenseDecision::EN_ATTENTE;
 
-    /** Confidentialité (cahier des charges §23) : masqué au public par défaut. */
+    /**
+     * Confidentialité (cahier des charges §23) : masqué au public tant que
+     * le résultat n'est pas définitif (brouillon du jury). Passe
+     * automatiquement à `true` dès la validation finale
+     * ({@see \App\Controller\DefenseResultController::validate()}) — le
+     * candidat garde la main et peut le redécocher ensuite (ex. en cas
+     * d'échec, depuis « Ma soutenance »).
+     */
     #[ORM\Column]
     private bool $resultVisible = false;
 

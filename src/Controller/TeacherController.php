@@ -82,6 +82,11 @@ class TeacherController extends AbstractController
             return $this->redirectToRoute('app_teacher_dashboard');
         }
 
+        // La fonction/le rôle peut différer d'un établissement à l'autre
+        // (ex. Maître de conférences ici, vacataire ailleurs) — propre à ce
+        // rattachement, jamais au compte dans son ensemble.
+        $title = trim((string) $request->request->get('title')) ?: null;
+
         $existing = $em->getRepository(UserInstitution::class)->findOneBy([
             'user' => $teacher,
             'institution' => $institution,
@@ -90,11 +95,13 @@ class TeacherController extends AbstractController
 
         if ($existing) {
             $existing->setActive(true);
-            $this->addFlash('erreur', 'Vous êtes déjà rattaché à cet établissement.');
+            $existing->setTitle($title);
+            $this->addFlash('erreur', 'Vous êtes déjà rattaché à cet établissement. Sa fonction a été mise à jour.');
         } else {
             $attachment = new UserInstitution();
             $attachment->setInstitution($institution);
             $attachment->setContext(InstitutionContext::ENSEIGNANT);
+            $attachment->setTitle($title);
             $teacher->addInstitutionAttachment($attachment);
             $em->persist($attachment);
             $this->addFlash('succes', 'Établissement ajouté à vos rattachements.');

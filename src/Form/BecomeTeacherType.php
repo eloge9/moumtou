@@ -15,8 +15,11 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 /**
  * Formulaire dédié « devenir enseignant » (multi-rôles §15) : l'établissement
  * est obligatoire (le rattachement enseignant existant, §5/§9 gestion des
- * établissements, réutilisé tel quel) ; la fonction reprend le champ
- * `professionalTitle` déjà présent sur {@see User}, sans le dupliquer.
+ * établissements, réutilisé tel quel). La fonction est propre à CET
+ * établissement (un enseignant peut avoir un rôle différent d'un
+ * établissement à l'autre) : non mappée sur {@see User}, elle est reportée
+ * sur le rattachement {@see \App\Entity\UserInstitution} créé par le
+ * contrôleur, jamais sur le champ générique `professionalTitle`.
  */
 class BecomeTeacherType extends AbstractType
 {
@@ -32,8 +35,9 @@ class BecomeTeacherType extends AbstractType
                 'query_builder' => fn ($repository) => $repository->createQueryBuilder('i')
                     ->andWhere('i.active = true')->orderBy('i.name', 'ASC'),
             ])
-            ->add('professionalTitle', TextType::class, [
-                'label' => 'Fonction',
+            ->add('title', TextType::class, [
+                'label' => 'Fonction à cet établissement',
+                'mapped' => false,
                 'required' => false,
                 'attr' => ['placeholder' => 'Ex. : Maître de conférences'],
                 'constraints' => [new Length(max: 120, maxMessage: 'La fonction ne doit pas dépasser {{ limit }} caractères.')],
