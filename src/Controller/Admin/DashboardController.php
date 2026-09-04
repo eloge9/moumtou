@@ -15,6 +15,7 @@ use App\Enum\DefenseStatus;
 use App\Enum\ProjectStatus;
 use App\Enum\ReportStatus;
 use App\Repository\AnalyticsEventRepository;
+use App\Repository\ErrorLogRepository;
 use App\Repository\UserRepository;
 use App\Repository\VerificationRequestRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,7 +28,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class DashboardController extends AbstractController
 {
     #[Route('/admin', name: 'admin_dashboard')]
-    public function index(EntityManagerInterface $em, AnalyticsEventRepository $analyticsEventRepository, VerificationRequestRepository $verificationRequestRepository): Response
+    public function index(EntityManagerInterface $em, AnalyticsEventRepository $analyticsEventRepository, VerificationRequestRepository $verificationRequestRepository, ErrorLogRepository $errorLogRepository): Response
     {
         $userRepo = $em->getRepository(User::class);
         $projectRepo = $em->getRepository(Project::class);
@@ -61,6 +62,7 @@ class DashboardController extends AbstractController
             'commentsCount' => $em->getRepository(Comment::class)->count([]),
             'ratingsCount' => $em->getRepository(Rating::class)->count([]),
             'openReportsCount' => $em->getRepository(Report::class)->count(['status' => ReportStatus::OUVERT]),
+            'criticalErrorsCount' => $errorLogRepository->summary()['critical24h'],
             'totalViews' => $globalAnalytics['totalViews'],
             'uniqueViews' => $globalAnalytics['uniqueViews'],
             'sharesCount' => $globalAnalytics['shares'],

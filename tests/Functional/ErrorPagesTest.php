@@ -48,4 +48,27 @@ class ErrorPagesTest extends FunctionalTestCase
         self::assertResponseStatusCodeSame(404);
         self::assertSelectorTextContains('h1', 'introuvable');
     }
+
+    /**
+     * Une vraie exception non gérée (5xx) ne doit jamais exposer de trace
+     * technique — seule une page claire avec une référence de corrélation
+     * doit apparaître (cahier des charges — FONCTIONNALITÉ 18 §38).
+     */
+    public function testUnhandledServerErrorShowsCleanPageWithRequestIdInsteadOfStackTrace(): void
+    {
+        $client = static::createClient(['debug' => false]);
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->purgeDatabase($em);
+
+        $client->request('GET', '/_test/throw-error');
+
+        self::assertResponseStatusCodeSame(500);
+        $content = $client->getResponse()->getContent();
+        self::assertSelectorTextContains('h1', 'erreur');
+        self::assertStringNotContainsString('RuntimeException', $content);
+        self::assertStringNotContainsString('Erreur de test déclenchée volontairement', $content);
+        self::assertStringNotContainsString('Stack trace', $content);
+        self::assertStringNotContainsString('TestErrorController.php', $content);
+        self::assertMatchesRegularExpression('/Référence\s*:\s*(<strong>)?[0-9A-F]{16}/u', $content);
+    }
 }

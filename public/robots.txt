@@ -12,6 +12,10 @@ Disallow: /verifier-email
 Disallow: /mot-de-passe-oublie
 Disallow: /reinitialiser-mot-de-passe
 Disallow: /notifications
+Disallow: /health
+Disallow: /bienvenue
+Disallow: /devenir-etudiant
+Disallow: /devenir-enseignant
 Allow: /
 
 Sitemap: /sitemap.xml

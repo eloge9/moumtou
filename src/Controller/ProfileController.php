@@ -175,6 +175,8 @@ class ProfileController extends AbstractController
                 $this->syncInstitutionAttachment($user, $em);
             }
 
+            $user->setProfileCompleted(true);
+
             $em->flush();
 
             $this->addFlash('succes', 'Votre profil a été mis à jour.');

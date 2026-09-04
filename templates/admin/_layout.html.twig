@@ -30,12 +30,17 @@
     <p class="m-admin__groupe">Traçabilité</p>
     <a class="m-admin__lien{{ adminNav|default('') == 'journal' ? ' is-active' : '' }}" href="{{ path('admin_journal') }}">Journal d'administration</a>
     <a class="m-admin__lien{{ adminNav|default('') == 'backups' ? ' is-active' : '' }}" href="{{ path('admin_backups') }}">Sauvegardes</a>
+    <a class="m-admin__lien{{ adminNav|default('') == 'monitoring' ? ' is-active' : '' }}" href="{{ path('admin_monitoring') }}">Monitoring {% if stats is defined and stats.criticalErrorsCount is defined and stats.criticalErrorsCount > 0 %}<span class="m-admin__compteur m-admin__compteur--alerte">{{ stats.criticalErrorsCount }}</span>{% endif %}</a>
   </aside>
 
   <div class="m-admin__contenu">
     <header class="m-admin__header">
       <span class="fw-bold" style="font-size:16px">{% block admin_title %}Administration{% endblock %}</span>
-      <span class="m-avatar ms-auto"></span>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('app_home') }}">Interface utilisateur</a>
+        <a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('app_logout') }}">Déconnexion</a>
+        <span class="m-avatar"></span>
+      </div>
     </header>
 
     <div class="p-4">

@@ -46,7 +46,9 @@ class AppFixtures extends Fixture
         $admin->setLastName('MOUMTOU');
         $admin->setPhone('+22890000000');
         $admin->setSlug('admin-moumtou');
-        $admin->setRoles(['ROLE_ADMIN']);
+        // TALENT reste le rôle de base de tout compte, y compris admin
+        // (inscription/rôles multiples, règle 5/21) — purement additif.
+        $admin->setRoles(['ROLE_ADMIN', 'ROLE_TALENT']);
         $admin->setStatus(UserStatus::ACTIF);
         $admin->setEmailVerified(true);
         $admin->setPassword($this->passwordHasher->hashPassword($admin, 'AdminMoumtou123'));

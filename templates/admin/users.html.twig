@@ -15,6 +15,7 @@
       <select class="m-select" name="role">
         <option value="">Tous</option>
         <option value="ROLE_TALENT" {{ role == 'ROLE_TALENT' ? 'selected' }}>Talent</option>
+        <option value="ROLE_STUDENT" {{ role == 'ROLE_STUDENT' ? 'selected' }}>Étudiant</option>
         <option value="ROLE_TEACHER" {{ role == 'ROLE_TEACHER' ? 'selected' }}>Enseignant</option>
         <option value="ROLE_RECRUITER" {{ role == 'ROLE_RECRUITER' ? 'selected' }}>Recruteur</option>
         <option value="ROLE_ADMIN" {{ role == 'ROLE_ADMIN' ? 'selected' }}>Administrateur</option>
@@ -73,9 +74,10 @@
                       <button class="m-btn m-btn--secondaire m-btn--sm" type="submit" onclick="this.form['action'].value='reactiver'">Réactiver</button>
                     {% endif %}
                   </form>
+                  <a class="m-btn m-btn--sm" style="color:#B3261E" href="{{ path('admin_user_show', {id: user.id}) }}#suppression-definitive">Supprimer…</a>
                 </div>
               {% else %}
-                <span class="m-meta">Compte supprimé par son titulaire</span>
+                <span class="m-meta">Compte supprimé</span>
               {% endif %}
             </td>
           </tr>

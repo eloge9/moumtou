@@ -116,6 +116,27 @@
         <p class="m-meta mb-0">Vous ne pouvez pas modifier vos propres droits d'administration.</p>
       </div>
     {% endif %}
+
+    {% if user.status.value != 'supprime' %}
+      <div class="m-carte m-carte--plate p-3 mt-3" id="suppression-definitive" style="border-color:#F5C6C2">
+        <p class="m-surtitre mb-2" style="color:#B3261E">Supprimer définitivement le compte</p>
+        {% if app.user == user %}
+          <p class="m-meta mb-0">Vous ne pouvez pas supprimer votre propre compte depuis cette interface.</p>
+        {% else %}
+          <p class="m-meta mb-2">
+            Cette action est irréversible. Le compte utilisateur sera définitivement supprimé de MOUMTOU selon la politique de conservation des données : informations personnelles effacées, connexion impossible. Les projets déjà publiés et l'historique (soutenances, jury, sanctions) restent intègres, affichés sous « Compte supprimé ».
+          </p>
+          <form method="post" action="{{ path('admin_users_delete', {id: user.id}) }}" data-confirmation-suppression>
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('supprimer-definitivement-' ~ user.id) }}">
+            <label class="m-label" for="motif-suppression">Motif</label>
+            <textarea class="m-textarea mb-2" id="motif-suppression" name="reason" placeholder="Motif de la suppression"></textarea>
+            <label class="m-label" for="confirmation-suppression">Tapez <strong>SUPPRIMER</strong> pour confirmer</label>
+            <input class="m-input mb-2" type="text" id="confirmation-suppression" name="confirmation" autocomplete="off" required>
+            <button class="m-btn m-btn--sm" style="background:#FDECEA;color:#B3261E;border:1px solid #F5C6C2" type="submit">Je comprends, supprimer définitivement</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

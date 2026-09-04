@@ -43,6 +43,7 @@ enum NotificationType: string
     case REPORT_RECEIVED = 'report_received';
 
     case BACKUP_FAILED = 'backup_failed';
+    case CRITICAL_ERROR = 'critical_error';
 
     public function label(): string
     {
@@ -74,6 +75,7 @@ enum NotificationType: string
             self::ACCOUNT_BANNED => 'Compte banni',
             self::REPORT_RECEIVED => 'Nouveau signalement',
             self::BACKUP_FAILED => 'Échec d\'une sauvegarde',
+            self::CRITICAL_ERROR => 'Erreur critique détectée',
         };
     }
 
@@ -96,6 +98,7 @@ enum NotificationType: string
             self::ACCOUNT_WARNED, self::ACCOUNT_SUSPENDED, self::ACCOUNT_BANNED => '🔒',
             self::REPORT_RECEIVED => '🚩',
             self::BACKUP_FAILED => '🛑',
+            self::CRITICAL_ERROR => '🔥',
         };
     }
 
@@ -113,6 +116,7 @@ enum NotificationType: string
             // toujours envoyés, jamais désactivables — un échec de
             // sauvegarde ne doit jamais passer inaperçu.
             self::BACKUP_FAILED => NotificationCategory::SECURITE,
+            self::CRITICAL_ERROR => NotificationCategory::SECURITE,
         };
     }
 }

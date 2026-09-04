@@ -179,6 +179,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(enumType: UserStatus::class)]
     private UserStatus $status = UserStatus::ACTIF;
 
+    /**
+     * Complétion du profil de base après inscription (inscription/rôles
+     * multiples §5/§7/§8) : mis à `true` dès le premier enregistrement
+     * réussi de « Modifier mon profil ». Sert uniquement à afficher l'invite
+     * de bienvenue, jamais à bloquer l'accès (§8 : pas de boucle de
+     * redirection).
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $profileCompleted = false;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -672,6 +682,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function isProfileCompleted(): bool
+    {
+        return $this->profileCompleted;
+    }
+
+    public function setProfileCompleted(bool $profileCompleted): static
+    {
+        $this->profileCompleted = $profileCompleted;
+
+        return $this;
     }
 
     /** @return Collection<int, Skill> */

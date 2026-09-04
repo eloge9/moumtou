@@ -20,6 +20,11 @@ framework:
             # charges — FONCTIONNALITÉ 17 §15) : domaines, mentions,
             # spécialités, technologies, pays des établissements.
             cache.reference_data: null
+            # Anti-tempête d'alertes (cahier des charges — FONCTIONNALITÉ 18
+            # §34) : une clé par "signature" d'erreur critique, avec TTL —
+            # tant qu'une entrée existe, aucune nouvelle alerte n'est envoyée
+            # pour la même erreur.
+            cache.error_alerts: null
 
 when@test:
     framework:
@@ -28,11 +33,13 @@ when@test:
             # repartir de zéro à chaque exécution de la suite de tests, sinon des
             # exécutions répétées dans la même heure peuvent déclencher le
             # plafond entre deux lancements distincts de PHPUnit. Même
-            # raisonnement pour le cache de données de référence : sans
-            # cela, un test purgeant/recréant des domaines/technologies
-            # verrait une liste périmée provenant d'une exécution précédente.
+            # raisonnement pour le cache de données de référence et le
+            # cooldown des alertes : sans cela, un test verrait un état
+            # périmé provenant d'une exécution précédente.
             pools:
                 cache.rate_limiter:
                     adapter: cache.adapter.array
                 cache.reference_data:
+                    adapter: cache.adapter.array
+                cache.error_alerts:
                     adapter: cache.adapter.array

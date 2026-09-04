@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_form_macros.html.twig' as forms %}
+
+{% block title %}{{ alreadyStudent ? 'Mes informations d\'étudiant' : 'Devenir étudiant' }} — MOUMTOU{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
+
+{% block header %}
+  {% include 'components/_header_minimal.html.twig' with {context_label: alreadyStudent ? 'Mes informations d\'étudiant' : 'Devenir étudiant'} %}
+{% endblock %}
+
+{% block body %}
+<section class="m-section d-flex justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <h1 class="mb-1" style="font-size:26px">{{ alreadyStudent ? 'Mes informations d\'étudiant' : 'Devenir étudiant sur MOUMTOU' }}</h1>
+    <p class="m-texte mb-4">
+      {% if alreadyStudent %}
+        Ces informations apparaissent sur votre profil public.
+      {% else %}
+        Renseignez votre établissement et votre cursus pour activer le rôle Étudiant — votre compte conserve tous ses autres rôles.
+      {% endif %}
+    </p>
+    <div class="m-carte m-carte--plate p-4">
+      {{ form_start(form, {attr: {novalidate: 'novalidate'}}) }}
+        <div class="mb-3">
+          {{ forms.label(form.institution, 'Établissement', true) }}
+          {{ form_widget(form.institution, {attr: {class: 'm-select'}}) }}
+          {{ form_errors(form.institution) }}
+          <button class="m-btn m-btn--secondaire m-btn--sm mt-2" type="button" data-modale-ouvrir="modale-demande-etablissement">Mon établissement n'est pas dans la liste</button>
+        </div>
+        <div class="mb-3">
+          {{ forms.label(form.domain, 'Domaine', true) }}
+          {{ form_widget(form.domain, {attr: {class: 'm-select'}}) }}
+          {{ form_errors(form.domain) }}
+        </div>
+        <div class="mb-3">
+          {{ forms.label(form.mention, 'Mention', true) }}
+          {{ form_widget(form.mention, {attr: {class: 'm-select'}}) }}
+          {{ form_errors(form.mention) }}
+        </div>
+        <div class="mb-4">
+          {{ forms.label(form.specialty, 'Spécialité', true) }}
+          {{ form_widget(form.specialty, {attr: {class: 'm-select'}}) }}
+          {{ form_errors(form.specialty) }}
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+          <button class="m-btn m-btn--primaire" type="submit">{{ alreadyStudent ? 'Enregistrer' : 'Activer le rôle Étudiant' }}</button>
+        </div>
+      {{ form_end(form) }}
+    </div>
+  </div>
+</section>
+
+{% block modals %}
+  {% include 'components/_institution_request_modal.html.twig' with {redirect_path: path('app_become_student')} %}
+{% endblock %}
+{% endblock %}

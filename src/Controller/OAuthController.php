@@ -113,6 +113,7 @@ class OAuthController extends AbstractController
             }
         }
 
+        $isNewUser = false;
         if (!$user) {
             if (!$mapped['email']) {
                 $this->addFlash('erreur', sprintf('%s n\'a pas transmis d\'adresse e-mail : impossible de créer le compte.', $config->label));
@@ -120,6 +121,7 @@ class OAuthController extends AbstractController
                 return $this->redirectToRoute('app_login');
             }
 
+            $isNewUser = true;
             $user = new User();
             $user->setEmail($mapped['email']);
             $user->setFirstName($mapped['firstName']);
@@ -144,7 +146,9 @@ class OAuthController extends AbstractController
 
         $security->login($user, 'form_login', 'main');
 
-        return $this->redirectToRoute('app_home');
+        // Première inscription via un fournisseur externe : même invite de
+        // bienvenue/complétion de profil que l'inscription classique (§3/§5).
+        return $this->redirectToRoute($isNewUser ? 'app_welcome' : 'app_home');
     }
 
     /**

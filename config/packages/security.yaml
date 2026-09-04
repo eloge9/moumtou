@@ -42,6 +42,11 @@ security:
         # avant la règle générale ci-dessous qui protège le reste de l'espace.
         - { path: ^/recruteur/profil$, roles: ROLE_USER }
         - { path: ^/recruteur, roles: ROLE_RECRUITER }
+        # Parcours self-service d'ajout de rôle (inscription/rôles multiples
+        # §11/§13/§15), même principe que /recruteur/profil ci-dessus.
+        - { path: ^/devenir-etudiant, roles: ROLE_USER }
+        - { path: ^/devenir-enseignant, roles: ROLE_USER }
+        - { path: ^/bienvenue, roles: ROLE_USER }
         - { path: ^/publier, roles: ROLE_TALENT }
         - { path: ^/ma-soutenance, roles: [ROLE_TALENT, ROLE_ADMIN] }
         - { path: ^/projets/[^/]+/(modifier|supprimer)$, roles: ROLE_TALENT }

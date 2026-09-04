@@ -4,7 +4,11 @@ namespace App\Controller;
 
 use App\Entity\RecruiterProfile;
 use App\Entity\User;
+use App\Entity\UserInstitution;
+use App\Enum\InstitutionContext;
 use App\Enum\UserStatus;
+use App\Form\BecomeStudentType;
+use App\Form\BecomeTeacherType;
 use App\Form\RecruiterProfileType;
 use App\Service\RecruiterLogoUploader;
 use Doctrine\ORM\EntityManagerInterface;
@@ -106,6 +110,7 @@ class AccountController extends AbstractController
                 $roles = $user->getRoles();
                 $roles[] = 'ROLE_RECRUITER';
                 $user->setRoles($roles);
+                $user->setProfileCompleted(true);
             }
 
             $em->flush();
@@ -128,6 +133,121 @@ class AccountController extends AbstractController
             'form' => $form,
             'isNewRecruiter' => $isNewRecruiter,
         ]);
+    }
+
+    /**
+     * Parcours « devenir étudiant » (inscription/rôles multiples §13/§14) :
+     * établissement/domaine/mention/spécialité sont obligatoires ici — le
+     * rôle ÉTUDIANT n'est accordé qu'une fois ce formulaire validé (règle 6),
+     * jamais avant (règle 7).
+     */
+    #[Route('/devenir-etudiant', name: 'app_become_student')]
+    public function becomeStudent(Request $request, EntityManagerInterface $em, Security $security): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $alreadyStudent = \in_array('ROLE_STUDENT', $user->getRoles(), true);
+
+        $form = $this->createForm(BecomeStudentType::class, $user);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->syncInstitutionAttachment($user, $em, InstitutionContext::ETUDIANT);
+
+            if (!$alreadyStudent) {
+                $roles = $user->getRoles();
+                $roles[] = 'ROLE_STUDENT';
+                $user->setRoles($roles);
+                $user->setProfileCompleted(true);
+            }
+
+            $em->flush();
+
+            if (!$alreadyStudent) {
+                // Même raison que pour le recruteur ci-dessus : le jeton de
+                // sécurité en session doit refléter le nouveau rôle
+                // immédiatement, sans attendre une reconnexion.
+                $security->login($user, 'form_login', 'main');
+            }
+
+            $this->addFlash('succes', $alreadyStudent ? 'Vos informations d\'étudiant ont été mises à jour.' : 'Le rôle Étudiant a été ajouté à votre compte.');
+
+            return $this->redirectToRoute('app_profile_show', ['slug' => $user->getSlug()]);
+        }
+
+        return $this->render('account/become_student.html.twig', [
+            'form' => $form,
+            'alreadyStudent' => $alreadyStudent,
+        ]);
+    }
+
+    /**
+     * Parcours « devenir enseignant » (inscription/rôles multiples §15),
+     * jusqu'ici uniquement accessible via le choix fait à l'inscription :
+     * tout compte TALENT peut désormais aussi demander ce rôle plus tard
+     * (règle 4/règle 6 — établissement obligatoire, formulaire dédié).
+     */
+    #[Route('/devenir-enseignant', name: 'app_become_teacher')]
+    public function becomeTeacher(Request $request, EntityManagerInterface $em, Security $security): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $alreadyTeacher = \in_array('ROLE_TEACHER', $user->getRoles(), true);
+
+        $form = $this->createForm(BecomeTeacherType::class, $user);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->syncInstitutionAttachment($user, $em, InstitutionContext::ENSEIGNANT);
+
+            if (!$alreadyTeacher) {
+                $roles = $user->getRoles();
+                $roles[] = 'ROLE_TEACHER';
+                $user->setRoles($roles);
+                $user->setProfileCompleted(true);
+            }
+
+            $em->flush();
+
+            if (!$alreadyTeacher) {
+                $security->login($user, 'form_login', 'main');
+            }
+
+            $this->addFlash('succes', $alreadyTeacher ? 'Vos informations d\'enseignant ont été mises à jour.' : 'Le rôle Enseignant a été ajouté à votre compte.');
+
+            return $this->redirectToRoute('app_teacher_dashboard');
+        }
+
+        return $this->render('account/become_teacher.html.twig', [
+            'form' => $form,
+            'alreadyTeacher' => $alreadyTeacher,
+        ]);
+    }
+
+    /**
+     * Alimente la table de rattachement multi-établissement, sur le même
+     * principe que {@see \App\Controller\ProfileController} — sans doublon
+     * pour un même (utilisateur, établissement, contexte).
+     */
+    private function syncInstitutionAttachment(User $user, EntityManagerInterface $em, InstitutionContext $context): void
+    {
+        $existing = $em->getRepository(UserInstitution::class)->findOneBy([
+            'user' => $user,
+            'institution' => $user->getInstitution(),
+            'context' => $context,
+        ]);
+
+        if ($existing) {
+            $existing->setActive(true);
+
+            return;
+        }
+
+        $attachment = new UserInstitution();
+        $attachment->setInstitution($user->getInstitution());
+        $attachment->setContext($context);
+        $user->addInstitutionAttachment($attachment);
+        $em->persist($attachment);
     }
 
     #[Route('/mon-compte/supprimer', name: 'app_account_delete', methods: ['POST'])]

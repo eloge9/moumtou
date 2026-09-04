@@ -1,0 +1,44 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block title %}Administration — Erreur — MOUMTOU{% endblock %}
+{% block admin_title %}Détail de l'erreur{% endblock %}
+
+{% block admin_body %}
+<a class="m-lien mb-3 d-inline-block" href="{{ path('admin_monitoring') }}">← Retour au monitoring</a>
+
+<div class="m-carte m-carte--plate p-3">
+  <dl class="row mb-0">
+    <dt class="col-md-3 m-label">Date</dt>
+    <dd class="col-md-9 m-texte">{{ error.createdAt|date('d/m/Y H:i:s') }}</dd>
+
+    <dt class="col-md-3 m-label">Niveau</dt>
+    <dd class="col-md-9 m-texte">
+      {% if error.level == 'critical' %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Critique</span>
+      {% else %}<span class="m-tag">Erreur</span>{% endif %}
+    </dd>
+
+    <dt class="col-md-3 m-label">Référence (request ID)</dt>
+    <dd class="col-md-9 m-texte">{{ error.requestId }}</dd>
+
+    <dt class="col-md-3 m-label">Code HTTP</dt>
+    <dd class="col-md-9 m-texte">{{ error.statusCode }}</dd>
+
+    <dt class="col-md-3 m-label">Méthode</dt>
+    <dd class="col-md-9 m-texte">{{ error.method }}</dd>
+
+    <dt class="col-md-3 m-label">Route</dt>
+    <dd class="col-md-9 m-texte">{{ error.path }}</dd>
+
+    <dt class="col-md-3 m-label">Utilisateur</dt>
+    <dd class="col-md-9 m-texte">{{ error.user ? error.user.fullName ~ ' (#' ~ error.user.id ~ ')' : 'Non connecté' }}</dd>
+
+    <dt class="col-md-3 m-label">Type d'exception</dt>
+    <dd class="col-md-9 m-texte">{{ error.exceptionClass }}</dd>
+
+    <dt class="col-md-3 m-label">Message</dt>
+    <dd class="col-md-9 m-texte">{{ error.message }}</dd>
+  </dl>
+</div>
+
+<p class="m-meta mt-3">La trace complète (technique) n'est jamais affichée ici — elle reste dans les journaux serveur, accessibles uniquement en dehors de l'application web. Voir docs/errors-logs-monitoring.md.</p>
+{% endblock %}

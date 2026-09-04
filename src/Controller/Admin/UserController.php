@@ -8,6 +8,7 @@ use App\Enum\AdminAuditAction;
 use App\Enum\ReportTargetType;
 use App\Enum\UserStatus;
 use App\Repository\VerificationRequestRepository;
+use App\Service\AccountDeletionService;
 use App\Service\AdminAuditLogger;
 use App\Service\SanctionApplier;
 use Doctrine\ORM\EntityManagerInterface;
@@ -136,13 +137,13 @@ class UserController extends AbstractController
 
     /**
      * Attribution/retrait du rôle ROLE_ADMIN (cahier des charges — FONCTIONNALITÉ 9 §37) :
-     * volontairement limité à ce seul rôle, purement additif dans le
-     * système de sécurité actuel (un compte ADMIN ne porte aucun autre
-     * rôle métier — voir AppFixtures). Changer le rôle métier principal
-     * (Talent/Enseignant/Recruteur) impliquerait de créer/retirer des
-     * données dédiées (profil recruteur, rattachements d'établissement…)
-     * qui n'existent pas pour ce parcours et sortent du cadre de cette
-     * fonctionnalité. Action protégée (auto-modification interdite) et
+     * volontairement limité à ce seul rôle, purement additif. Retirer un
+     * rôle métier (Talent/Étudiant/Enseignant/Recruteur) n'est pas proposé
+     * ici : ajouter un rôle passe par un parcours dédié qui collecte les
+     * informations nécessaires (inscription/rôles multiples §6/§12) — le
+     * retirer impliquerait de décider du sort de données dédiées (profil
+     * recruteur, rattachements d'établissement…), hors du cadre de cette
+     * action. Action protégée (auto-modification interdite) et
      * systématiquement journalisée.
      */
     #[Route('/admin/utilisateurs/{id}/role', name: 'admin_users_toggle_admin_role', methods: ['POST'])]
@@ -189,5 +190,64 @@ class UserController extends AbstractController
         $this->addFlash('succes', $isAdmin ? 'Les droits d\'administration ont été retirés.' : 'Les droits d\'administration ont été accordés.');
 
         return $this->redirectToRoute('admin_user_show', ['id' => $id]);
+    }
+
+    /**
+     * Suppression définitive d'un compte (règle 9/10) : action réservée à un
+     * administrateur, protégée par CSRF, confirmation textuelle explicite
+     * ("SUPPRIMER") et interdiction de s'auto-supprimer (§28, même principe
+     * que sanction()/toggleAdminRole() ci-dessus). Anonymise irréversiblement
+     * le compte plutôt qu'une suppression physique — voir
+     * {@see AccountDeletionService} pour l'analyse relation par relation.
+     */
+    #[Route('/admin/utilisateurs/{id}/supprimer-definitivement', name: 'admin_users_delete', methods: ['POST'])]
+    public function delete(int $id, Request $request, EntityManagerInterface $em, AccountDeletionService $deletionService, AdminAuditLogger $auditLogger): Response
+    {
+        $user = $em->getRepository(User::class)->find($id);
+        if (!$user) {
+            throw $this->createNotFoundException();
+        }
+
+        if (!$this->isCsrfTokenValid('supprimer-definitivement-'.$id, $request->request->get('_csrf_token'))) {
+            throw new InvalidCsrfTokenException();
+        }
+
+        if ($this->getUser() === $user) {
+            $this->addFlash('erreur', 'Vous ne pouvez pas supprimer votre propre compte depuis cette interface.');
+
+            return $this->redirectToRoute('admin_user_show', ['id' => $id]);
+        }
+
+        if ('SUPPRIMER' !== trim((string) $request->request->get('confirmation'))) {
+            $this->addFlash('erreur', 'Vous devez taper SUPPRIMER pour confirmer cette action irréversible.');
+
+            return $this->redirectToRoute('admin_user_show', ['id' => $id]);
+        }
+
+        if (UserStatus::SUPPRIME === $user->getStatus()) {
+            $this->addFlash('erreur', 'Ce compte est déjà supprimé.');
+
+            return $this->redirectToRoute('admin_user_show', ['id' => $id]);
+        }
+
+        $fullName = $user->getFullName();
+        $reason = trim((string) $request->request->get('reason'));
+
+        $deletionService->delete($user);
+
+        /** @var User $admin */
+        $admin = $this->getUser();
+        $auditLogger->log(
+            $admin,
+            AdminAuditAction::USER_DELETED,
+            'User',
+            $user->getId(),
+            $fullName,
+            $reason ?: 'Suppression définitive du compte.',
+        );
+
+        $this->addFlash('succes', 'Le compte a été supprimé définitivement.');
+
+        return $this->redirectToRoute('admin_users');
     }
 }

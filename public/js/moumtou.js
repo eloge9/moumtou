@@ -7,6 +7,28 @@
 (function () {
   'use strict';
 
+  /* ------------------------------------------------- Cartes de choix (m-choix) -- */
+  // Bascule visuelle "sélectionné" (bordure/coche via .is-active) pour toute
+  // carte [data-choix] enveloppant un input radio — utilisé par le choix de
+  // profil à l'inscription et par le choix de type de projet (étapes de
+  // publication ci-dessous), sans dépendre d'un formulaire particulier
+  // (cahier — correction du composant : la sélection doit être visible
+  // partout où .m-choix est utilisé, pas seulement dans l'assistant de
+  // publication).
+  function initChoixCards() {
+    document.querySelectorAll('[data-choix]').forEach(function (choix) {
+      if (choix.hasAttribute('data-choix-interdit')) return;
+      var groupe = choix.closest('form') || document;
+      var radio = choix.querySelector('input[type="radio"]');
+      if (radio && radio.checked) choix.classList.add('is-active');
+      choix.addEventListener('click', function () {
+        groupe.querySelectorAll('[data-choix]').forEach(function (c) { c.classList.remove('is-active'); });
+        choix.classList.add('is-active');
+        if (radio) radio.checked = true;
+      });
+    });
+  }
+
   /* -------------------------------------------------- Menu de navigation -- */
   function initNavigation() {
     var toggle = document.querySelector('[data-nav-toggle]');
@@ -139,18 +161,6 @@
       formulaire.querySelectorAll('[data-etape-precedent]').forEach(function (b) { b.hidden = courante === 0; });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    // Choix du type de projet (chaque carte peut envelopper un vrai input radio)
-    formulaire.querySelectorAll('[data-choix]').forEach(function (choix) {
-      if (choix.hasAttribute('data-choix-interdit')) return;
-      var radio = choix.querySelector('input[type="radio"]');
-      if (radio && radio.checked) choix.classList.add('is-active');
-      choix.addEventListener('click', function () {
-        formulaire.querySelectorAll('[data-choix]').forEach(function (c) { c.classList.remove('is-active'); });
-        choix.classList.add('is-active');
-        if (radio) radio.checked = true;
-      });
-    });
 
     formulaire.querySelectorAll('[data-etape-suivant]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -486,10 +496,33 @@
     });
   }
 
+  /* --------------------------------- Confirmation forte (suppression admin) -- */
+  // Exige la saisie exacte de "SUPPRIMER" avant de laisser passer le
+  // formulaire (cahier — suppression définitive d'un compte : confirmation
+  // forte, jamais un simple clic). Le serveur revalide de toute façon cette
+  // même condition — cette vérification n'est qu'un confort d'interface.
+  function initConfirmationSuppression() {
+    document.querySelectorAll('[data-confirmation-suppression]').forEach(function (formulaire) {
+      formulaire.addEventListener('submit', function (e) {
+        var champ = formulaire.querySelector('#confirmation-suppression');
+        if (champ && champ.value.trim() !== 'SUPPRIMER') {
+          e.preventDefault();
+          champ.focus();
+          return;
+        }
+        if (!confirm('Supprimer définitivement ce compte ? Cette action est irréversible.')) {
+          e.preventDefault();
+        }
+      });
+    });
+  }
+
   /* ------------------------------------------------------------ Amorçage -- */
   document.addEventListener('DOMContentLoaded', function () {
     initNavigation();
     initFiltres();
+    initChoixCards();
+    initConfirmationSuppression();
     initEtapes();
     initTags();
     initNotes();

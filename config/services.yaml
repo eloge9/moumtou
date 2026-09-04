@@ -87,9 +87,29 @@ services:
         arguments:
             $backupPath: '%app.backup_path%'
 
+    App\Monolog\RequestIdProcessor:
+        tags:
+            - { name: monolog.processor }
+
     App\Service\ReferenceDataProvider:
         arguments:
             $cache: '@cache.reference_data'
+
+    App\Service\CriticalErrorAlerter:
+        arguments:
+            $cache: '@cache.error_alerts'
+
+    App\EventListener\ErrorPageListener:
+        arguments:
+            $debug: '%kernel.debug%'
+
+    App\Controller\HealthController:
+        arguments:
+            $projectUploadsDirectory: '%app.project_uploads_directory%'
+
+    App\Controller\TestFixture\TestErrorController:
+        arguments:
+            $environment: '%kernel.environment%'
 
     App\Command\BackupDatabaseCommand:
         arguments:

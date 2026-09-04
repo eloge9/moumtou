@@ -93,7 +93,7 @@
           <div class="col-md-6">
             {{ form_label(form.institution, null, {label_attr: {class: 'm-label'}}) }}
             {{ form_widget(form.institution, {attr: {class: 'm-select'}}) }}
-            <button class="m-btn m-btn--lien mt-1" type="button" data-modale-ouvrir="modale-demande-etablissement" style="padding:0;font-size:13px">Mon établissement n'est pas dans la liste</button>
+            <button class="m-btn m-btn--secondaire m-btn--sm mt-2" type="button" data-modale-ouvrir="modale-demande-etablissement">Mon établissement n'est pas dans la liste</button>
           </div>
           <div class="col-md-6"></div>
           <div class="col-md-4">
@@ -175,6 +175,23 @@
         </div>
       </div>
     {% endif %}
+
+    <div class="m-carte m-carte--plate p-4 mt-4">
+      <h2 style="font-size:18px">Mes rôles</h2>
+      <div class="d-flex flex-wrap gap-2 mt-2 mb-3">
+        <span class="m-tag m-tag--bleu">Talent</span>
+        {% if 'ROLE_STUDENT' in user.roles %}<span class="m-tag m-tag--bleu">Étudiant</span>{% endif %}
+        {% if 'ROLE_TEACHER' in user.roles %}<span class="m-tag m-tag--bleu">Enseignant</span>{% endif %}
+        {% if 'ROLE_RECRUITER' in user.roles %}<span class="m-tag m-tag--bleu">Recruteur</span>{% endif %}
+      </div>
+      <p class="m-meta mb-2">Ajouter un rôle :</p>
+      <div class="d-flex flex-wrap gap-2">
+        {% if 'ROLE_STUDENT' not in user.roles %}<a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('app_become_student') }}">Devenir étudiant</a>{% endif %}
+        {% if 'ROLE_TEACHER' not in user.roles %}<a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('app_become_teacher') }}">Devenir enseignant</a>{% endif %}
+        {% if 'ROLE_RECRUITER' not in user.roles %}<a class="m-btn m-btn--secondaire m-btn--sm" href="{{ path('app_recruiter_profile_edit') }}">Devenir recruteur</a>{% endif %}
+        {% if 'ROLE_STUDENT' in user.roles and 'ROLE_TEACHER' in user.roles and 'ROLE_RECRUITER' in user.roles %}<span class="m-meta">Tous les rôles disponibles sont déjà actifs.</span>{% endif %}
+      </div>
+    </div>
 
     <div class="m-carte m-carte--plate p-4 mt-4">
       <h2 style="font-size:18px">Changer mon mot de passe</h2>

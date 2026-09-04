@@ -1,0 +1,125 @@
+{% extends 'admin/_layout.html.twig' %}
+
+{% block title %}Administration — Monitoring — MOUMTOU{% endblock %}
+{% block admin_title %}Monitoring{% endblock %}
+
+{% block admin_body %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="m-carte m-carte--plate p-3 h-100">
+      <p class="m-surtitre mb-2">État des services</p>
+      <p class="m-texte mb-1">{{ databaseOk ? '✓' : '✖️' }} Base de données</p>
+      <p class="m-texte mb-0">{{ databaseOk ? '✓' : '✖️' }} Application</p>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="m-carte m-carte--plate p-3 h-100">
+      <p class="m-surtitre mb-2">Erreurs</p>
+      <p class="m-texte mb-1">Aujourd'hui : {{ summary.today }}</p>
+      <p class="m-texte mb-1">24 h : {{ summary.last24h }}</p>
+      <p class="m-texte mb-0">7 j : {{ summary.last7d }}</p>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="m-carte m-carte--plate p-3 h-100">
+      <p class="m-surtitre mb-2">Erreurs critiques (24 h)</p>
+      <p class="m-texte mb-0" style="{{ summary.critical24h > 0 ? 'color:#B3261E' : '' }}">{{ summary.critical24h }}</p>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="m-carte m-carte--plate p-3 h-100">
+      <p class="m-surtitre mb-2">Endpoint le plus problématique (24 h)</p>
+      {% if mostProblematicPaths|length > 0 %}
+        <p class="m-meta mb-0">{{ mostProblematicPaths[0].path }} ({{ mostProblematicPaths[0].total }})</p>
+      {% else %}
+        <p class="m-meta mb-0">Aucune erreur.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="m-carte m-carte--plate p-3 h-100">
+      <p class="m-surtitre mb-2">Répartition par code HTTP (24 h)</p>
+      {% if statusCodeBreakdown|length > 0 %}
+        <ul class="m-liste mb-0">
+          {% for row in statusCodeBreakdown %}
+            <li class="m-texte">{{ row.statusCode }} — {{ row.total }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="m-meta mb-0">Aucune erreur enregistrée sur les dernières 24 heures.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="m-carte m-carte--plate p-3 h-100">
+      <p class="m-surtitre mb-2">Endpoints les plus problématiques (24 h)</p>
+      {% if mostProblematicPaths|length > 0 %}
+        <ul class="m-liste mb-0">
+          {% for row in mostProblematicPaths %}
+            <li class="m-texte">{{ row.path }} — {{ row.total }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="m-meta mb-0">Aucune erreur enregistrée sur les dernières 24 heures.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="m-carte m-carte--plate p-3 mb-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="m-label">Code HTTP</label>
+      <input class="m-input" type="number" name="status_code" value="{{ statusCode }}">
+    </div>
+    <div class="col-md-3">
+      <label class="m-label">Niveau</label>
+      <select class="m-select" name="level">
+        <option value="">Tous</option>
+        <option value="error" {{ level == 'error' ? 'selected' }}>Erreur</option>
+        <option value="critical" {{ level == 'critical' ? 'selected' }}>Critique</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="m-btn m-btn--primaire" type="submit">Filtrer</button>
+    </div>
+  </form>
+</div>
+
+<div class="m-carte m-carte--plate">
+  <div class="table-responsive">
+    <table class="m-table">
+      <thead><tr><th>Date</th><th>Niveau</th><th>Code</th><th>Méthode</th><th>Route</th><th>Référence</th><th></th></tr></thead>
+      <tbody>
+        {% for error in errors %}
+          <tr>
+            <td class="m-meta">{{ error.createdAt|date('d/m/Y H:i:s') }}</td>
+            <td>
+              {% if error.level == 'critical' %}<span class="m-tag" style="background:#FDECEA;color:#B3261E">Critique</span>
+              {% else %}<span class="m-tag">Erreur</span>{% endif %}
+            </td>
+            <td class="m-texte">{{ error.statusCode }}</td>
+            <td class="m-meta">{{ error.method }}</td>
+            <td class="m-texte">{{ error.path }}</td>
+            <td class="m-meta">{{ error.requestId }}</td>
+            <td><a class="m-btn m-btn--sm m-btn--secondaire" href="{{ path('admin_monitoring_show', {id: error.id}) }}">Détail</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="m-meta">Aucune erreur ne correspond à ces filtres.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pageCount > 1 %}
+  <nav class="d-flex justify-content-center gap-2 mt-3">
+    {% for p in 1..pageCount %}
+      <a class="m-btn m-btn--sm {{ p == page ? 'm-btn--primaire' : 'm-btn--secondaire' }}" href="{{ path('admin_monitoring', {status_code: statusCode, level: level, page: p}) }}">{{ p }}</a>
+    {% endfor %}
+  </nav>
+{% endif %}
+{% endblock %}

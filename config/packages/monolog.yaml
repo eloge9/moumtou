@@ -5,9 +5,16 @@ monolog:
 when@dev:
     monolog:
         handlers:
+            # Rotation quotidienne (cahier des charges — FONCTIONNALITÉ 18
+            # §30/§31) : un fichier par jour, 14 jours conservés. En
+            # production, le handler écrit sur stderr (voir when@prod
+            # ci-dessous) — la rotation y est alors la responsabilité du
+            # superviseur/collecteur de logs externe (convention standard
+            # "12-factor"), volontairement laissée inchangée.
             main:
-                type: stream
+                type: rotating_file
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
+                max_files: 14
                 level: debug
                 channels: ["!event"]
             console:
